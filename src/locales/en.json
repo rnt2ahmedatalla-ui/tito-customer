@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "tito",
-    "tagline": "Premium barbershop — book your slot easily",
+    "tagline": "A refined cut — from walk-in to walk-out",
     "title": "tito — Book your slot"
   },
   "nav": {
@@ -11,21 +11,31 @@
     "profile": "Profile"
   },
   "home": {
+    "heroHeadline": "Sharp cut. Locked-in time.",
+    "heroSupport": "Book online in minutes — premium care, a fixed slot, no waiting around.",
     "heroCta": "Book your slot",
     "nextSlot": "Next available",
     "nextSlotToday": "Today {{time}}",
     "nextSlotTomorrow": "Tomorrow {{time}}",
     "nextSlotDate": "{{date}} {{time}}",
     "noSlots": "No slots available right now",
-    "services": "Our services",
-    "howItWorks": "How it works",
+    "servicesEyebrow": "Menu",
+    "services": "tito services",
+    "servicesSupport": "Cuts, beards, and finishing details that keep you looking sharp.",
+    "howEyebrow": "Booking",
+    "howItWorks": "Three steps only",
+    "howSupport": "From your phone to the chair — everything stays clear.",
     "step1": "Choose a service",
     "step1Desc": "Browse services and prices, pick what suits you",
     "step2": "Pick a time",
     "step2Desc": "Select the day and time that works for you",
     "step3": "Confirm booking",
     "step3Desc": "Pay online or at the shop and wait for confirmation",
+    "hoursEyebrow": "Schedule",
     "hours": "Opening hours",
+    "hoursSupport": "Hours in local time — pick the day that works for you.",
+    "visitTitle": "Visit or message us",
+    "visitSupport": "Need help with a booking? We’re on WhatsApp.",
     "closed": "Closed",
     "today": "Today",
     "whatsapp": "WhatsApp",
