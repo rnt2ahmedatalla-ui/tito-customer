@@ -12,11 +12,15 @@ PATTERNS=(
 )
 
 FAILED=0
+SELF="./scripts/check-secrets.sh"
 
 while IFS= read -r -d '' file; do
   case "$file" in
     */node_modules/*|*/dist/*|*/.git/*|*/package-lock.json) continue ;;
   esac
+  if [ "$file" = "$SELF" ] || [ "$file" = "./scripts/check-secrets.sh" ]; then
+    continue
+  fi
   for pattern in "${PATTERNS[@]}"; do
     if grep -qE "$pattern" "$file" 2>/dev/null; then
       echo "SECRET CHECK FAILED: pattern '$pattern' found in $file"
