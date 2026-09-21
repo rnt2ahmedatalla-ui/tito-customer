@@ -24,13 +24,18 @@ function withSuspense(Component: React.ComponentType) {
   );
 }
 
-const router = createBrowserRouter([
-  { path: '/', element: withSuspense(HomePage) },
-  { path: '/book', element: withSuspense(BookingPage) },
-  { path: '/bookings', element: withSuspense(BookingsPage) },
-  { path: '/profile', element: withSuspense(ProfilePage) },
-  { path: '*', element: withSuspense(NotFoundPage) },
-]);
+const basename = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || undefined;
+
+const router = createBrowserRouter(
+  [
+    { path: '/', element: withSuspense(HomePage) },
+    { path: '/book', element: withSuspense(BookingPage) },
+    { path: '/bookings', element: withSuspense(BookingsPage) },
+    { path: '/profile', element: withSuspense(ProfilePage) },
+    { path: '*', element: withSuspense(NotFoundPage) },
+  ],
+  { basename },
+);
 
 export function AppRouter() {
   return <RouterProvider router={router} />;
