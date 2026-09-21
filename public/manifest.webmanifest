@@ -1,0 +1,31 @@
+{
+  "name": "tito — احجز دورك",
+  "short_name": "tito",
+  "description": "احجز دورك في tito — صالون حلاقة فاخر",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF6F0",
+  "theme_color": "#341A0E",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/tito-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/tito-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/tito-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
