@@ -10,10 +10,8 @@ interface LogoProps {
 export function Logo({ variant = 'dark', mark = false, height = 32, className }: LogoProps) {
   let src: string;
   if (mark) {
-    src =
-      variant === 'dark'
-        ? '/brand/tito-icon-gold-on-dark-512.png'
-        : '/brand/tito-icon-512.png';
+    // Always use the real circular emblem (gold-on-dark stub was a 1×1 green pixel)
+    src = '/brand/tito-icon-512.png';
   } else if (variant === 'dark') {
     src = '/brand/tito-logo-horizontal-gold-on-dark-1200.png';
   } else {

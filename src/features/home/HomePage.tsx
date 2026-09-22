@@ -58,16 +58,6 @@ export default function HomePage() {
               'linear-gradient(180deg, rgba(52,26,14,0.2) 0%, rgba(52,26,14,0.55) 45%, #341A0E 100%)',
           }}
         />
-        <div
-          className="pointer-events-none absolute -end-16 top-1/4 size-[min(70vw,420px)] opacity-[0.08] animate-fade"
-          aria-hidden
-          style={{
-            backgroundImage: 'url(/brand/tito-icon-512.png)',
-            backgroundSize: 'contain',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center',
-          }}
-        />
 
         <div className="relative mx-auto w-full max-w-5xl px-5 pb-16 pt-24 sm:pb-24 sm:pt-28">
           <Logo variant="dark" mark height={72} className="animate-rise" />
