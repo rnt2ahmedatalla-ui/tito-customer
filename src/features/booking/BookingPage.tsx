@@ -168,18 +168,11 @@ export default function BookingPage() {
     else if (action === 'book') void handleConfirmBooking(false);
   };
 
-  const handlePaymentSubmit = async (data: {
-    method: PaymentMethod;
-    transactionRef: string;
-    proofBlob: Blob | null;
-  }) => {
+  const handlePaymentMarkedSent = async (data: { method: PaymentMethod }) => {
     if (!bookingId || !user) return;
     await submitPayment.mutateAsync({
       bookingId,
       method: data.method,
-      transactionRef: data.transactionRef,
-      proofBlob: data.proofBlob,
-      userId: user.id,
     });
     updateParams({ step: 'success' });
   };
@@ -330,7 +323,14 @@ export default function BookingPage() {
               <PaymentPanel
                 amount={booking.data.price_egp}
                 settings={settings.data}
-                onSubmit={handlePaymentSubmit}
+                bookingId={booking.data.id}
+                serviceName={
+                  i18n.language === 'ar'
+                    ? selectedService?.name_ar ?? booking.data.service_name_ar
+                    : selectedService?.name_en ?? booking.data.service_name_en
+                }
+                whenLabel={`${formatCairoDate(booking.data.start_at, i18n.language)} · ${formatCairoTime(booking.data.start_at, i18n.language)}`}
+                onMarkedSent={handlePaymentMarkedSent}
                 loading={submitPayment.isPending}
               />
             </div>

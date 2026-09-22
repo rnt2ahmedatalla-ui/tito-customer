@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { extractErrorCode, getErrorReferenceId, mapErrorToI18nKey } from '@/lib/errors';
 import { canAttempt, recordAttempt } from '@/lib/rate-limit';
-import { buildProofPath } from '@/lib/image';
 import type { Booking, PaymentMethod, Service } from '@/types/database';
 
 export type BookingDetail = Booking & { service: Service | null };
@@ -81,38 +80,28 @@ export function useSubmitPayment() {
     mutationFn: async ({
       bookingId,
       method,
-      transactionRef,
-      proofBlob,
-      userId,
     }: {
       bookingId: string;
       method: PaymentMethod;
-      transactionRef: string;
-      proofBlob: Blob | null;
-      userId: string;
+      /** @deprecated proof upload removed — WhatsApp only */
+      transactionRef?: string;
+      proofBlob?: Blob | null;
+      userId?: string;
     }) => {
       if (!canAttempt('submit_payment')) throw new Error('RATE_LIMITED');
       recordAttempt('submit_payment');
 
-      let proofPath = '';
-      if (proofBlob) {
-        proofPath = buildProofPath(userId, bookingId);
-        const { error: uploadError } = await supabase.storage
-          .from('payment-proofs')
-          .upload(proofPath, proofBlob, { contentType: 'image/jpeg', upsert: true });
-        if (uploadError) throw uploadError;
-      }
-
       const { error } = await supabase.rpc('submit_payment', {
         p_booking_id: bookingId,
         p_method: method,
-        p_transaction_ref: transactionRef,
-        p_proof_path: proofPath,
+        p_transaction_ref: 'whatsapp',
+        p_proof_path: '',
       });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['booking'] });
     },
     onError: (error) => {
       if (error instanceof Error && error.message === 'RATE_LIMITED') {
