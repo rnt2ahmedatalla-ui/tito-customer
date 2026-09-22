@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Sheet } from '@/components/ui/Sheet';
@@ -20,12 +20,26 @@ interface ProfileModalProps {
   initialPhone?: string;
 }
 
-export function ProfileModal({ open, onClose, onComplete, initialName = '', initialPhone = '' }: ProfileModalProps) {
+export function ProfileModal({
+  open,
+  onClose,
+  onComplete,
+  initialName = '',
+  initialPhone = '',
+}: ProfileModalProps) {
   const { t } = useTranslation();
   const [fullName, setFullName] = useState(initialName);
   const [phone, setPhone] = useState(initialPhone);
   const [errors, setErrors] = useState<{ fullName?: string; phone?: string }>({});
   const updateProfile = useUpdateProfile();
+
+  useEffect(() => {
+    if (open) {
+      setFullName(initialName);
+      setPhone(initialPhone);
+      setErrors({});
+    }
+  }, [open, initialName, initialPhone]);
 
   const handleSave = async () => {
     const result = profileSchema.safeParse({ fullName, phone });
@@ -68,7 +82,7 @@ export function ProfileModal({ open, onClose, onComplete, initialName = '', init
           className="font-latin"
           inputMode="numeric"
         />
-        <Button fullWidth onClick={handleSave} loading={updateProfile.isPending}>
+        <Button fullWidth onClick={() => void handleSave()} loading={updateProfile.isPending}>
           {t('profile.save')}
         </Button>
       </div>
