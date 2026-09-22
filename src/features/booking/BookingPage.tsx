@@ -99,10 +99,17 @@ export default function BookingPage() {
 
   const handleConfirmBooking = async (payAtShop = false) => {
     if (!user) {
-      setPendingAction(payAtShop ? 'pay_at_shop' : 'book');
+      const action = payAtShop ? 'pay_at_shop' : 'book';
+      setPendingAction(action);
+      try {
+        sessionStorage.setItem('tito_pending_book', action);
+      } catch {
+        /* ignore */
+      }
       await signIn();
       return;
     }
+    if (profile.isLoading || profile.isFetching) return;
     if (!isProfileComplete(profile.data)) {
       setPendingAction(payAtShop ? 'pay_at_shop' : 'book');
       setShowProfileModal(true);
@@ -116,6 +123,12 @@ export default function BookingPage() {
         startAt: slot,
         payAtShop,
       });
+      try {
+        sessionStorage.removeItem('tito_pending_book');
+      } catch {
+        /* ignore */
+      }
+      setPendingAction(null);
       if (payAtShop) {
         updateParams({ step: 'success', booking: id, service: null, date: null, slot: null });
       } else {
@@ -128,10 +141,32 @@ export default function BookingPage() {
     }
   };
 
+  // After Google OAuth return: restore pending book intent and open profile gate if needed
+  useEffect(() => {
+    if (authLoading || !user || profile.isLoading) return;
+    let pending: string | null = null;
+    try {
+      pending = sessionStorage.getItem('tito_pending_book');
+    } catch {
+      pending = null;
+    }
+    if (!pending) return;
+    setPendingAction(pending as 'book' | 'pay_at_shop');
+    if (!isProfileComplete(profile.data)) {
+      setShowProfileModal(true);
+    }
+  }, [authLoading, user, profile.isLoading, profile.data]);
+
   const handleProfileComplete = () => {
-    if (pendingAction === 'pay_at_shop') handleConfirmBooking(true);
-    else if (pendingAction === 'book') handleConfirmBooking(false);
+    const action = pendingAction;
     setPendingAction(null);
+    try {
+      sessionStorage.removeItem('tito_pending_book');
+    } catch {
+      /* ignore */
+    }
+    if (action === 'pay_at_shop') void handleConfirmBooking(true);
+    else if (action === 'book') void handleConfirmBooking(false);
   };
 
   const handlePaymentSubmit = async (data: {

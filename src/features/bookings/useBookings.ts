@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { extractErrorCode, getErrorReferenceId, mapErrorToI18nKey } from '@/lib/errors';
 import { canAttempt, recordAttempt } from '@/lib/rate-limit';
-import type { BookingWithDetails } from '@/types/database';
+import type { BookingWithDetails, Payment } from '@/types/database';
 import { useAuth } from '@/features/profile/useAuth';
 
 export function useBookings() {
@@ -19,16 +19,19 @@ export function useBookings() {
       if (!user) return [];
       const { data, error } = await supabase
         .from('bookings')
-        .select('*, service:services(*), payments(*)')
+        .select('*, service:services(*), payment:payments(*)')
         .eq('user_id', user.id)
         .order('start_at', { ascending: false });
       if (error) throw error;
 
-      return (data ?? []).map((row) => ({
-        ...row,
-        service: row.service as BookingWithDetails['service'],
-        payment: Array.isArray(row.payments) ? row.payments[0] ?? null : row.payments ?? null,
-      }));
+      return (data ?? []).map((row) => {
+        const paymentRel = (row as { payment?: Payment | Payment[] | null }).payment;
+        return {
+          ...row,
+          service: row.service as BookingWithDetails['service'],
+          payment: Array.isArray(paymentRel) ? paymentRel[0] ?? null : paymentRel ?? null,
+        };
+      });
     },
     enabled: !!user,
     staleTime: 0,

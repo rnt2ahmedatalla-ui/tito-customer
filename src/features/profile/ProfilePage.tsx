@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { PageShell } from '@/components/layout/PageShell';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuth, useProfile, useSignIn, useSignOut } from './useAuth';
 import { useUpdateProfile } from './useProfile';
 import { setLanguage } from '@/i18n';
@@ -41,12 +42,22 @@ export default function ProfilePage() {
     ? buildWhatsAppUrl(settings.data.shop_whatsapp)
     : null;
 
-  if (!user && !authLoading) {
+  if (authLoading) {
+    return (
+      <PageShell>
+        <div className="flex flex-col items-center gap-4 py-16">
+          <Skeleton className="h-8 w-48" />
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (!user) {
     return (
       <PageShell>
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <p className="text-ink">{t('booking.loginRequired')}</p>
-          <Button onClick={() => signIn()}>{t('booking.signInGoogle')}</Button>
+          <Button onClick={() => void signIn()}>{t('booking.signInGoogle')}</Button>
         </div>
       </PageShell>
     );

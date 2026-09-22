@@ -44,12 +44,24 @@ export default function BookingsPage() {
 
   const list = tab === 'upcoming' ? upcoming : past;
 
-  if (!user && !authLoading) {
+  if (authLoading) {
+    return (
+      <PageShell>
+        <div className="mt-6 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (!user) {
     return (
       <PageShell>
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <p className="text-ink">{t('booking.loginRequired')}</p>
-          <Button onClick={() => signIn()}>{t('booking.signInGoogle')}</Button>
+          <Button onClick={() => void signIn()}>{t('booking.signInGoogle')}</Button>
         </div>
       </PageShell>
     );

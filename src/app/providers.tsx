@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useEffect } from 'react';
 import { getSupabaseOrigin } from '@/lib/supabase';
+import { AuthProvider } from '@/features/profile/useAuth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,7 +26,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     document.head.appendChild(link);
 
     if ('serviceWorker' in navigator && import.meta.env.PROD) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {
+      const swUrl = `${import.meta.env.BASE_URL}sw.js`.replace(/\/{2,}/g, '/');
+      navigator.serviceWorker.register(swUrl).catch(() => {
         /* SW registration optional */
       });
     }
@@ -33,16 +35,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          classNames: {
-            toast: 'font-arabic bg-espresso text-cream border border-bark',
-          },
-        }}
-        richColors
-      />
+      <AuthProvider>
+        {children}
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            classNames: {
+              toast: 'font-arabic bg-espresso text-cream border border-bark',
+            },
+          }}
+          richColors
+        />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
