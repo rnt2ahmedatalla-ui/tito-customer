@@ -70,7 +70,8 @@ export default function HomePage() {
         />
 
         <div className="relative mx-auto w-full max-w-5xl px-5 pb-16 pt-24 sm:pb-24 sm:pt-28">
-          <Logo variant="dark" height={56} className="animate-rise sm:h-16" />
+          <Logo variant="dark" mark height={72} className="animate-rise" />
+          <p className="mt-4 text-2xl font-bold tracking-wide text-gold font-latin animate-rise">tito</p>
 
           <h1 className="mt-8 max-w-xl text-balance text-4xl font-bold leading-[1.15] tracking-tight text-cream animate-rise-delay-1 sm:text-5xl md:text-6xl">
             {t('home.heroHeadline')}
@@ -259,8 +260,8 @@ export default function HomePage() {
       </section>
 
       <footer className="bg-espresso py-8 text-center text-sm text-cream/40">
-        <Logo variant="dark" height={24} className="mx-auto opacity-80" />
-        <p className="mt-3 font-latin">tito</p>
+        <Logo variant="dark" mark height={40} className="mx-auto opacity-90" />
+        <p className="mt-3 font-latin tracking-wide">tito</p>
       </footer>
     </PageShell>
   );
