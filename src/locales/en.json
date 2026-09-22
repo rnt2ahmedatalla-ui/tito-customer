@@ -88,7 +88,7 @@
     "paymentMethod": "Payment method",
     "successTitle": "Booking placed!",
     "successDesc": "Waiting for the shop to confirm after checking WhatsApp",
-    "reminderHint": "After confirmation, the shop will WhatsApp you a reminder before your slot.",
+    "reminderHint": "Your booking confirms automatically after you mark the transfer sent, and you’ll get a WhatsApp reminder about an hour before.",
     "viewBookings": "My bookings",
     "contactShop": "WhatsApp the shop"
   },
