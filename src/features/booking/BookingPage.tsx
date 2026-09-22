@@ -18,7 +18,6 @@ import { useSignIn } from '@/features/profile/useAuth';
 import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking } from './useBooking';
 import { getDateRange, formatCairoDate, formatCairoTime, isExpired } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
-import { downloadIcs } from '@/lib/ics';
 import { buildWhatsAppUrl } from '@/lib/urls';
 import { extractErrorCode } from '@/lib/errors';
 import type { PaymentMethod } from '@/types/database';
@@ -191,9 +190,19 @@ export default function BookingPage() {
     return true;
   };
 
-  const whatsappUrl = settings.data?.shop_whatsapp
-    ? buildWhatsAppUrl(settings.data.shop_whatsapp)
-    : null;
+  const whatsappUrl = (() => {
+    if (!settings.data?.shop_whatsapp) return null;
+    if (step === 'success' && booking.data && selectedService) {
+      const serviceName =
+        i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en;
+      const msg =
+        i18n.language === 'ar'
+          ? `مرحباً tito 👋\nحجزت ${serviceName}\n${formatCairoDate(booking.data.start_at, 'ar')}\n${formatCairoTime(booking.data.start_at, 'ar')}\n${formatEGP(booking.data.price_egp)}`
+          : `Hi tito 👋\nI booked ${serviceName}\n${formatCairoDate(booking.data.start_at, 'en')}\n${formatCairoTime(booking.data.start_at, 'en')}\n${formatEGP(booking.data.price_egp)}`;
+      return buildWhatsAppUrl(settings.data.shop_whatsapp, msg);
+    }
+    return buildWhatsAppUrl(settings.data.shop_whatsapp);
+  })();
 
   return (
     <PageShell>
@@ -336,6 +345,7 @@ export default function BookingPage() {
           <div className="relative">
             <h1 className="text-2xl font-bold">{t('booking.successTitle')}</h1>
             <p className="mt-2 text-cream/80">{t('booking.successDesc')}</p>
+            <p className="mt-3 text-sm text-gold-soft">{t('booking.reminderHint')}</p>
             {booking.data && selectedService ? (
               <div className="mt-6 space-y-2 text-sm font-latin">
                 <p>{i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en}</p>
@@ -345,26 +355,11 @@ export default function BookingPage() {
               </div>
             ) : null}
             <div className="mt-8 flex flex-col gap-3">
-              {booking.data ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    const b = booking.data!;
-                    downloadIcs({
-                      title: `tito — ${selectedService?.name_en ?? 'Booking'}`,
-                      description: t('booking.successDesc'),
-                      location: settings.data?.shop_name ?? 'tito',
-                      startAtUtc: b.start_at,
-                      endAtUtc: b.end_at,
-                    });
-                  }}
-                >
-                  {t('booking.addToCalendar')}
-                </Button>
-              ) : null}
               {whatsappUrl ? (
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                  <Button variant="secondary" fullWidth>{t('booking.contactShop')}</Button>
+                  <Button variant="secondary" fullWidth>
+                    {t('booking.contactShop')}
+                  </Button>
                 </a>
               ) : null}
               <Link to="/bookings">

@@ -87,9 +87,9 @@
     "submitPayment": "Submit proof",
     "successTitle": "Booking placed!",
     "successDesc": "Waiting for shop confirmation",
-    "addToCalendar": "Add to calendar",
+    "reminderHint": "After confirmation, the shop will WhatsApp you a reminder before your slot.",
     "viewBookings": "My bookings",
-    "contactShop": "Contact shop"
+    "contactShop": "WhatsApp the shop"
   },
   "bookings": {
     "title": "My bookings",

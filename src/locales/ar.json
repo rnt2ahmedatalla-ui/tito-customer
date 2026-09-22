@@ -87,9 +87,9 @@
     "submitPayment": "ابعت الإثبات",
     "successTitle": "تم الحجز!",
     "successDesc": "في انتظار تأكيد صاحب المحل",
-    "addToCalendar": "أضف للتقويم",
+    "reminderHint": "بعد التأكيد، المحل هيبعتلك تذكير على الواتساب قبل معادك.",
     "viewBookings": "حجوزاتي",
-    "contactShop": "تواصل مع المحل"
+    "contactShop": "تواصل مع المحل على واتساب"
   },
   "bookings": {
     "title": "حجوزاتي",
