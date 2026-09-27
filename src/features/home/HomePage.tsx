@@ -59,11 +59,11 @@ export default function HomePage() {
           }}
         />
 
-        <div className="relative mx-auto w-full max-w-5xl px-5 pb-16 pt-24 sm:pb-24 sm:pt-28">
-          <Logo variant="dark" mark height={72} className="animate-rise" />
-          <p className="mt-4 text-2xl font-bold tracking-wide text-gold font-latin animate-rise">tito</p>
+        <div className="relative mx-auto w-full max-w-5xl px-4 pb-24 pt-16 sm:px-5 sm:pb-24 sm:pt-28">
+          <Logo variant="dark" mark height={56} className="animate-rise sm:!h-[72px]" />
+          <p className="mt-3 text-xl font-bold tracking-wide text-gold font-latin animate-rise sm:mt-4 sm:text-2xl">tito</p>
 
-          <h1 className="mt-8 max-w-xl text-balance text-4xl font-bold leading-[1.15] tracking-tight text-cream animate-rise-delay-1 sm:text-5xl md:text-6xl">
+          <h1 className="mt-6 max-w-xl text-balance text-3xl font-bold leading-[1.2] tracking-tight text-cream animate-rise-delay-1 sm:mt-8 sm:text-5xl md:text-6xl">
             {t('home.heroHeadline')}
           </h1>
 
@@ -71,9 +71,9 @@ export default function HomePage() {
             {t('home.heroSupport')}
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center gap-3 animate-rise-delay-2">
-            <Link to="/book">
-              <Button size="lg" className="min-w-[180px] shadow-warm-raised">
+          <div className="mt-8 flex w-full flex-col gap-3 animate-rise-delay-2 sm:mt-10 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+            <Link to="/book" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full shadow-warm-raised sm:min-w-[180px]">
                 {t('home.heroCta')}
               </Button>
             </Link>
@@ -82,7 +82,7 @@ export default function HomePage() {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-btn border border-cream/25 px-6 text-lg font-semibold text-cream transition-colors duration-brand hover:bg-cream/10 font-latin"
+                className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-btn border border-cream/25 px-6 text-base font-semibold text-cream transition-colors duration-brand hover:bg-cream/10 font-latin sm:w-auto sm:text-lg"
               >
                 <MessageCircle className="size-5" aria-hidden />
                 {t('home.whatsapp')}
@@ -195,18 +195,18 @@ export default function HomePage() {
                 <div
                   key={wh.id}
                   className={cn(
-                    'flex items-center justify-between px-1 py-4 transition-colors',
+                    'flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 py-4 transition-colors',
                     'border-b border-default last:border-0',
                     isToday && 'bg-gold/10',
                   )}
                 >
-                  <span className={cn('font-medium text-espresso', isToday && 'text-bark')}>
+                  <span className={cn('min-w-0 font-medium text-espresso', isToday && 'text-bark')}>
                     {dayName}
                     {isToday ? (
                       <span className="ms-2 text-sm text-gold">{t('home.today')}</span>
                     ) : null}
                   </span>
-                  <span className="text-sm text-ink font-latin" dir="ltr">
+                  <span className="shrink-0 text-sm text-ink font-latin" dir="ltr">
                     {wh.is_closed
                       ? t('home.closed')
                       : `${wh.open_time.slice(0, 5)} – ${wh.close_time.slice(0, 5)}`}
@@ -225,25 +225,25 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold text-espresso">{t('home.visitTitle')}</h2>
             <p className="mt-2 text-ink">{t('home.visitSupport')}</p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             {whatsappUrl ? (
-              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="secondary" size="lg">
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto">
                   <MessageCircle className="size-4" aria-hidden />
                   {t('home.whatsapp')}
                 </Button>
               </a>
             ) : null}
             {locationUrl ? (
-              <a href={locationUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="secondary" size="lg">
+              <a href={locationUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto">
                   <MapPin className="size-4" aria-hidden />
                   {t('home.location')}
                 </Button>
               </a>
             ) : null}
-            <Link to="/book">
-              <Button size="lg">{t('home.heroCta')}</Button>
+            <Link to="/book" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto">{t('home.heroCta')}</Button>
             </Link>
           </div>
         </div>

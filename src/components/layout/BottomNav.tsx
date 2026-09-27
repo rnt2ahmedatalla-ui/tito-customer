@@ -28,12 +28,14 @@ export function BottomNav() {
               key={to}
               to={to}
               className={cn(
-                'flex flex-1 flex-col items-center gap-0.5 py-2 min-h-[56px] justify-center',
+                'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 py-1.5',
                 active ? 'text-gold' : 'text-ink',
               )}
             >
-              <Icon className="size-5" aria-hidden />
-              <span className="text-[10px] font-medium">{t(labelKey)}</span>
+              <Icon className="size-5 shrink-0" aria-hidden />
+              <span className="max-w-full truncate text-center text-[11px] font-medium leading-tight">
+                {t(labelKey)}
+              </span>
             </Link>
           );
         })}

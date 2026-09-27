@@ -111,8 +111,8 @@ export default function BookingsPage() {
 
             return (
               <article key={booking.id} className="rounded-card border border-default bg-cream p-4 shadow-warm">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
+                <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
                     <p className="text-lg font-bold text-espresso font-latin">
                       {formatCairoTime(booking.start_at, i18n.language)}
                     </p>
@@ -120,7 +120,7 @@ export default function BookingsPage() {
                       {formatCairoDate(booking.start_at, i18n.language)}
                     </p>
                   </div>
-                  <Badge status={booking.status} label={t(`status.${booking.status}`)} />
+                  <Badge status={booking.status} label={t(`status.${booking.status}`)} className="max-w-full shrink-0" />
                 </div>
                 <p className="mt-2 font-medium text-espresso">{serviceName}</p>
                 <p className="text-sm text-ink font-latin">{formatEGP(booking.price_egp)}</p>
@@ -131,21 +131,22 @@ export default function BookingsPage() {
                   </p>
                 ) : null}
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   {booking.status === 'pending_payment' ? (
-                    <Link to={`/book?step=payment&booking=${booking.id}`}>
-                      <Button size="sm">{t('bookings.completePayment')}</Button>
+                    <Link to={`/book?step=payment&booking=${booking.id}`} className="sm:w-auto">
+                      <Button size="sm" className="w-full sm:w-auto">{t('bookings.completePayment')}</Button>
                     </Link>
                   ) : null}
                   {isRejected ? (
                     <Link to={`/book?step=payment&booking=${booking.id}`}>
-                      <Button size="sm" variant="secondary">{t('bookings.resendProof')}</Button>
+                      <Button size="sm" variant="secondary" className="w-full sm:w-auto">{t('bookings.resendProof')}</Button>
                     </Link>
                   ) : null}
                   {(booking.status === 'confirmed' || booking.status === 'pending_payment') ? (
                     <Button
                       size="sm"
                       variant="danger"
+                      className="w-full sm:w-auto"
                       disabled={!canCancel || cancelBooking.isPending}
                       onClick={() => {
                         if (window.confirm(t('bookings.cancelConfirm'))) {

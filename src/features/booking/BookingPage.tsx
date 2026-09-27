@@ -198,7 +198,7 @@ export default function BookingPage() {
   })();
 
   return (
-    <PageShell>
+    <PageShell withActionBar={step !== 'success' && step !== 'payment'}>
       {/* Step indicator */}
       {step !== 'success' ? (
         <nav className="mb-6" aria-label={t('a11y.stepIndicator')}>
@@ -269,20 +269,20 @@ export default function BookingPage() {
       {step === 'review' && selectedService ? (
         <section>
           <h1 className="text-2xl font-bold text-espresso">{t('booking.reviewTitle')}</h1>
-          <div className="mt-6 space-y-4 rounded-card border border-default p-4">
-            <div className="flex justify-between">
-              <span className="text-ink">{t('booking.service')}</span>
-              <span className="font-medium">{i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-ink">{t('booking.date')}</span>
-              <span className="font-latin">{date && slot ? formatCairoDate(slot, i18n.language) : '—'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-ink">{t('booking.time')}</span>
-              <span className="font-latin">{slot ? formatCairoTime(slot, i18n.language) : '—'}</span>
-            </div>
-            <div className="flex justify-between border-t border-default pt-4">
+          <div className="mt-6 space-y-3 rounded-card border border-default p-4">
+            {(
+              [
+                [t('booking.service'), i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en],
+                [t('booking.date'), date && slot ? formatCairoDate(slot, i18n.language) : '—'],
+                [t('booking.time'), slot ? formatCairoTime(slot, i18n.language) : '—'],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <span className="text-sm text-ink">{label}</span>
+                <span className="break-words font-medium sm:text-end">{value}</span>
+              </div>
+            ))}
+            <div className="flex items-center justify-between gap-3 border-t border-default pt-4">
               <span className="text-ink">{t('booking.price')}</span>
               <span className="text-lg font-bold text-espresso font-latin">{formatEGP(selectedService.price_egp)}</span>
             </div>
@@ -340,7 +340,7 @@ export default function BookingPage() {
 
       {/* Step 5: Success */}
       {step === 'success' ? (
-        <section className="relative overflow-hidden rounded-card bg-espresso p-8 text-center text-cream">
+        <section className="relative overflow-hidden rounded-card bg-espresso px-4 py-8 text-center text-cream sm:p-8">
           <LeatherPattern />
           <div className="relative">
             <h1 className="text-2xl font-bold">{t('booking.successTitle')}</h1>
@@ -373,19 +373,19 @@ export default function BookingPage() {
       {/* Navigation */}
       {step !== 'success' && step !== 'payment' ? (
         <StickyBottomBar>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-stretch">
             {stepIndex > 0 ? (
               <Button
                 variant="secondary"
                 onClick={() => goToStep(STEPS[stepIndex - 1])}
-                className="flex-1"
+                className="w-full min-[420px]:w-auto min-[420px]:flex-1"
               >
                 <ChevronRight className="size-4 rtl:-scale-x-100" aria-hidden />
                 {t('common.back')}
               </Button>
             ) : null}
             {step === 'review' ? (
-              <div className="flex flex-1 flex-col gap-2">
+              <div className="flex w-full min-w-0 flex-col gap-2 min-[420px]:flex-1">
                 <Button
                   fullWidth
                   onClick={() => handleConfirmBooking(false)}
@@ -407,7 +407,7 @@ export default function BookingPage() {
               </div>
             ) : (
               <Button
-                className="flex-1"
+                className="w-full min-[420px]:flex-1"
                 disabled={!canProceed()}
                 onClick={() => goToStep(STEPS[stepIndex + 1])}
               >

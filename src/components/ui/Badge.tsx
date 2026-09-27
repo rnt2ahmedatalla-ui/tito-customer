@@ -20,7 +20,7 @@ export function Badge({ status, label, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex min-h-[28px] items-center rounded-pill px-3 text-xs font-semibold font-latin',
+        'inline-flex max-w-full items-center rounded-pill px-3 text-center text-xs font-semibold leading-tight font-latin',
         statusStyles[status],
         className,
       )}

@@ -20,12 +20,16 @@
 @layer base {
   html {
     @apply bg-cream text-espresso scroll-smooth;
+    overflow-x: clip;
   }
 
-  body {
+  body,
+  #root {
     @apply font-arabic antialiased;
     line-height: 1.7;
     -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   [lang='en'] body,

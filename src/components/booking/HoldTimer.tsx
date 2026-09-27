@@ -30,7 +30,7 @@ export function HoldTimer({ expiresAt, onExpired }: HoldTimerProps) {
   return (
     <div
       className={cn(
-        'flex items-center justify-center gap-2 rounded-card px-4 py-3 font-latin text-lg font-semibold',
+        'flex flex-wrap items-center justify-center gap-2 rounded-card px-3 py-3 text-center font-latin text-base font-semibold sm:text-lg',
         urgency === 'danger' && 'bg-danger/10 text-danger',
         urgency === 'warning' && 'bg-warning/10 text-warning',
         urgency === 'normal' && 'bg-sand text-espresso',

@@ -18,7 +18,7 @@ export function SlotGrid({ slots, selectedSlot, onSelect, isLoading, isError, on
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-live="polite" aria-busy="true">
+      <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-3 sm:grid-cols-4" aria-live="polite" aria-busy="true">
         {Array.from({ length: 9 }).map((_, i) => (
           <Skeleton key={i} className="h-11" />
         ))}
@@ -45,7 +45,7 @@ export function SlotGrid({ slots, selectedSlot, onSelect, isLoading, isError, on
 
   return (
     <div
-      className="grid grid-cols-3 gap-2 sm:grid-cols-4"
+      className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-3 sm:grid-cols-4"
       role="listbox"
       aria-label={t('a11y.slotGrid')}
       aria-live="polite"
@@ -60,7 +60,7 @@ export function SlotGrid({ slots, selectedSlot, onSelect, isLoading, isError, on
             aria-selected={isSelected}
             onClick={() => onSelect(slot)}
             className={cn(
-              'min-h-[44px] rounded-btn border text-sm font-semibold font-latin transition-all duration-brand',
+              'min-h-11 rounded-btn border px-1 text-sm font-semibold font-latin transition-all duration-brand',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
               isSelected ? 'border-gold bg-gold text-espresso' : 'border-default bg-cream text-espresso hover:border-gold',
             )}

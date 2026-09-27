@@ -7,7 +7,7 @@ export function LeatherPattern() {
       <img
         src="/brand/tito-icon-512.png"
         alt=""
-        className="absolute end-6 top-1/2 w-[min(52vw,360px)] max-w-[360px] -translate-y-1/2 opacity-[0.09] select-none"
+        className="absolute end-2 top-[12%] w-[min(40vw,180px)] opacity-[0.08] select-none sm:end-6 sm:top-1/2 sm:w-[min(52vw,360px)] sm:-translate-y-1/2 sm:opacity-[0.09]"
         style={{ height: 'auto' }}
         decoding="async"
         draggable={false}

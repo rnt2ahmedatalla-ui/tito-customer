@@ -28,7 +28,7 @@ export function Header({ dark = false }: HeaderProps) {
           : 'border-b border-default bg-cream/90 backdrop-blur-md',
       )}
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
         <Link to="/" aria-label={t('a11y.logo')} className="shrink-0">
           <Logo variant={dark ? 'dark' : 'light'} mark height={36} />
         </Link>

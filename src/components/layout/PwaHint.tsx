@@ -33,7 +33,7 @@ export function PwaHint() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-x-4 bottom-20 z-40 rounded-card border border-default bg-espresso p-4 text-cream shadow-warm-raised sm:bottom-4 sm:start-auto sm:end-4 sm:max-w-sm">
+    <div className="fixed inset-x-3 z-50 rounded-card border border-default bg-espresso p-4 text-cream shadow-warm-raised bottom-[calc(4.75rem+env(safe-area-inset-bottom))] sm:bottom-4 sm:start-auto sm:end-4 sm:max-w-sm">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm">{t('common.pwaHint')}</p>
         <button type="button" onClick={dismiss} className="shrink-0 p-1" aria-label={t('common.close')}>

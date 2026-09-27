@@ -91,8 +91,8 @@ export function PaymentPanel({
       {settings.instapay_number ? (
         <div className="rounded-card border border-default bg-sand/50 p-4">
           <p className="text-sm font-medium text-ink">{t('booking.instapay')}</p>
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="font-latin text-lg font-semibold text-espresso" dir="ltr">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0 break-all font-latin text-base font-semibold text-espresso sm:text-lg" dir="ltr">
               {settings.instapay_number}
             </span>
             <Button
@@ -110,8 +110,8 @@ export function PaymentPanel({
       {settings.vodafone_cash_number ? (
         <div className="rounded-card border border-default bg-sand/50 p-4">
           <p className="text-sm font-medium text-ink">{t('booking.vodafoneCash')}</p>
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="font-latin text-lg font-semibold text-espresso" dir="ltr">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="min-w-0 break-all font-latin text-base font-semibold text-espresso sm:text-lg" dir="ltr">
               {settings.vodafone_cash_number}
             </span>
             <Button
@@ -137,7 +137,7 @@ export function PaymentPanel({
 
       <div>
         <p className="mb-2 text-sm font-medium text-espresso">{t('booking.paymentMethod')}</p>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
           {(['instapay', 'vodafone_cash'] as PaymentMethod[]).map((m) => (
             <button
               key={m}
