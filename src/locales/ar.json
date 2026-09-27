@@ -50,6 +50,8 @@
     "stepReview": "مراجعة",
     "stepPayment": "الدفع",
     "selectService": "اختار الخدمة",
+    "extras": "إضافات",
+    "extrasHint": "اختياري، من غير وقت زيادة على المعاد",
     "selectDate": "اختار اليوم",
     "selectTime": "اختار الوقت",
     "noSlots": "لا توجد مواعيد متاحة في هذا اليوم",

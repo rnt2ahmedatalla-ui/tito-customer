@@ -61,6 +61,7 @@ export interface Database {
           duration_minutes: number;
           price_egp: number;
           is_active: boolean;
+          is_extra: boolean;
           sort_order: number;
           created_at: string;
           updated_at: string;
@@ -74,6 +75,7 @@ export interface Database {
           duration_minutes: number;
           price_egp: number;
           is_active?: boolean;
+          is_extra?: boolean;
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
@@ -87,6 +89,7 @@ export interface Database {
           duration_minutes?: number;
           price_egp?: number;
           is_active?: boolean;
+          is_extra?: boolean;
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
@@ -304,6 +307,41 @@ export interface Database {
           },
         ];
       };
+      booking_extras: {
+        Row: {
+          id: string;
+          booking_id: string;
+          service_id: string | null;
+          name_ar: string;
+          name_en: string;
+          price_egp: number;
+          created_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          service_id?: string | null;
+          name_ar: string;
+          name_en: string;
+          price_egp: number;
+          created_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          service_id?: string | null;
+          name_ar?: string;
+          name_en?: string;
+          price_egp?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'booking_extras_booking_id_fkey';
+            columns: ['booking_id'];
+            isOneToOne: false;
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       payments: {
         Row: {
           id: string;
@@ -374,6 +412,7 @@ export interface Database {
           p_service_id: string;
           p_start_at: string;
           p_pay_at_shop?: boolean;
+          p_extra_ids?: string[];
         };
         Returns: string;
       };
@@ -419,7 +458,15 @@ export type Settings = Database['public']['Tables']['settings']['Row'];
 export type Booking = Database['public']['Tables']['bookings']['Row'];
 export type Payment = Database['public']['Tables']['payments']['Row'];
 
+export type BookingExtra = {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  price_egp: number;
+};
+
 export type BookingWithDetails = Booking & {
   service: Service;
   payment: Payment | null;
+  extras: BookingExtra[];
 };

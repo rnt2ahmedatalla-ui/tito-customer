@@ -38,10 +38,12 @@ export function useCreateBooking() {
       serviceId,
       startAt,
       payAtShop = false,
+      extraIds = [],
     }: {
       serviceId: string;
       startAt: string;
       payAtShop?: boolean;
+      extraIds?: string[];
     }): Promise<string> => {
       if (!canAttempt('create_booking')) throw new Error('RATE_LIMITED');
       recordAttempt('create_booking');
@@ -50,6 +52,7 @@ export function useCreateBooking() {
         p_service_id: serviceId,
         p_start_at: startAt,
         p_pay_at_shop: payAtShop,
+        p_extra_ids: extraIds,
       });
       if (error) throw error;
       return data;

@@ -123,6 +123,13 @@ export default function BookingsPage() {
                   <Badge status={booking.status} label={t(`status.${booking.status}`)} className="max-w-full shrink-0" />
                 </div>
                 <p className="mt-2 font-medium text-espresso">{serviceName}</p>
+                {booking.extras.length > 0 ? (
+                  <p className="text-sm text-ink">
+                    {booking.extras
+                      .map((extra) => (i18n.language === 'ar' ? extra.name_ar : extra.name_en))
+                      .join(' · ')}
+                  </p>
+                ) : null}
                 <p className="text-sm text-ink font-latin">{formatEGP(booking.price_egp)}</p>
 
                 {booking.move_status === 'pending' && booking.move_token ? (

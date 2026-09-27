@@ -50,6 +50,8 @@
     "stepReview": "Review",
     "stepPayment": "Payment",
     "selectService": "Choose a service",
+    "extras": "Extras",
+    "extrasHint": "Optional. They don't add time to the appointment",
     "selectDate": "Choose a day",
     "selectTime": "Choose a time",
     "noSlots": "No slots available on this day",

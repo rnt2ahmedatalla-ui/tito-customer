@@ -59,10 +59,18 @@ export default function BookingPage() {
   const slots = useAvailableSlots(serviceId, date);
   const booking = useBooking(bookingId);
 
+  const catalog = services.data ?? [];
+  const mainServices = catalog.filter((service) => !service.is_extra);
+  const extraServices = catalog.filter((service) => service.is_extra);
+  const extraIds = (params.get('extras') ?? '').split(',').filter(Boolean);
+  const selectedExtras = extraServices.filter((service) => extraIds.includes(service.id));
+  const extrasTotal = selectedExtras.reduce((sum, service) => sum + Number(service.price_egp), 0);
+
   const selectedService =
-    services.data?.find((s) => s.id === serviceId) ??
-    booking.data?.service ??
+    mainServices.find((s) => s.id === serviceId) ??
+    (booking.data?.service && !booking.data.service.is_extra ? booking.data.service : null) ??
     null;
+  const orderTotal = Number(selectedService?.price_egp ?? 0) + extrasTotal;
   const maxDays = settings.data?.max_days_ahead ?? 14;
   const dates = useMemo(() => getDateRange(maxDays), [maxDays]);
 
@@ -89,6 +97,38 @@ export default function BookingPage() {
   );
 
   const goToStep = (s: Step) => updateParams({ step: s });
+
+  const toggleExtra = (id: string) => {
+    const next = extraIds.includes(id) ? extraIds.filter((item) => item !== id) : [...extraIds, id];
+    updateParams({ extras: next.length ? next.join(',') : null });
+  };
+
+  const extrasPicker = extraServices.length > 0 ? (
+    <div className="mt-8">
+      <h2 className="text-lg font-semibold text-espresso">{t('booking.extras')}</h2>
+      <p className="mt-1 text-sm text-ink">{t('booking.extrasHint')}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {extraServices.map((extra) => {
+          const on = extraIds.includes(extra.id);
+          const name = i18n.language === 'ar' ? extra.name_ar : extra.name_en;
+          return (
+            <button
+              key={extra.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggleExtra(extra.id)}
+              className={cn(
+                'rounded-pill border px-3 py-2 text-sm',
+                on ? 'border-gold bg-gold/15 font-medium text-espresso' : 'border-default bg-white text-ink',
+              )}
+            >
+              {name} · <span className="font-latin">{formatEGP(extra.price_egp)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
 
   useEffect(() => {
     if (booking.data?.hold_expires_at && isExpired(booking.data.hold_expires_at)) {
@@ -121,6 +161,7 @@ export default function BookingPage() {
         serviceId,
         startAt: slot,
         payAtShop,
+        extraIds,
       });
       try {
         sessionStorage.removeItem('tito_pending_book');
@@ -225,7 +266,7 @@ export default function BookingPage() {
         <section>
           <h1 className="text-2xl font-bold text-espresso">{t('booking.selectService')}</h1>
           <div className="mt-4 grid gap-3">
-            {services.data?.map((service) => (
+            {mainServices.map((service) => (
               <ServiceCard
                 key={service.id}
                 service={service}
@@ -234,6 +275,7 @@ export default function BookingPage() {
               />
             ))}
           </div>
+          {extrasPicker}
         </section>
       ) : null}
 
@@ -282,11 +324,18 @@ export default function BookingPage() {
                 <span className="break-words font-medium sm:text-end">{value}</span>
               </div>
             ))}
+            {selectedExtras.map((extra) => (
+              <div key={extra.id} className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <span className="text-sm text-ink">+ {i18n.language === 'ar' ? extra.name_ar : extra.name_en}</span>
+                <span className="font-latin font-medium sm:text-end">{formatEGP(extra.price_egp)}</span>
+              </div>
+            ))}
             <div className="flex items-center justify-between gap-3 border-t border-default pt-4">
               <span className="text-ink">{t('booking.price')}</span>
-              <span className="text-lg font-bold text-espresso font-latin">{formatEGP(selectedService.price_egp)}</span>
+              <span className="text-lg font-bold text-espresso font-latin">{formatEGP(orderTotal)}</span>
             </div>
           </div>
+          {extrasPicker}
           <p className="mt-4 text-sm text-ink">
             {t('booking.cancelRule', { hours: settings.data?.cancel_window_hours ?? 3 })}
           </p>
@@ -349,6 +398,9 @@ export default function BookingPage() {
             {booking.data && selectedService ? (
               <div className="mt-6 space-y-2 text-sm font-latin">
                 <p>{i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en}</p>
+                {selectedExtras.map((extra) => (
+                  <p key={extra.id}>+ {i18n.language === 'ar' ? extra.name_ar : extra.name_en}</p>
+                ))}
                 <p>{formatCairoDate(booking.data.start_at, i18n.language)}</p>
                 <p>{formatCairoTime(booking.data.start_at, i18n.language)}</p>
                 <p className="text-gold-soft">{formatEGP(booking.data.price_egp)}</p>
