@@ -105,7 +105,8 @@
     "refundNote": "Refunds are arranged directly with the shop",
     "rejectionReason": "Rejection reason: {{reason}}",
     "resendProof": "Resubmit proof",
-    "confirmedToast": "Your booking is confirmed!"
+    "confirmedToast": "Your booking is confirmed!",
+    "moveOffer": "The shop wants to move you to another time — answer here"
   },
   "profile": {
     "title": "Profile",
@@ -161,6 +162,20 @@
     "pwaHint": "Add tito to your home screen for quick access",
     "pwaDismiss": "Got it",
     "egp": "EGP"
+  },
+  "move": {
+    "title": "Move your time",
+    "busy": "Sorry — the shop is busy at the time you booked. We can move you if you agree.",
+    "current": "Your current time",
+    "proposed": "New time",
+    "accept": "Yes, move me",
+    "decline": "No, keep it",
+    "accepted": "Done. Your booking moved to the new time.",
+    "declined": "Okay. Your time stays as it is.",
+    "expired": "This offer ended. Your current time is unchanged.",
+    "cancelled": "The move request was cancelled. Your time stays as it is.",
+    "missing": "This link is not valid.",
+    "taken": "That new time was just taken. Message the shop on WhatsApp."
   },
   "a11y": {
     "mainNav": "Main navigation",

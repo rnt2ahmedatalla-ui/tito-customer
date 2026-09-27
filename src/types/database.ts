@@ -240,6 +240,11 @@ export interface Database {
           completed_at: string | null;
           guest_name: string | null;
           guest_phone: string | null;
+          move_start_at: string | null;
+          move_end_at: string | null;
+          move_token: string | null;
+          move_status: string | null;
+          move_requested_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -384,6 +389,14 @@ export interface Database {
       customer_cancel_booking: {
         Args: { p_booking_id: string };
         Returns: undefined;
+      };
+      get_booking_move: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      respond_booking_move: {
+        Args: { p_token: string; p_accept: boolean };
+        Returns: Json;
       };
       is_admin: {
         Args: Record<string, never>;

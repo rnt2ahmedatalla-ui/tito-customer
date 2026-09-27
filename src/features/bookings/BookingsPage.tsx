@@ -125,6 +125,12 @@ export default function BookingsPage() {
                 <p className="mt-2 font-medium text-espresso">{serviceName}</p>
                 <p className="text-sm text-ink font-latin">{formatEGP(booking.price_egp)}</p>
 
+                {booking.move_status === 'pending' && booking.move_token ? (
+                  <Link to={`/move/${booking.move_token}`} className="mt-3 inline-flex text-sm font-medium text-espresso underline">
+                    {t('bookings.moveOffer')}
+                  </Link>
+                ) : null}
+
                 {isRejected && booking.payment?.rejection_reason ? (
                   <p className="mt-2 text-sm text-danger" role="alert">
                     {t('bookings.rejectionReason', { reason: booking.payment.rejection_reason })}
