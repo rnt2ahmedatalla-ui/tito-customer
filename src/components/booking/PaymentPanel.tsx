@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { formatEGP } from '@/lib/money';
 import { buildWhatsAppUrl } from '@/lib/urls';
+import { paymentHref } from '@/lib/payLinks';
 import type { PaymentMethod, Settings } from '@/types/database';
 
 interface PaymentPanelProps {
@@ -92,9 +93,21 @@ export function PaymentPanel({
         <div className="rounded-card border border-default bg-sand/50 p-4">
           <p className="text-sm font-medium text-ink">{t('booking.instapay')}</p>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="min-w-0 break-all font-latin text-base font-semibold text-espresso sm:text-lg" dir="ltr">
-              {settings.instapay_number}
-            </span>
+            {paymentHref(settings.instapay_number) ? (
+              <a
+                href={paymentHref(settings.instapay_number)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-w-0 break-all font-latin text-base font-semibold text-espresso underline sm:text-lg"
+                dir="ltr"
+              >
+                {settings.instapay_number}
+              </a>
+            ) : (
+              <span className="min-w-0 break-all font-latin text-base font-semibold text-espresso sm:text-lg" dir="ltr">
+                {settings.instapay_number}
+              </span>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -104,6 +117,7 @@ export function PaymentPanel({
               {t('booking.copy')}
             </Button>
           </div>
+          <p className="mt-2 text-xs text-ink">{t('booking.tapToPay')}</p>
         </div>
       ) : null}
 
@@ -111,9 +125,21 @@ export function PaymentPanel({
         <div className="rounded-card border border-default bg-sand/50 p-4">
           <p className="text-sm font-medium text-ink">{t('booking.vodafoneCash')}</p>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="min-w-0 break-all font-latin text-base font-semibold text-espresso sm:text-lg" dir="ltr">
-              {settings.vodafone_cash_number}
-            </span>
+            {paymentHref(settings.vodafone_cash_number) ? (
+              <a
+                href={paymentHref(settings.vodafone_cash_number)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-w-0 break-all font-latin text-base font-semibold text-espresso underline sm:text-lg"
+                dir="ltr"
+              >
+                {settings.vodafone_cash_number}
+              </a>
+            ) : (
+              <span className="min-w-0 break-all font-latin text-base font-semibold text-espresso sm:text-lg" dir="ltr">
+                {settings.vodafone_cash_number}
+              </span>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -125,6 +151,7 @@ export function PaymentPanel({
               {t('booking.copy')}
             </Button>
           </div>
+          <p className="mt-2 text-xs text-ink">{t('booking.tapToPay')}</p>
         </div>
       ) : null}
 

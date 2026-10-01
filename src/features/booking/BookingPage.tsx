@@ -261,21 +261,61 @@ export default function BookingPage() {
         </nav>
       ) : null}
 
-      {/* Step 1: Service */}
+      {/* Step 1: Service + extras side by side */}
       {step === 'service' ? (
         <section>
           <h1 className="text-2xl font-bold text-espresso">{t('booking.selectService')}</h1>
-          <div className="mt-4 grid gap-3">
-            {mainServices.map((service) => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                selected={serviceId === service.id}
-                onSelect={() => updateParams({ service: service.id })}
-              />
-            ))}
+          <div className="mt-4 grid gap-6 lg:grid-cols-2">
+            <div>
+              <h2 className="mb-2 text-sm font-semibold text-ink">{t('booking.stepService')}</h2>
+              <div className="grid gap-2">
+                {mainServices.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    service={service}
+                    selected={serviceId === service.id}
+                    onSelect={() => updateParams({ service: service.id })}
+                  />
+                ))}
+              </div>
+            </div>
+            <div>
+              <h2 className="mb-1 text-sm font-semibold text-ink">{t('booking.extras')}</h2>
+              <p className="mb-3 text-xs text-ink">{t('booking.extrasHint')}</p>
+              {extraServices.length === 0 ? (
+                <p className="text-sm text-ink-70">—</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {extraServices.map((extra) => {
+                    const on = extraIds.includes(extra.id);
+                    const name = i18n.language === 'ar' ? extra.name_ar : extra.name_en;
+                    return (
+                      <button
+                        key={extra.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleExtra(extra.id)}
+                        className={cn(
+                          'rounded-pill border px-3 py-2 text-sm',
+                          on ? 'border-gold bg-gold/15 font-medium text-espresso' : 'border-default bg-white text-ink',
+                        )}
+                      >
+                        {name} · <span className="font-latin">{formatEGP(extra.price_egp)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-          {extrasPicker}
+          <div className="sticky bottom-[calc(8.5rem+env(safe-area-inset-bottom))] z-10 mt-6 rounded-card border border-gold/40 bg-cream/95 p-3 shadow-warm backdrop-blur sm:static sm:shadow-none">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-ink">{t('booking.price')}</span>
+              <span className="font-latin text-lg font-bold text-espresso">
+                {formatEGP(orderTotal || 0)}
+              </span>
+            </div>
+          </div>
         </section>
       ) : null}
 

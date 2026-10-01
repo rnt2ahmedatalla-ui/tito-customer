@@ -137,6 +137,11 @@ export default function BookingsPage() {
                     {t('bookings.moveOffer')}
                   </Link>
                 ) : null}
+                {booking.status === 'completed' && booking.rate_token ? (
+                  <Link to={`/rate/${booking.rate_token}`} className="mt-3 inline-flex text-sm font-medium text-espresso underline">
+                    {t('bookings.rateOffer')}
+                  </Link>
+                ) : null}
 
                 {isRejected && booking.payment?.rejection_reason ? (
                   <p className="mt-2 text-sm text-danger" role="alert">

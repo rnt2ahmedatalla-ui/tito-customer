@@ -14,6 +14,13 @@
     "heroHeadline": "Sharp cut. Locked-in time.",
     "heroSupport": "Book online in minutes — premium care, a fixed slot, no waiting around.",
     "heroCta": "Book your slot",
+    "navBook": "Book",
+    "navProducts": "Products",
+    "navLocation": "Location",
+    "navAbout": "About",
+    "aboutEyebrow": "About tito",
+    "aboutTitle": "About me",
+    "aboutDefault": "Barbering with care — sterilization and clean technique inspired by nursing standards, so you feel safe from the moment you sit down.",
     "nextSlot": "Next available",
     "nextSlotToday": "Today {{time}}",
     "nextSlotTomorrow": "Tomorrow {{time}}",
@@ -73,6 +80,7 @@
     "vodafoneCash": "Vodafone Cash",
     "copy": "Copy",
     "copied": "Copied!",
+    "tapToPay": "Tap the number or link to open the payment app",
     "paymentNote": "Payment note",
     "payStepsTitle": "How to pay",
     "payStep1": "Transfer the amount via InstaPay or Vodafone Cash",
@@ -108,7 +116,8 @@
     "rejectionReason": "Rejection reason: {{reason}}",
     "resendProof": "Resubmit proof",
     "confirmedToast": "Your booking is confirmed!",
-    "moveOffer": "The shop wants to move you to another time — answer here"
+    "moveOffer": "The shop wants to move you to another time — answer here",
+    "rateOffer": "Rate your visit"
   },
   "profile": {
     "title": "Profile",
@@ -164,6 +173,22 @@
     "pwaHint": "Add tito to your home screen for quick access",
     "pwaDismiss": "Got it",
     "egp": "EGP"
+  },
+  "products": {
+    "title": "Our products",
+    "support": "Shop add-ons — pay with InstaPay or Vodafone Cash and WhatsApp the proof.",
+    "order": "Order this",
+    "empty": "No products right now",
+    "sent": "Done — wait for the shop to confirm after checking the transfer"
+  },
+  "rate": {
+    "title": "Rate your visit",
+    "ask": "How was it from 1 to 5?",
+    "comment": "Optional comment",
+    "submit": "Send rating",
+    "thanks": "Thanks — your rating is in.",
+    "notReady": "Rating opens after the appointment is completed.",
+    "missing": "This link is not valid."
   },
   "move": {
     "title": "Move your time",

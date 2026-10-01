@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageCircle, MapPin, AlertTriangle, Clock } from 'lucide-react';
+import { MessageCircle, MapPin, AlertTriangle, Clock, Star } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
 import { ServiceCard } from '@/components/booking/ServiceCard';
@@ -11,6 +12,7 @@ import { useServices, useSettings, useWorkingHours, useNextSlot } from './useHom
 import { formatCairoTime, formatCairoDate, getCairoNow } from '@/lib/time';
 import { format } from 'date-fns';
 import { buildWhatsAppUrl, isSafeUrl } from '@/lib/urls';
+import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/cn';
 
 const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -22,9 +24,27 @@ export default function HomePage() {
   const settings = useSettings();
   const workingHours = useWorkingHours();
   const nextSlot = useNextSlot();
+  const reviews = useQuery({
+    queryKey: ['review-stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_review_stats');
+      if (error) throw error;
+      return data as { avg: number; count: number };
+    },
+    staleTime: 60_000,
+  });
 
   const todayDow = getCairoNow().getDay();
   const bookingOpen = settings.data?.booking_open ?? true;
+  const ar = i18n.language?.startsWith('ar');
+  const headline =
+    (ar ? settings.data?.hero_headline_ar : settings.data?.hero_headline_en) || t('home.heroHeadline');
+  const support =
+    (ar ? settings.data?.hero_support_ar : settings.data?.hero_support_en) || t('home.heroSupport');
+  const about =
+    (ar ? settings.data?.about_ar : settings.data?.about_en) || t('home.aboutDefault');
+  const tagline =
+    (ar ? settings.data?.tagline_ar : settings.data?.tagline_en) || t('app.tagline');
 
   const nextSlotLabel = (() => {
     if (!nextSlot.data) return t('home.noSlots');
@@ -62,14 +82,23 @@ export default function HomePage() {
         <div className="relative mx-auto w-full max-w-5xl px-4 pb-24 pt-16 sm:px-5 sm:pb-24 sm:pt-28">
           <Logo variant="dark" mark height={56} className="animate-rise sm:!h-[72px]" />
           <p className="mt-3 text-xl font-bold tracking-wide text-gold font-latin animate-rise sm:mt-4 sm:text-2xl">tito</p>
+          {tagline ? <p className="mt-1 text-sm text-cream/70 animate-rise">{tagline}</p> : null}
 
           <h1 className="mt-6 max-w-xl text-balance text-3xl font-bold leading-[1.2] tracking-tight text-cream animate-rise-delay-1 sm:mt-8 sm:text-5xl md:text-6xl">
-            {t('home.heroHeadline')}
+            {headline}
           </h1>
 
           <p className="mt-5 max-w-md text-lg text-cream/80 animate-rise-delay-2 sm:text-xl">
-            {t('home.heroSupport')}
+            {support}
           </p>
+
+          {reviews.data && reviews.data.count > 0 ? (
+            <p className="mt-4 flex items-center gap-1.5 text-sm text-gold-soft animate-fade">
+              <Star className="size-4 fill-gold text-gold" aria-hidden />
+              <span className="font-latin">{Number(reviews.data.avg).toFixed(1)}</span>
+              <span className="text-cream/60">({reviews.data.count})</span>
+            </p>
+          ) : null}
 
           <div className="mt-8 flex w-full flex-col gap-3 animate-rise-delay-2 sm:mt-10 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
             <Link to="/book" className="w-full sm:w-auto">
@@ -112,6 +141,51 @@ export default function HomePage() {
           <p className="text-sm font-medium">{t('home.bookingClosed')}</p>
         </div>
       ) : null}
+
+      <section className="mx-auto max-w-5xl px-5 py-10">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { to: '/book', label: t('home.navBook') },
+            { to: '/products', label: t('home.navProducts') },
+            { to: locationUrl ?? '#visit', label: t('home.navLocation'), external: !!locationUrl },
+            { to: '#about', label: t('home.navAbout') },
+          ].map((item) =>
+            item.external ? (
+              <a
+                key={item.label}
+                href={item.to}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-btn border border-default bg-white px-3 py-4 text-center text-sm font-semibold text-espresso"
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.label}
+                to={item.to.startsWith('#') ? `/${item.to}` : item.to}
+                className="rounded-btn border border-default bg-white px-3 py-4 text-center text-sm font-semibold text-espresso"
+                onClick={(e) => {
+                  if (item.to === '#about') {
+                    e.preventDefault();
+                    document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
+        </div>
+      </section>
+
+      <section id="about" className="mx-auto max-w-5xl px-5 py-12 sm:py-16">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold font-latin">
+          {t('home.aboutEyebrow')}
+        </p>
+        <h2 className="mt-3 text-3xl font-bold text-espresso sm:text-4xl">{t('home.aboutTitle')}</h2>
+        <p className="mt-4 max-w-2xl whitespace-pre-line text-ink leading-relaxed">{about}</p>
+      </section>
 
       {/* Services */}
       <section className="mx-auto max-w-5xl px-5 py-16 sm:py-20">

@@ -168,6 +168,14 @@ export interface Database {
           shop_name: string;
           shop_whatsapp: string | null;
           shop_location_url: string | null;
+          hero_headline_ar: string | null;
+          hero_headline_en: string | null;
+          hero_support_ar: string | null;
+          hero_support_en: string | null;
+          about_ar: string | null;
+          about_en: string | null;
+          tagline_ar: string | null;
+          tagline_en: string | null;
           timezone: string;
           booking_open: boolean;
           reminder_template_ar: string | null;
@@ -248,6 +256,7 @@ export interface Database {
           move_token: string | null;
           move_status: string | null;
           move_requested_at: string | null;
+          rate_token: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -306,6 +315,24 @@ export interface Database {
             referencedColumns: ['id'];
           },
         ];
+      };
+      products: {
+        Row: {
+          id: string;
+          name_ar: string;
+          name_en: string;
+          description_ar: string | null;
+          description_en: string | null;
+          price_egp: number;
+          image_path: string | null;
+          is_active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
       };
       booking_extras: {
         Row: {
@@ -436,6 +463,31 @@ export interface Database {
       respond_booking_move: {
         Args: { p_token: string; p_accept: boolean };
         Returns: Json;
+      };
+      get_review_stats: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      get_rate_booking: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      submit_review: {
+        Args: { p_token: string; p_rating: number; p_comment?: string | null };
+        Returns: Json;
+      };
+      create_product_order: {
+        Args: { p_product_id: string };
+        Returns: string;
+      };
+      submit_product_payment: {
+        Args: {
+          p_order_id: string;
+          p_method: string;
+          p_transaction_ref?: string | null;
+          p_proof_path?: string | null;
+        };
+        Returns: undefined;
       };
       is_admin: {
         Args: Record<string, never>;
