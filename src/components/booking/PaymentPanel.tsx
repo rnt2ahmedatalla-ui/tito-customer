@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Copy, MessageCircle } from 'lucide-react';
+import { ExternalLink, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { formatEGP } from '@/lib/money';
@@ -28,24 +28,22 @@ export function PaymentPanel({
   loading,
 }: PaymentPanelProps) {
   const { t, i18n } = useTranslation();
-  const [method, setMethod] = useState<PaymentMethod>('instapay');
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
 
   const paymentNote = i18n.language === 'ar' ? settings.payment_note_ar : settings.payment_note_en;
   const shortId = bookingId.slice(0, 8).toUpperCase();
-  const methodLabel = method === 'instapay' ? t('booking.instapay') : t('booking.vodafoneCash');
-  const payTo =
-    method === 'instapay' ? settings.instapay_number : settings.vodafone_cash_number;
-
-  const copyNumber = async (number: string, label: string) => {
-    await navigator.clipboard.writeText(number);
-    toast.success(t('booking.copied'), { description: label });
-  };
+  const methodLabel =
+    method === 'instapay'
+      ? t('booking.instapay')
+      : method === 'vodafone_cash'
+        ? t('booking.vodafoneCash')
+        : '';
 
   const waMessage =
     i18n.language === 'ar'
       ? [
           `مرحباً ${settings.shop_name || 'tito'} 👋`,
-          `حوّلت ${formatEGP(amount)} عن طريق ${methodLabel}`,
+          `حوّلت ${formatEGP(amount)} عن طريق ${methodLabel || 'الدفع الإلكتروني'}`,
           `الخدمة: ${serviceName}`,
           `الموعد: ${whenLabel}`,
           `رقم الحجز: ${shortId}`,
@@ -53,7 +51,7 @@ export function PaymentPanel({
         ].join('\n')
       : [
           `Hi ${settings.shop_name || 'tito'} 👋`,
-          `I transferred ${formatEGP(amount)} via ${methodLabel}`,
+          `I transferred ${formatEGP(amount)} via ${methodLabel || 'online payment'}`,
           `Service: ${serviceName}`,
           `When: ${whenLabel}`,
           `Booking: ${shortId}`,
@@ -64,7 +62,30 @@ export function PaymentPanel({
     ? buildWhatsAppUrl(settings.shop_whatsapp, waMessage)
     : null;
 
+  const openPayOption = (m: 'instapay' | 'vodafone_cash') => {
+    const value = m === 'instapay' ? settings.instapay_number : settings.vodafone_cash_number;
+    const href = paymentHref(value);
+    setMethod(m);
+    if (!value?.trim()) {
+      toast.error(t('booking.payLinkMissing'));
+      return;
+    }
+    if (href) {
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    void navigator.clipboard.writeText(value.trim()).then(() => {
+      toast.success(t('booking.copied'), {
+        description: m === 'instapay' ? t('booking.instapay') : t('booking.vodafoneCash'),
+      });
+    });
+  };
+
   const openWhatsApp = () => {
+    if (!method) {
+      toast.error(t('booking.pickMethodFirst'));
+      return;
+    }
     if (!whatsappUrl) {
       toast.error(t('booking.whatsappMissing'));
       return;
@@ -80,78 +101,46 @@ export function PaymentPanel({
         <p className="mt-2 text-xs text-espresso/70 font-latin">#{shortId}</p>
       </div>
 
-      <div className="rounded-card border border-default bg-sand/40 p-4 text-sm text-espresso">
-        <p className="font-semibold">{t('booking.payStepsTitle')}</p>
-        <ol className="mt-2 list-decimal space-y-1 ps-5 text-ink">
-          <li>{t('booking.payStep1')}</li>
-          <li>{t('booking.payStep2')}</li>
-          <li>{t('booking.payStep3')}</li>
-        </ol>
+      <div>
+        <p className="mb-1 text-sm font-semibold text-espresso">{t('booking.choosePayMethod')}</p>
+        <p className="mb-3 text-xs text-ink">{t('booking.choosePayMethodHint')}</p>
+        <div className="grid gap-2">
+          {settings.vodafone_cash_number ? (
+            <Button
+              fullWidth
+              size="lg"
+              variant={method === 'vodafone_cash' ? 'primary' : 'secondary'}
+              onClick={() => openPayOption('vodafone_cash')}
+            >
+              <ExternalLink className="size-4" />
+              {t('booking.vodafoneCash')}
+            </Button>
+          ) : null}
+          {settings.instapay_number ? (
+            <Button
+              fullWidth
+              size="lg"
+              variant={method === 'instapay' ? 'primary' : 'secondary'}
+              onClick={() => openPayOption('instapay')}
+            >
+              <ExternalLink className="size-4" />
+              {t('booking.instapay')}
+            </Button>
+          ) : null}
+          {!settings.vodafone_cash_number && !settings.instapay_number ? (
+            <p className="rounded-btn bg-sand/50 p-3 text-sm text-ink">{t('booking.payLinkMissing')}</p>
+          ) : null}
+        </div>
       </div>
 
-      {settings.instapay_number ? (
-        <div className="rounded-card border border-default bg-sand/50 p-4">
-          <p className="text-sm font-medium text-ink">{t('booking.instapay')}</p>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            {paymentHref(settings.instapay_number) ? (
-              <a
-                href={paymentHref(settings.instapay_number)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="min-w-0 break-all font-latin text-base font-semibold text-espresso underline sm:text-lg"
-                dir="ltr"
-              >
-                {settings.instapay_number}
-              </a>
-            ) : (
-              <span className="min-w-0 break-all font-latin text-base font-semibold text-espresso sm:text-lg" dir="ltr">
-                {settings.instapay_number}
-              </span>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void copyNumber(settings.instapay_number!, t('booking.instapay'))}
-            >
-              <Copy className="size-4" />
-              {t('booking.copy')}
-            </Button>
-          </div>
-          <p className="mt-2 text-xs text-ink">{t('booking.tapToPay')}</p>
-        </div>
-      ) : null}
-
-      {settings.vodafone_cash_number ? (
-        <div className="rounded-card border border-default bg-sand/50 p-4">
-          <p className="text-sm font-medium text-ink">{t('booking.vodafoneCash')}</p>
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-            {paymentHref(settings.vodafone_cash_number) ? (
-              <a
-                href={paymentHref(settings.vodafone_cash_number)!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="min-w-0 break-all font-latin text-base font-semibold text-espresso underline sm:text-lg"
-                dir="ltr"
-              >
-                {settings.vodafone_cash_number}
-              </a>
-            ) : (
-              <span className="min-w-0 break-all font-latin text-base font-semibold text-espresso sm:text-lg" dir="ltr">
-                {settings.vodafone_cash_number}
-              </span>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() =>
-                void copyNumber(settings.vodafone_cash_number!, t('booking.vodafoneCash'))
-              }
-            >
-              <Copy className="size-4" />
-              {t('booking.copy')}
-            </Button>
-          </div>
-          <p className="mt-2 text-xs text-ink">{t('booking.tapToPay')}</p>
+      {method ? (
+        <div className="rounded-card border border-default bg-sand/40 p-4 text-sm text-espresso">
+          <p className="font-semibold">{t('booking.afterPayTitle')}</p>
+          <ol className="mt-2 list-decimal space-y-1 ps-5 text-ink">
+            <li>{t('booking.payStepPayApp')}</li>
+            <li>{t('booking.payStep2')}</li>
+            <li>{t('booking.payStep3')}</li>
+          </ol>
         </div>
       ) : null}
 
@@ -162,32 +151,7 @@ export function PaymentPanel({
         </div>
       ) : null}
 
-      <div>
-        <p className="mb-2 text-sm font-medium text-espresso">{t('booking.paymentMethod')}</p>
-        <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
-          {(['instapay', 'vodafone_cash'] as PaymentMethod[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMethod(m)}
-              className={`flex-1 min-h-[44px] rounded-btn border px-3 text-sm font-medium transition-colors ${
-                method === m
-                  ? 'border-gold bg-gold text-espresso'
-                  : 'border-default bg-cream text-espresso'
-              }`}
-            >
-              {m === 'instapay' ? t('booking.instapay') : t('booking.vodafoneCash')}
-            </button>
-          ))}
-        </div>
-        {payTo ? (
-          <p className="mt-2 text-xs text-ink font-latin" dir="ltr">
-            {t('booking.payTo')}: {payTo}
-          </p>
-        ) : null}
-      </div>
-
-      <Button fullWidth size="lg" onClick={openWhatsApp} disabled={!whatsappUrl}>
+      <Button fullWidth size="lg" onClick={openWhatsApp} disabled={!whatsappUrl || !method}>
         <MessageCircle className="size-5" />
         {t('booking.sendProofWhatsApp')}
       </Button>
@@ -197,7 +161,8 @@ export function PaymentPanel({
         size="lg"
         variant="secondary"
         loading={loading}
-        onClick={() => onMarkedSent({ method })}
+        disabled={!method}
+        onClick={() => method && onMarkedSent({ method })}
       >
         {t('booking.markedSentWhatsApp')}
       </Button>

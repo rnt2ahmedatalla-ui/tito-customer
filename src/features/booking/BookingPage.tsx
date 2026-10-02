@@ -484,7 +484,7 @@ export default function BookingPage() {
                   loading={createBooking.isPending}
                   disabled={!user && authLoading}
                 >
-                  {t('booking.confirmBooking')}
+                  {t('booking.payNow')}
                 </Button>
                 {settings.data?.allow_pay_at_shop ? (
                   <Button
