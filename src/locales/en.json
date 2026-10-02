@@ -11,8 +11,8 @@
     "profile": "Profile"
   },
   "home": {
-    "heroHeadline": "Sharp cut. Locked-in time.",
-    "heroSupport": "Book online in minutes — premium care, a fixed slot, no waiting around.",
+    "heroHeadline": "Sharp cut. Clinical care.",
+    "heroSupport": "A clean finish, sterilized tools, and a fixed slot — book online in minutes.",
     "heroCta": "Book your slot",
     "navBook": "Book",
     "navProducts": "Products",
@@ -20,7 +20,7 @@
     "navAbout": "About",
     "aboutEyebrow": "About tito",
     "aboutTitle": "About me",
-    "aboutDefault": "Barbering with care — sterilization and clean technique inspired by nursing standards, so you feel safe from the moment you sit down.",
+    "aboutDefault": "At tito we mix sharp barbering with a nursing mindset: sterilization, cleanliness, and careful detail. Not just a good cut — you feel safe from the chair to the door.",
     "nextSlot": "Next available",
     "nextSlotToday": "Today {{time}}",
     "nextSlotTomorrow": "Tomorrow {{time}}",
