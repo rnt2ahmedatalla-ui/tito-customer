@@ -106,7 +106,6 @@ export default function BookingPage() {
   const extrasPicker = extraServices.length > 0 ? (
     <div className="mt-8">
       <h2 className="text-lg font-semibold text-espresso">{t('booking.extras')}</h2>
-      <p className="mt-1 text-sm text-ink">{t('booking.extrasHint')}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {extraServices.map((extra) => {
           const on = extraIds.includes(extra.id);
@@ -280,8 +279,7 @@ export default function BookingPage() {
               </div>
             </div>
             <div>
-              <h2 className="mb-1 text-sm font-semibold text-ink">{t('booking.extras')}</h2>
-              <p className="mb-3 text-xs text-ink">{t('booking.extrasHint')}</p>
+              <h2 className="mb-3 text-sm font-semibold text-ink">{t('booking.extras')}</h2>
               {extraServices.length === 0 ? (
                 <p className="text-sm text-ink-70">—</p>
               ) : (
