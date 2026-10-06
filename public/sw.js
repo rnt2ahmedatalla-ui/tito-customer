@@ -1,6 +1,6 @@
 const BASE = self.registration.scope;
-const CACHE_NAME = 'tito-static-v2';
-const STATIC_ASSETS = ['index.html', 'manifest.webmanifest', 'favicon.ico'].map(
+const CACHE_NAME = 'tito-static-v3';
+const STATIC_ASSETS = ['manifest.webmanifest', 'favicon.ico'].map(
   (p) => new URL(p, BASE).pathname,
 );
 
@@ -27,22 +27,35 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  // Never cache navigations / HTML — auth redirects must always hit network
+  // Never cache navigations / HTML — always hit network for fresh app shell
   if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(fetch(request));
     return;
   }
   if (url.pathname.includes('supabase') || url.searchParams.has('code')) return;
 
+  // Network-first for JS/CSS so deploys replace old bundles immediately
+  if (request.destination === 'script' || request.destination === 'style') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached || Response.error())),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       const fetchPromise = fetch(request).then((response) => {
         if (
           response.ok &&
-          (request.destination === 'script' ||
-            request.destination === 'style' ||
-            request.destination === 'image' ||
-            request.destination === 'font')
+          (request.destination === 'image' || request.destination === 'font')
         ) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
