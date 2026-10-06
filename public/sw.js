@@ -1,5 +1,5 @@
 const BASE = self.registration.scope;
-const CACHE_NAME = 'tito-static-v3';
+const CACHE_NAME = 'tito-static-v4';
 const STATIC_ASSETS = ['manifest.webmanifest', 'favicon.ico'].map(
   (p) => new URL(p, BASE).pathname,
 );

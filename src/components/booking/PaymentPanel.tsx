@@ -81,7 +81,7 @@ export function PaymentPanel({
     });
   };
 
-  const openWhatsApp = () => {
+  const openWhatsAppAndContinue = () => {
     if (!method) {
       toast.error(t('booking.pickMethodFirst'));
       return;
@@ -91,6 +91,7 @@ export function PaymentPanel({
       return;
     }
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    onMarkedSent({ method });
   };
 
   return (
@@ -139,7 +140,6 @@ export function PaymentPanel({
           <ol className="mt-2 list-decimal space-y-1 ps-5 text-ink">
             <li>{t('booking.payStepPayApp')}</li>
             <li>{t('booking.payStep2')}</li>
-            <li>{t('booking.payStep3')}</li>
           </ol>
         </div>
       ) : null}
@@ -151,23 +151,19 @@ export function PaymentPanel({
         </div>
       ) : null}
 
-      <Button fullWidth size="lg" onClick={openWhatsApp} disabled={!whatsappUrl || !method}>
-        <MessageCircle className="size-5" />
-        {t('booking.sendProofWhatsApp')}
-      </Button>
-
-      <Button
-        fullWidth
-        size="lg"
-        variant="secondary"
-        loading={loading}
-        disabled={!method}
-        onClick={() => method && onMarkedSent({ method })}
-      >
-        {t('booking.markedSentWhatsApp')}
-      </Button>
-
-      <p className="text-center text-xs text-ink">{t('booking.whatsappVerifyHint')}</p>
+      <div className="space-y-2">
+        <Button
+          fullWidth
+          size="lg"
+          loading={loading}
+          disabled={!whatsappUrl || !method || loading}
+          onClick={openWhatsAppAndContinue}
+        >
+          <MessageCircle className="size-5" />
+          {t('booking.sendProofWhatsApp')}
+        </Button>
+        <p className="text-center text-xs text-ink">{t('booking.whatsappVerifyHint')}</p>
+      </div>
     </div>
   );
 }
