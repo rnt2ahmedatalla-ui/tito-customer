@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Download, Share2, Star } from 'lucide-react';
+import { Copy, Download, Share2, Star } from 'lucide-react';
 import QRCode from 'qrcode';
 import { toast } from 'sonner';
 import { PageShell } from '@/components/layout/PageShell';
@@ -19,39 +19,45 @@ type RateView = {
   rating?: number;
 };
 
-const SHARE_URL = 'https://tito-customer.vercel.app/';
+const SHARE_URL = typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://tito-customer.vercel.app/';
+const SHARE_TEXT = 'tito — احجز دورك / Book your slot';
 
 function ShareAndQr() {
   const { t } = useTranslation();
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const shareUrl = SHARE_URL;
 
   useEffect(() => {
-    void QRCode.toDataURL(SHARE_URL, {
+    void QRCode.toDataURL(shareUrl, {
       width: 280,
       margin: 2,
       color: { dark: '#2C1810', light: '#FFFBF5' },
     }).then(setQrDataUrl);
-  }, []);
+  }, [shareUrl]);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success(t('rate.shareCopied'));
+    } catch {
+      toast.message(shareUrl);
+    }
+  };
 
   const share = async () => {
     try {
       if (navigator.share) {
         await navigator.share({
           title: 'tito',
-          text: 'tito — احجز دورك',
-          url: SHARE_URL,
+          text: SHARE_TEXT,
+          url: shareUrl,
         });
         return;
       }
     } catch {
-      /* fall through to copy */
+      /* cancelled or unsupported */
     }
-    try {
-      await navigator.clipboard.writeText(SHARE_URL);
-      toast.success(t('rate.shareCopied'));
-    } catch {
-      toast.message(SHARE_URL);
-    }
+    await copyLink();
   };
 
   const downloadQr = () => {
@@ -62,12 +68,38 @@ function ShareAndQr() {
     a.click();
   };
 
+  const shareQrImage = async () => {
+    if (!qrDataUrl || !navigator.share || !navigator.canShare) {
+      downloadQr();
+      return;
+    }
+    try {
+      const res = await fetch(qrDataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], 'tito-qr.png', { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'tito QR', text: SHARE_TEXT });
+        return;
+      }
+    } catch {
+      /* fall through */
+    }
+    downloadQr();
+  };
+
   return (
     <div className="mt-8 space-y-4 border-t border-default pt-6">
-      <Button variant="secondary" fullWidth onClick={() => void share()}>
-        <Share2 className="size-4" />
-        {t('rate.share')}
-      </Button>
+      <p className="text-sm font-medium text-espresso">{t('rate.share')}</p>
+      <div className="flex flex-col gap-2">
+        <Button variant="secondary" fullWidth onClick={() => void share()}>
+          <Share2 className="size-4" />
+          {t('rate.shareLink')}
+        </Button>
+        <Button variant="ghost" fullWidth onClick={() => void copyLink()}>
+          <Copy className="size-4" />
+          {t('rate.copyLink')}
+        </Button>
+      </div>
       <div className="text-center">
         <p className="mb-3 text-sm font-medium text-espresso">{t('rate.qrTitle')}</p>
         {qrDataUrl ? (
@@ -75,10 +107,16 @@ function ShareAndQr() {
         ) : (
           <Skeleton className="mx-auto size-48" />
         )}
-        <Button className="mt-3" variant="ghost" size="sm" onClick={downloadQr} disabled={!qrDataUrl}>
-          <Download className="size-4" />
-          {t('rate.qrDownload')}
-        </Button>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Button variant="ghost" size="sm" onClick={downloadQr} disabled={!qrDataUrl}>
+            <Download className="size-4" />
+            {t('rate.qrDownload')}
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => void shareQrImage()} disabled={!qrDataUrl}>
+            <Share2 className="size-4" />
+            {t('rate.share')}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -111,7 +149,7 @@ export default function RatePage() {
       if (error) throw error;
       return (data ?? {}) as RateView;
     },
-    onSuccess: (data) => setDone(data),
+    onSuccess: (data) => setDone({ ...data, status: 'done' }),
   });
 
   const view = done ?? query.data;

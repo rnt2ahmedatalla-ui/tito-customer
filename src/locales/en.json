@@ -8,6 +8,7 @@
     "home": "Home",
     "book": "Book",
     "products": "Products",
+    "whatsapp": "WhatsApp",
     "bookings": "My bookings",
     "profile": "Profile"
   },
@@ -52,7 +53,8 @@
     "duration": "{{min}} min",
     "reviewsEyebrow": "Reviews",
     "reviewsTitle": "What clients say",
-    "reviewsEmpty": "No written reviews yet"
+    "reviewsEmpty": "No written reviews yet",
+    "writeReview": "Write a review"
   },
   "booking": {
     "title": "Book your slot",
@@ -206,7 +208,14 @@
     "shareCopied": "Link copied",
     "qrTitle": "Share QR",
     "qrDownload": "Save QR",
-    "commentRequired": "Add a short comment so it can appear on the home page"
+    "commentRequired": "Add a short comment so it can appear on the home page",
+    "loginToReview": "Sign in to leave a review",
+    "homeHint": "After your visit you’ll find a rate link in My bookings — or leave a shop review here.",
+    "writeReview": "Rate your tito experience",
+    "writeReviewHint": "Pick stars and write a short comment — it shows on the home page.",
+    "submitError": "Couldn’t send the review — try again",
+    "copyLink": "Copy link",
+    "shareLink": "Share link"
   },
   "notifications": {
     "title": "Notifications",

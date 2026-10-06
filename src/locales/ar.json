@@ -8,6 +8,7 @@
     "home": "الرئيسية",
     "book": "احجز",
     "products": "منتجاتنا",
+    "whatsapp": "واتساب",
     "bookings": "حجوزاتي",
     "profile": "حسابي"
   },
@@ -52,7 +53,8 @@
     "duration": "{{min}} دقيقة",
     "reviewsEyebrow": "آراء العملاء",
     "reviewsTitle": "التقييمات",
-    "reviewsEmpty": "لسه مفيش تقييمات نصية"
+    "reviewsEmpty": "لسه مفيش تقييمات نصية",
+    "writeReview": "اكتب تقييمك"
   },
   "booking": {
     "title": "احجز دورك",
@@ -206,7 +208,14 @@
     "shareCopied": "تم نسخ اللينك",
     "qrTitle": "QR للمشاركة",
     "qrDownload": "حفظ الـ QR",
-    "commentRequired": "اكتب تعليق قصير عشان يظهر في الصفحة الرئيسية"
+    "commentRequired": "اكتب تعليق قصير عشان يظهر في الصفحة الرئيسية",
+    "loginToReview": "سجّل دخول عشان تقدر تكتب تقييم",
+    "homeHint": "بعد الزيارة هتلاقي لينك تقييم في حجوزاتي — أو اكتب تقييم للمحل من هنا.",
+    "writeReview": "قيّم تجربتك في tito",
+    "writeReviewHint": "اختار النجوم واكتب تعليق قصير — هيظهر في الصفحة الرئيسية.",
+    "submitError": "مش قادرين نبعت التقييم دلوقتي — حاول تاني",
+    "copyLink": "نسخ اللينك",
+    "shareLink": "مشاركة اللينك"
   },
   "notifications": {
     "title": "الإشعارات",

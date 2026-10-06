@@ -334,6 +334,21 @@ export interface Database {
         Update: { is_read?: boolean };
         Relationships: [];
       };
+      reviews: {
+        Row: {
+          id: string;
+          booking_id: string | null;
+          user_id: string | null;
+          rating: number;
+          comment: string | null;
+          display_name: string | null;
+          rate_token: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       products: {
         Row: {
           id: string;
@@ -496,6 +511,10 @@ export interface Database {
           created_at: string;
           display_name: string;
         }[];
+      };
+      customer_add_review: {
+        Args: { p_rating: number; p_comment: string };
+        Returns: Json;
       };
       customer_mark_notifications_read: {
         Args: { p_ids?: string[] | null };

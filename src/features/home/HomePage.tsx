@@ -280,6 +280,13 @@ export default function HomePage() {
         ) : null}
         <div className="gold-rule my-8 max-w-xs" />
         <RecentReviews />
+        <div className="mt-8">
+          <Link to="/review">
+            <Button variant="secondary" size="lg">
+              {t('home.writeReview')}
+            </Button>
+          </Link>
+        </div>
       </section>
 
       {/* How it works — editorial, not card grid */}

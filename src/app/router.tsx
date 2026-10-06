@@ -7,6 +7,7 @@ const BookingPage = lazy(() => import('@/features/booking/BookingPage'));
 const BookingsPage = lazy(() => import('@/features/bookings/BookingsPage'));
 const MovePage = lazy(() => import('@/features/move/MovePage'));
 const RatePage = lazy(() => import('@/features/rate/RatePage'));
+const ReviewPage = lazy(() => import('@/features/rate/ReviewPage'));
 const ProductsPage = lazy(() => import('@/features/products/ProductsPage'));
 const ProductOrderPage = lazy(() => import('@/features/products/ProductOrderPage'));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'));
@@ -37,6 +38,7 @@ const router = createBrowserRouter(
     { path: '/bookings', element: withSuspense(BookingsPage) },
     { path: '/move/:token', element: withSuspense(MovePage) },
     { path: '/rate/:token', element: withSuspense(RatePage) },
+    { path: '/review', element: withSuspense(ReviewPage) },
     { path: '/products', element: withSuspense(ProductsPage) },
     { path: '/products/:id', element: withSuspense(ProductOrderPage) },
     { path: '/profile', element: withSuspense(ProfilePage) },
