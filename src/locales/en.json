@@ -54,7 +54,10 @@
     "reviewsEyebrow": "Reviews",
     "reviewsTitle": "What clients say",
     "reviewsEmpty": "No written reviews yet",
-    "writeReview": "Write a review"
+    "writeReview": "Write a review",
+    "shareEyebrow": "Share the page",
+    "shareTitle": "Share tito",
+    "shareSupport": "Send the link or QR so friends can book in one tap."
   },
   "booking": {
     "title": "Book your slot",

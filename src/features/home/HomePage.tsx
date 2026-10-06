@@ -8,6 +8,7 @@ import { ServiceCard } from '@/components/booking/ServiceCard';
 import { Logo } from '@/components/brand/Logo';
 import { LeatherPattern } from '@/components/brand/Pattern';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { ShareAndQr } from '@/components/share/ShareAndQr';
 import { useServices, useSettings, useWorkingHours, useNextSlot } from './useHomeData';
 import { formatCairoTime, formatCairoDate, getCairoNow } from '@/lib/time';
 import { format } from 'date-fns';
@@ -286,6 +287,17 @@ export default function HomePage() {
             </Button>
           </Link>
         </div>
+      </section>
+
+      {/* Share + QR — same easy path as write-a-review */}
+      <section className="mx-auto max-w-5xl px-5 pb-12 sm:pb-16">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold font-latin">
+          {t('home.shareEyebrow')}
+        </p>
+        <h2 className="mt-3 text-3xl font-bold text-espresso sm:text-4xl">{t('home.shareTitle')}</h2>
+        <p className="mt-3 max-w-lg text-ink">{t('home.shareSupport')}</p>
+        <div className="gold-rule my-8 max-w-xs" />
+        <ShareAndQr compact />
       </section>
 
       {/* How it works — editorial, not card grid */}

@@ -54,7 +54,10 @@
     "reviewsEyebrow": "آراء العملاء",
     "reviewsTitle": "التقييمات",
     "reviewsEmpty": "لسه مفيش تقييمات نصية",
-    "writeReview": "اكتب تقييمك"
+    "writeReview": "اكتب تقييمك",
+    "shareEyebrow": "شارك الصفحة",
+    "shareTitle": "شارك tito",
+    "shareSupport": "ابعت اللينك أو الـ QR لصحابك عشان يحجزوا بسهولة."
   },
   "booking": {
     "title": "احجز دورك",
