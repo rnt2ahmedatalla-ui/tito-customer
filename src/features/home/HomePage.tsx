@@ -189,10 +189,9 @@ export default function HomePage() {
       ) : null}
 
       <section className="mx-auto max-w-5xl px-5 py-10">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-3 gap-3">
           {[
             { to: '/book', label: t('home.navBook') },
-            { to: '/products', label: t('home.navProducts') },
             { to: locationUrl ?? '#visit', label: t('home.navLocation'), external: !!locationUrl },
             { to: '#about', label: t('home.navAbout') },
           ].map((item) =>
