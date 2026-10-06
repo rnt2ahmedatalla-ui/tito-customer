@@ -8,7 +8,6 @@ import { cn } from '@/lib/cn';
 const navItems = [
   { to: '/', labelKey: 'nav.home' },
   { to: '/book', labelKey: 'nav.book' },
-  { to: '/products', labelKey: 'nav.products' },
   { to: '/bookings', labelKey: 'nav.bookings' },
   { to: '/profile', labelKey: 'nav.profile' },
 ] as const;
