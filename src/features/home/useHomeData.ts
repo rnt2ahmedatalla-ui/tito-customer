@@ -41,7 +41,8 @@ export function useWorkingHours() {
       if (error) throw error;
       return data ?? [];
     },
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
