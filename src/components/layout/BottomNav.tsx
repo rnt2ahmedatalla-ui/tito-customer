@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Calendar, Home, User, Scissors } from 'lucide-react';
+import { Calendar, Home, User, Scissors, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 const navItems = [
   { to: '/', icon: Home, labelKey: 'nav.home' },
   { to: '/book', icon: Scissors, labelKey: 'nav.book' },
+  { to: '/products', icon: ShoppingBag, labelKey: 'nav.products' },
   { to: '/bookings', icon: Calendar, labelKey: 'nav.bookings' },
   { to: '/profile', icon: User, labelKey: 'nav.profile' },
 ] as const;
@@ -33,7 +34,7 @@ export function BottomNav() {
               )}
             >
               <Icon className="size-5 shrink-0" aria-hidden />
-              <span className="max-w-full truncate text-center text-[11px] font-medium leading-tight">
+              <span className="max-w-full truncate text-center text-[10px] font-medium leading-tight">
                 {t(labelKey)}
               </span>
             </Link>

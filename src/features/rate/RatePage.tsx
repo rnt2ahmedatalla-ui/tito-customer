@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Star } from 'lucide-react';
+import { Download, Share2, Star } from 'lucide-react';
+import QRCode from 'qrcode';
+import { toast } from 'sonner';
 import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -16,6 +18,71 @@ type RateView = {
   service_name_en?: string;
   rating?: number;
 };
+
+const SHARE_URL = 'https://tito-customer.vercel.app/';
+
+function ShareAndQr() {
+  const { t } = useTranslation();
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    void QRCode.toDataURL(SHARE_URL, {
+      width: 280,
+      margin: 2,
+      color: { dark: '#2C1810', light: '#FFFBF5' },
+    }).then(setQrDataUrl);
+  }, []);
+
+  const share = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'tito',
+          text: 'tito — احجز دورك',
+          url: SHARE_URL,
+        });
+        return;
+      }
+    } catch {
+      /* fall through to copy */
+    }
+    try {
+      await navigator.clipboard.writeText(SHARE_URL);
+      toast.success(t('rate.shareCopied'));
+    } catch {
+      toast.message(SHARE_URL);
+    }
+  };
+
+  const downloadQr = () => {
+    if (!qrDataUrl) return;
+    const a = document.createElement('a');
+    a.href = qrDataUrl;
+    a.download = 'tito-qr.png';
+    a.click();
+  };
+
+  return (
+    <div className="mt-8 space-y-4 border-t border-default pt-6">
+      <Button variant="secondary" fullWidth onClick={() => void share()}>
+        <Share2 className="size-4" />
+        {t('rate.share')}
+      </Button>
+      <div className="text-center">
+        <p className="mb-3 text-sm font-medium text-espresso">{t('rate.qrTitle')}</p>
+        {qrDataUrl ? (
+          <img src={qrDataUrl} alt="QR" className="mx-auto size-48 rounded-btn border border-default bg-white p-2" />
+        ) : (
+          <Skeleton className="mx-auto size-48" />
+        )}
+        <Button className="mt-3" variant="ghost" size="sm" onClick={downloadQr} disabled={!qrDataUrl}>
+          <Download className="size-4" />
+          {t('rate.qrDownload')}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function RatePage() {
   const { token = '' } = useParams();
@@ -96,13 +163,16 @@ export default function RatePage() {
           </Button>
         </div>
       ) : (
-        <p className="mt-6 text-lg text-espresso">
-          {status === 'done'
-            ? t('rate.thanks')
-            : status === 'not_ready'
-              ? t('rate.notReady')
-              : t('rate.missing')}
-        </p>
+        <div className="mt-6">
+          <p className="text-lg text-espresso">
+            {status === 'done'
+              ? t('rate.thanks')
+              : status === 'not_ready'
+                ? t('rate.notReady')
+                : t('rate.missing')}
+          </p>
+          {status === 'done' ? <ShareAndQr /> : null}
+        </div>
       )}
     </PageShell>
   );

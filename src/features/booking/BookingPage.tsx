@@ -55,6 +55,7 @@ export default function BookingPage() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [holdExpired, setHoldExpired] = useState(false);
   const [pendingAction, setPendingAction] = useState<'book' | 'pay_at_shop' | null>(null);
+  const [notes, setNotes] = useState('');
 
   const slots = useAvailableSlots(serviceId, date);
   const booking = useBooking(bookingId);
@@ -161,6 +162,7 @@ export default function BookingPage() {
         startAt: slot,
         payAtShop,
         extraIds,
+        notes: notes.trim() || null,
       });
       try {
         sessionStorage.removeItem('tito_pending_book');
@@ -374,6 +376,19 @@ export default function BookingPage() {
             </div>
           </div>
           {extrasPicker}
+          <div className="mt-4">
+            <label className="mb-1 block text-sm text-ink" htmlFor="booking-notes">
+              {t('booking.notes')}
+            </label>
+            <textarea
+              id="booking-notes"
+              className="min-h-20 w-full rounded-btn border border-default bg-white px-3 py-2 text-sm"
+              placeholder={t('booking.notesPlaceholder')}
+              maxLength={300}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
           <p className="mt-4 text-sm text-ink">
             {t('booking.cancelRule', { hours: settings.data?.cancel_window_hours ?? 3 })}
           </p>

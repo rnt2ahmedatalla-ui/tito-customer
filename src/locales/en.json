@@ -7,6 +7,7 @@
   "nav": {
     "home": "Home",
     "book": "Book",
+    "products": "Products",
     "bookings": "My bookings",
     "profile": "Profile"
   },
@@ -48,7 +49,10 @@
     "whatsapp": "WhatsApp",
     "location": "Location",
     "bookingClosed": "Booking is currently closed — contact us on WhatsApp",
-    "duration": "{{min}} min"
+    "duration": "{{min}} min",
+    "reviewsEyebrow": "Reviews",
+    "reviewsTitle": "What clients say",
+    "reviewsEmpty": "No written reviews yet"
   },
   "booking": {
     "title": "Book your slot",
@@ -104,10 +108,12 @@
     "bookAgain": "Book again",
     "paymentMethod": "Payment method",
     "successTitle": "Booking placed!",
-    "successDesc": "Waiting for the shop to confirm after checking WhatsApp",
-    "reminderHint": "Your booking confirms automatically after you mark the transfer sent, and you’ll get a WhatsApp reminder about an hour before.",
+    "successDesc": "Your booking is pending — waiting for the shop to confirm.",
+    "reminderHint": "After the shop confirms your transfer, you’ll get an in-app notification and a WhatsApp reminder before your appointment.",
     "viewBookings": "My bookings",
-    "contactShop": "WhatsApp the shop"
+    "contactShop": "WhatsApp the shop",
+    "notes": "Note for the shop (optional)",
+    "notesPlaceholder": "e.g. short on the sides…"
   },
   "bookings": {
     "title": "My bookings",
@@ -195,7 +201,16 @@
     "submit": "Send rating",
     "thanks": "Thanks — your rating is in.",
     "notReady": "Rating opens after the appointment is completed.",
-    "missing": "This link is not valid."
+    "missing": "This link is not valid.",
+    "share": "Share tito",
+    "shareCopied": "Link copied",
+    "qrTitle": "Share QR",
+    "qrDownload": "Save QR"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "markAll": "Mark all read"
   },
   "move": {
     "title": "Move your time",

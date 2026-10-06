@@ -18,6 +18,63 @@ import { cn } from '@/lib/cn';
 const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+type RecentReview = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  display_name: string;
+};
+
+function RecentReviews() {
+  const { t } = useTranslation();
+  const list = useQuery({
+    queryKey: ['recent-reviews'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('list_recent_reviews', { p_limit: 8 });
+      if (error) throw error;
+      return (data ?? []) as RecentReview[];
+    },
+    staleTime: 60_000,
+  });
+
+  if (list.isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-20" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!list.data?.length) {
+    return <p className="text-sm text-ink">{t('home.reviewsEmpty')}</p>;
+  }
+
+  return (
+    <ul className="space-y-6">
+      {list.data.map((r) => (
+        <li key={r.id} className="border-b border-default pb-6 last:border-0">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5" aria-label={`${r.rating}`}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={cn('size-4', i < r.rating ? 'fill-gold text-gold' : 'text-bark/25')}
+                  aria-hidden
+                />
+              ))}
+            </div>
+            <span className="text-sm font-medium text-espresso">{r.display_name}</span>
+          </div>
+          {r.comment ? <p className="mt-2 text-ink leading-relaxed">{r.comment}</p> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default function HomePage() {
   const { t, i18n } = useTranslation();
   const services = useServices();
@@ -106,17 +163,6 @@ export default function HomePage() {
                 {t('home.heroCta')}
               </Button>
             </Link>
-            {whatsappUrl ? (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-btn border border-cream/25 px-6 text-base font-semibold text-cream transition-colors duration-brand hover:bg-cream/10 font-latin sm:w-auto sm:text-lg"
-              >
-                <MessageCircle className="size-5" aria-hidden />
-                {t('home.whatsapp')}
-              </a>
-            ) : null}
           </div>
 
           {!nextSlot.isLoading ? (
@@ -217,6 +263,23 @@ export default function HomePage() {
             <Button size="lg">{t('home.heroCta')}</Button>
           </Link>
         </div>
+      </section>
+
+      {/* Reviews under services */}
+      <section className="mx-auto max-w-5xl px-5 py-12 sm:py-16">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold font-latin">
+          {t('home.reviewsEyebrow')}
+        </p>
+        <h2 className="mt-3 text-3xl font-bold text-espresso sm:text-4xl">{t('home.reviewsTitle')}</h2>
+        {reviews.data && reviews.data.count > 0 ? (
+          <p className="mt-3 flex items-center gap-2 text-ink">
+            <Star className="size-5 fill-gold text-gold" aria-hidden />
+            <span className="font-latin text-lg font-semibold">{Number(reviews.data.avg).toFixed(1)}</span>
+            <span className="text-ink/60">({reviews.data.count})</span>
+          </p>
+        ) : null}
+        <div className="gold-rule my-8 max-w-xs" />
+        <RecentReviews />
       </section>
 
       {/* How it works — editorial, not card grid */}

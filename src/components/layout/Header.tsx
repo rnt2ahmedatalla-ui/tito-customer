@@ -1,12 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Logo } from '@/components/brand/Logo';
+import { CustomerNotificationsBell } from './CustomerNotificationsBell';
 import { setLanguage } from '@/i18n';
 import { cn } from '@/lib/cn';
 
 const navItems = [
   { to: '/', labelKey: 'nav.home' },
   { to: '/book', labelKey: 'nav.book' },
+  { to: '/products', labelKey: 'nav.products' },
   { to: '/bookings', labelKey: 'nav.bookings' },
   { to: '/profile', labelKey: 'nav.profile' },
 ] as const;
@@ -35,7 +37,7 @@ export function Header({ dark = false }: HeaderProps) {
 
         <nav className="hidden items-center gap-1 sm:flex" aria-label={t('a11y.mainNav')}>
           {navItems.map(({ to, labelKey }) => {
-            const active = location.pathname === to;
+            const active = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
             return (
               <Link
                 key={to}
@@ -58,6 +60,7 @@ export function Header({ dark = false }: HeaderProps) {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
+          <CustomerNotificationsBell dark={dark} />
           <button
             type="button"
             onClick={() => setLanguage(i18n.language === 'ar' ? 'en' : 'ar')}

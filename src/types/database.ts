@@ -316,6 +316,24 @@ export interface Database {
           },
         ];
       };
+      customer_notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: string;
+          title_ar: string;
+          title_en: string;
+          body_ar: string | null;
+          body_en: string | null;
+          entity: string | null;
+          entity_id: string | null;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: never;
+        Update: { is_read?: boolean };
+        Relationships: [];
+      };
       products: {
         Row: {
           id: string;
@@ -440,6 +458,7 @@ export interface Database {
           p_start_at: string;
           p_pay_at_shop?: boolean;
           p_extra_ids?: string[];
+          p_notes?: string | null;
         };
         Returns: string;
       };
@@ -466,6 +485,20 @@ export interface Database {
       };
       get_review_stats: {
         Args: Record<string, never>;
+        Returns: Json;
+      };
+      list_recent_reviews: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string;
+          rating: number;
+          comment: string | null;
+          created_at: string;
+          display_name: string;
+        }[];
+      };
+      customer_mark_notifications_read: {
+        Args: { p_ids?: string[] | null };
         Returns: Json;
       };
       get_rate_booking: {
