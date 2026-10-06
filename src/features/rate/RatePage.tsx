@@ -155,12 +155,13 @@ export default function RatePage() {
           />
           <Button
             fullWidth
-            disabled={rating < 1}
+            disabled={rating < 1 || comment.trim().length < 3}
             loading={submit.isPending}
             onClick={() => void submit.mutate()}
           >
             {t('rate.submit')}
           </Button>
+          <p className="text-xs text-ink">{t('rate.commentRequired')}</p>
         </div>
       ) : (
         <div className="mt-6">

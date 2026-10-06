@@ -205,7 +205,8 @@
     "share": "Share tito",
     "shareCopied": "Link copied",
     "qrTitle": "Share QR",
-    "qrDownload": "Save QR"
+    "qrDownload": "Save QR",
+    "commentRequired": "Add a short comment so it can appear on the home page"
   },
   "notifications": {
     "title": "Notifications",

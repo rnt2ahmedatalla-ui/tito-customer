@@ -205,7 +205,8 @@
     "share": "شارك tito",
     "shareCopied": "تم نسخ اللينك",
     "qrTitle": "QR للمشاركة",
-    "qrDownload": "حفظ الـ QR"
+    "qrDownload": "حفظ الـ QR",
+    "commentRequired": "اكتب تعليق قصير عشان يظهر في الصفحة الرئيسية"
   },
   "notifications": {
     "title": "الإشعارات",
