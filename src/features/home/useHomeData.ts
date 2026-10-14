@@ -14,7 +14,8 @@ export function useServices() {
       if (error) throw error;
       return data ?? [];
     },
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -26,7 +27,8 @@ export function useSettings() {
       if (error) throw error;
       return data;
     },
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 

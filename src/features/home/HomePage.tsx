@@ -36,7 +36,8 @@ function RecentReviews() {
       if (error) throw error;
       return (data ?? []) as RecentReview[];
     },
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   if (list.isLoading) {
@@ -89,7 +90,8 @@ export default function HomePage() {
       if (error) throw error;
       return data as { avg: number; count: number };
     },
-    staleTime: 60_000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const todayDow = getCairoNow().getDay();
@@ -139,16 +141,29 @@ export default function HomePage() {
 
         <div className="relative mx-auto w-full max-w-5xl px-4 pb-24 pt-16 sm:px-5 sm:pb-24 sm:pt-28">
           <Logo variant="dark" mark height={56} className="animate-rise sm:!h-[72px]" />
-          <p className="mt-3 text-xl font-bold tracking-wide text-gold font-latin animate-rise sm:mt-4 sm:text-2xl">tito</p>
-          {tagline ? <p className="mt-1 text-sm text-cream/70 animate-rise">{tagline}</p> : null}
+          {settings.isLoading ? (
+            <div className="mt-4 space-y-3">
+              <Skeleton className="h-6 w-32 bg-cream/20" />
+              <Skeleton className="h-4 w-48 bg-cream/15" />
+              <Skeleton className="mt-4 h-12 w-3/4 max-w-lg bg-cream/20 sm:h-16" />
+              <Skeleton className="mt-3 h-6 w-1/2 max-w-sm bg-cream/15" />
+            </div>
+          ) : (
+            <>
+              <p className="mt-3 text-xl font-bold tracking-wide text-gold font-latin animate-rise sm:mt-4 sm:text-2xl">
+                {settings.data?.shop_name || 'tito'}
+              </p>
+              {tagline ? <p className="mt-1 text-sm text-cream/70 animate-rise">{tagline}</p> : null}
 
-          <h1 className="mt-6 max-w-xl text-balance text-3xl font-bold leading-[1.2] tracking-tight text-cream animate-rise-delay-1 sm:mt-8 sm:text-5xl md:text-6xl">
-            {headline}
-          </h1>
+              <h1 className="mt-6 max-w-xl text-balance text-3xl font-bold leading-[1.2] tracking-tight text-cream animate-rise-delay-1 sm:mt-8 sm:text-5xl md:text-6xl">
+                {headline}
+              </h1>
 
-          <p className="mt-5 max-w-md text-lg text-cream/80 animate-rise-delay-2 sm:text-xl">
-            {support}
-          </p>
+              <p className="mt-5 max-w-md text-lg text-cream/80 animate-rise-delay-2 sm:text-xl">
+                {support}
+              </p>
+            </>
+          )}
 
           {reviews.data && reviews.data.count > 0 ? (
             <p className="mt-4 flex items-center gap-1.5 text-sm text-gold-soft animate-fade">
@@ -230,7 +245,15 @@ export default function HomePage() {
           {t('home.aboutEyebrow')}
         </p>
         <h2 className="mt-3 text-3xl font-bold text-espresso sm:text-4xl">{t('home.aboutTitle')}</h2>
-        <p className="mt-4 max-w-2xl whitespace-pre-line text-ink leading-relaxed">{about}</p>
+        {settings.isLoading ? (
+          <div className="mt-4 max-w-2xl space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+          </div>
+        ) : (
+          <p className="mt-4 max-w-2xl whitespace-pre-line text-ink leading-relaxed">{about}</p>
+        )}
       </section>
 
       {/* Services */}
@@ -406,7 +429,7 @@ export default function HomePage() {
 
       <footer className="bg-espresso py-8 text-center text-sm text-cream/40">
         <Logo variant="dark" mark height={40} className="mx-auto opacity-90" />
-        <p className="mt-3 font-latin tracking-wide">tito</p>
+        <p className="mt-3 font-latin tracking-wide">{settings.data?.shop_name || 'tito'}</p>
       </footer>
     </PageShell>
   );

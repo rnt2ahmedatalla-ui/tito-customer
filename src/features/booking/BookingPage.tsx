@@ -171,7 +171,7 @@ export default function BookingPage() {
       }
       setPendingAction(null);
       if (payAtShop) {
-        updateParams({ step: 'success', booking: id, service: null, date: null, slot: null });
+        updateParams({ step: 'success', booking: id, service: null, date: null, slot: null, pay_at_shop: '1' });
       } else {
         updateParams({ step: 'payment', booking: id });
       }
@@ -225,15 +225,34 @@ export default function BookingPage() {
     return true;
   };
 
+  const isPayAtShop = params.get('pay_at_shop') === '1' || !!booking.data?.pay_at_shop;
+
   const whatsappUrl = (() => {
     if (!settings.data?.shop_whatsapp) return null;
     if (step === 'success' && booking.data && selectedService) {
       const serviceName =
         i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en;
+      const shopName = settings.data?.shop_name || 'tito';
+      const dateStr = formatCairoDate(booking.data.start_at, i18n.language);
+      const timeStr = formatCairoTime(booking.data.start_at, i18n.language);
+      const priceStr = formatEGP(booking.data.price_egp);
+      const bookingsLink =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/bookings`
+          : 'https://titobarber.com/bookings';
+
+      if (isPayAtShop) {
+        const msg =
+          i18n.language === 'ar'
+            ? `مرحباً ${shopName} 👋\nتمام، الحجز اتأكد ✅\nهتلاقيه في حجوزاتك من هنا: ${bookingsLink}\nالخدمة: ${serviceName}\nقيمة الخدمة: ${priceStr} جنيه وتدفعها في المحل.\nمستنيك يوم ${dateStr} الساعة ${timeStr}.`
+            : `Hi ${shopName} 👋\nYour booking is confirmed ✅\nYou'll find it in My Bookings here: ${bookingsLink}\nService: ${serviceName}\nService price: ${priceStr} EGP, pay at the shop.\nSee you on ${dateStr} at ${timeStr}.`;
+        return buildWhatsAppUrl(settings.data.shop_whatsapp, msg);
+      }
+
       const msg =
         i18n.language === 'ar'
-          ? `مرحباً tito 👋\nحجزت ${serviceName}\n${formatCairoDate(booking.data.start_at, 'ar')}\n${formatCairoTime(booking.data.start_at, 'ar')}\n${formatEGP(booking.data.price_egp)}`
-          : `Hi tito 👋\nI booked ${serviceName}\n${formatCairoDate(booking.data.start_at, 'en')}\n${formatCairoTime(booking.data.start_at, 'en')}\n${formatEGP(booking.data.price_egp)}`;
+          ? `مرحباً ${shopName} 👋\nحجزت ${serviceName}\n${dateStr}\n${timeStr}\n${priceStr}`
+          : `Hi ${shopName} 👋\nI booked ${serviceName}\n${dateStr}\n${timeStr}\n${priceStr}`;
       return buildWhatsAppUrl(settings.data.shop_whatsapp, msg);
     }
     return buildWhatsAppUrl(settings.data.shop_whatsapp);
@@ -389,14 +408,21 @@ export default function BookingPage() {
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
-          <p className="mt-4 text-sm text-ink">
-            {t('booking.cancelRule', { hours: settings.data?.cancel_window_hours ?? 3 })}
-          </p>
-
           {!user && !authLoading ? (
-            <div className="mt-6 rounded-card bg-sand/50 p-4 text-center">
-              <p className="mb-3 text-sm text-ink">{t('booking.loginRequired')}</p>
-              <Button onClick={() => signIn()}>{t('booking.signInGoogle')}</Button>
+            <div className="mt-6 rounded-card border-2 border-gold/60 bg-gold/10 p-5 text-center shadow-warm">
+              <p className="text-base font-semibold text-espresso">{t('booking.loginRequired')}</p>
+              <p className="mt-1 text-sm text-ink">{t('profile.completeProfileDesc')}</p>
+              <Button size="lg" className="mt-4 w-full sm:w-auto" onClick={() => signIn()}>
+                {t('booking.signInGoogle')}
+              </Button>
+            </div>
+          ) : user && !isProfileComplete(profile.data) ? (
+            <div className="mt-6 rounded-card border-2 border-warning/60 bg-warning/10 p-5 text-center shadow-warm">
+              <p className="text-base font-semibold text-espresso">{t('profile.completeProfile')}</p>
+              <p className="mt-1 text-sm text-ink">{t('profile.completeProfileDesc')}</p>
+              <Button size="lg" className="mt-4 w-full sm:w-auto" onClick={() => setShowProfileModal(true)}>
+                {t('profile.completeProfile')}
+              </Button>
             </div>
           ) : null}
         </section>
@@ -445,9 +471,24 @@ export default function BookingPage() {
         <section className="relative overflow-hidden rounded-card bg-espresso px-4 py-8 text-center text-cream sm:p-8">
           <LeatherPattern />
           <div className="relative">
-            <h1 className="text-2xl font-bold">{t('booking.successTitle')}</h1>
-            <p className="mt-2 text-cream/80">{t('booking.successDesc')}</p>
-            <p className="mt-3 text-sm text-gold-soft">{t('booking.reminderHint')}</p>
+            <h1 className="text-2xl font-bold">
+              {isPayAtShop ? t('booking.payAtShopSuccessTitle') : t('booking.successTitle')}
+            </h1>
+            <p className="mt-2 text-cream/80">
+              {isPayAtShop
+                ? t('booking.payAtShopSuccessDesc', {
+                    price: formatEGP(booking.data?.price_egp ?? orderTotal),
+                  })
+                : t('booking.successDesc')}
+            </p>
+            <p className="mt-3 text-sm text-gold-soft">
+              {isPayAtShop
+                ? t('booking.payAtShopSuccessHint', {
+                    date: booking.data?.start_at ? formatCairoDate(booking.data.start_at, i18n.language) : '',
+                    time: booking.data?.start_at ? formatCairoTime(booking.data.start_at, i18n.language) : '',
+                  })
+                : t('booking.reminderHint')}
+            </p>
             {booking.data && selectedService ? (
               <div className="mt-6 space-y-2 text-sm font-latin">
                 <p>{i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en}</p>
@@ -491,24 +532,44 @@ export default function BookingPage() {
             ) : null}
             {step === 'review' ? (
               <div className="flex w-full min-w-0 flex-col gap-2 min-[420px]:flex-1">
-                <Button
-                  fullWidth
-                  onClick={() => handleConfirmBooking(false)}
-                  loading={createBooking.isPending}
-                  disabled={!user && authLoading}
-                >
-                  {t('booking.payNow')}
-                </Button>
-                {settings.data?.allow_pay_at_shop ? (
+                {!user ? (
                   <Button
-                    variant="secondary"
                     fullWidth
-                    onClick={() => handleConfirmBooking(true)}
-                    loading={createBooking.isPending}
+                    size="lg"
+                    onClick={() => signIn()}
+                    loading={authLoading}
                   >
-                    {t('booking.payAtShop')}
+                    {t('booking.signInGoogle')}
                   </Button>
-                ) : null}
+                ) : !isProfileComplete(profile.data) ? (
+                  <Button
+                    fullWidth
+                    size="lg"
+                    onClick={() => setShowProfileModal(true)}
+                  >
+                    {t('profile.completeProfile')}
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      fullWidth
+                      onClick={() => handleConfirmBooking(false)}
+                      loading={createBooking.isPending}
+                    >
+                      {t('booking.payNow')}
+                    </Button>
+                    {settings.data?.allow_pay_at_shop ? (
+                      <Button
+                        variant="secondary"
+                        fullWidth
+                        onClick={() => handleConfirmBooking(true)}
+                        loading={createBooking.isPending}
+                      >
+                        {t('booking.payAtShop')}
+                      </Button>
+                    ) : null}
+                  </>
+                )}
               </div>
             ) : (
               <Button

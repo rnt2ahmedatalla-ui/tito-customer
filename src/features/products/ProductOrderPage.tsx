@@ -17,7 +17,10 @@ type Product = {
   id: string;
   name_ar: string;
   name_en: string;
+  description_ar: string | null;
+  description_en: string | null;
   price_egp: number;
+  image_path: string | null;
 };
 
 export default function ProductOrderPage() {
@@ -35,13 +38,15 @@ export default function ProductOrderPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name_ar, name_en, price_egp')
+        .select('id, name_ar, name_en, description_ar, description_en, price_egp, image_path')
         .eq('id', id)
         .eq('is_active', true)
         .single();
       if (error) throw error;
       return data as Product;
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const createOrder = useMutation({
@@ -97,11 +102,21 @@ export default function ProductOrderPage() {
   }
 
   const name = i18n.language === 'ar' ? product.data.name_ar : product.data.name_en;
+  const desc = i18n.language === 'ar' ? product.data.description_ar : product.data.description_en;
+  const imgUrl = product.data.image_path
+    ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/product-images/${product.data.image_path}`
+    : null;
 
   return (
     <PageShell withActionBar={!orderId}>
+      {imgUrl ? (
+        <div className="mb-4 overflow-hidden rounded-card border border-default">
+          <img src={imgUrl} alt={name} className="h-48 w-full object-cover" />
+        </div>
+      ) : null}
       <h1 className="text-2xl font-bold text-espresso">{name}</h1>
       <p className="mt-2 font-latin text-lg font-bold">{formatEGP(product.data.price_egp)}</p>
+      {desc ? <p className="mt-3 text-sm text-ink/80 leading-relaxed">{desc}</p> : null}
 
       {!orderId ? (
         <div className="mt-6">

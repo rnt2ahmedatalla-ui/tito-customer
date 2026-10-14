@@ -65,7 +65,13 @@ export function ProfileModal({
   return (
     <Sheet open={open} onClose={onClose} title={t('profile.completeProfile')}>
       <p className="mb-4 text-sm text-ink">{t('profile.completeProfileDesc')}</p>
-      <div className="flex flex-col gap-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSave();
+        }}
+        className="flex flex-col gap-4"
+      >
         <Input
           label={t('profile.fullName')}
           value={fullName}
@@ -82,10 +88,16 @@ export function ProfileModal({
           className="font-latin"
           inputMode="numeric"
         />
-        <Button fullWidth onClick={() => void handleSave()} loading={updateProfile.isPending}>
+        <Button
+          type="submit"
+          size="lg"
+          fullWidth
+          loading={updateProfile.isPending}
+          className="mt-2"
+        >
           {t('profile.save')}
         </Button>
-      </div>
+      </form>
     </Sheet>
   );
 }

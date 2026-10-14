@@ -30,6 +30,8 @@ export default function ProductsPage() {
       if (error) throw error;
       return (data ?? []) as Product[];
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const img = (path: string | null) =>
