@@ -5,6 +5,7 @@ import { PageShell } from '@/components/layout/PageShell';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { useAuth, useProfile, useSignIn, useSignOut } from './useAuth';
 import { useUpdateProfile } from './useProfile';
 import { setLanguage } from '@/i18n';
@@ -55,8 +56,9 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <PageShell>
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
+        <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
           <p className="text-ink">{t('booking.loginRequired')}</p>
+          <InAppBrowserNotice className="w-full text-start" />
           <Button onClick={() => void signIn()}>{t('booking.signInGoogle')}</Button>
         </div>
       </PageShell>

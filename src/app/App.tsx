@@ -6,16 +6,18 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { useSettings } from '@/features/home/useHomeData';
 
 function DocumentTitle() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const settings = useSettings();
   useEffect(() => {
     const shopName = settings.data?.shop_name;
+    const ar = i18n.language?.startsWith('ar');
+    const tagline = (ar ? settings.data?.tagline_ar : settings.data?.tagline_en) || t('app.tagline');
     if (shopName) {
-      document.title = `${shopName} | ${t('app.tagline')}`;
+      document.title = `${shopName} | ${tagline}`;
     } else {
       document.title = t('app.title');
     }
-  }, [t, settings.data?.shop_name]);
+  }, [t, i18n.language, settings.data?.shop_name, settings.data?.tagline_ar, settings.data?.tagline_en]);
   return null;
 }
 

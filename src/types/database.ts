@@ -349,6 +349,29 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      recurring_breaks: {
+        Row: {
+          id: string;
+          reason: string;
+          start_time: string;
+          end_time: string;
+          days_of_week: number[];
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          reason?: string;
+          start_time: string;
+          end_time: string;
+          days_of_week?: number[];
+          is_active?: boolean;
+        };
+        Update: {
+          reason?: string;
+          is_active?: boolean;
+        };
+        Relationships: [];
+      };
       products: {
         Row: {
           id: string;

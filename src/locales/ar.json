@@ -115,9 +115,9 @@
     "successTitle": "الحجز وصل!",
     "successDesc": "بعتنا طلبك وهو مستني تأكيد صاحب المحل بعد ما يشوف التحويل على واتساب.",
     "reminderHint": "لما يتأكد التحويل، هيظهر الحجز Confirmed في حجوزاتك وهيوصلّك إشعار هنا.",
-    "payAtShopSuccessTitle": "الحجز اتأكد! ✅",
-    "payAtShopSuccessDesc": "تمام، الحجز اتأكد ✅ هتلاقيه في حجوزاتك. قيمة الخدمة {{price}} جنيه وتدفعها في المحل.",
-    "payAtShopSuccessHint": "مستنيك يوم {{date}} الساعة {{time}}.",
+    "payAtShopSuccessTitle": "تم تسجيل حجزك بنجاح! 💈",
+    "payAtShopSuccessDesc": "تم حجز موعدك بنجاح. قيمة الخدمة {{price}} جنيه وسيتم دفعها في المحل عند الحضور.",
+    "payAtShopSuccessHint": "مستنينك يوم {{date}} الساعة {{time}}.",
     "viewBookings": "حجوزاتي",
     "contactShop": "تواصل مع المحل على واتساب",
     "notes": "ملاحظة للمحل (اختياري)",
@@ -250,5 +250,11 @@
     "logo": "tito — الصفحة الرئيسية",
     "openMenu": "فتح القائمة",
     "closeMenu": "إغلاق القائمة"
+  },
+  "auth": {
+    "inAppBrowserTitle": "افتح الرابط في Safari أو Chrome",
+    "inAppBrowserNotice": "تمنع Google تسجيل الدخول من داخل التطبيقات (مثل واتساب، انستجرام، فيسبوك، تيك توك). يرجى الضغط على القائمة (•••) واختيار \"فتح في المتصفح\"، أو نسخ الرابط وفتحه في متصفح خارجي (سفاري أو كروم).",
+    "copyLink": "نسخ الرابط",
+    "linkCopied": "تم نسخ الرابط! الصقه في Safari أو Chrome"
   }
 }

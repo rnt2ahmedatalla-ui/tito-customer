@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { useAuth, useSignIn } from '@/features/profile/useAuth';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/cn';
@@ -77,11 +78,14 @@ export default function ReviewPage() {
   if (!user) {
     return (
       <PageShell>
-        <h1 className="text-2xl font-bold text-espresso">{t('rate.title')}</h1>
-        <p className="mt-4 text-ink">{t('rate.loginToReview')}</p>
-        <Button className="mt-6" onClick={() => void signIn()}>
-          {t('booking.signInGoogle')}
-        </Button>
+        <div className="mx-auto max-w-md">
+          <h1 className="text-2xl font-bold text-espresso">{t('rate.title')}</h1>
+          <p className="mt-4 text-ink">{t('rate.loginToReview')}</p>
+          <InAppBrowserNotice className="mt-4" />
+          <Button className="mt-6" onClick={() => void signIn()}>
+            {t('booking.signInGoogle')}
+          </Button>
+        </div>
       </PageShell>
     );
   }

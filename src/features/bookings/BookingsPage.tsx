@@ -5,6 +5,7 @@ import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { useBookings, useCancelBooking } from './useBookings';
 import { useSettings } from '@/features/home/useHomeData';
 import { useAuth, useSignIn } from '@/features/profile/useAuth';
@@ -59,8 +60,9 @@ export default function BookingsPage() {
   if (!user) {
     return (
       <PageShell>
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
+        <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
           <p className="text-ink">{t('booking.loginRequired')}</p>
+          <InAppBrowserNotice className="w-full text-start" />
           <Button onClick={() => void signIn()}>{t('booking.signInGoogle')}</Button>
         </div>
       </PageShell>

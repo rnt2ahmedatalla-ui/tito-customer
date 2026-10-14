@@ -50,7 +50,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         void queryClient.invalidateQueries({ queryKey: ['next_slot'] });
         void queryClient.invalidateQueries({ queryKey: ['slots'] });
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'breaks' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recurring_breaks' }, () => {
         void queryClient.invalidateQueries({ queryKey: ['slots'] });
         void queryClient.invalidateQueries({ queryKey: ['next_slot'] });
       })

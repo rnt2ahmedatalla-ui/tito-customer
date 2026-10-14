@@ -1,5 +1,5 @@
 const BASE = self.registration.scope;
-const CACHE_NAME = 'tito-static-v5';
+const CACHE_NAME = 'tito-static-v6';
 const STATIC_ASSETS = ['manifest.webmanifest', 'favicon.ico'].map(
   (p) => new URL(p, BASE).pathname,
 );
@@ -26,13 +26,26 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
+
+  // Never touch third-party or API requests — let browser fetch directly
   if (url.origin !== self.location.origin) return;
+
   // Never cache navigations / HTML — always hit network for fresh app shell
   if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(fetch(request));
     return;
   }
-  if (url.pathname.includes('supabase') || url.searchParams.has('code')) return;
+
+  // Never cache Supabase, auth, API, or RPC endpoints
+  if (
+    url.pathname.includes('supabase') ||
+    url.pathname.startsWith('/rest/') ||
+    url.pathname.startsWith('/auth/') ||
+    url.pathname.startsWith('/storage/') ||
+    url.searchParams.has('code')
+  ) {
+    return;
+  }
 
   // Network-first for JS/CSS so deploys replace old bundles immediately
   if (request.destination === 'script' || request.destination === 'style') {

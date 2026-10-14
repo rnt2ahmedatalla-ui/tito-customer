@@ -115,8 +115,8 @@
     "successTitle": "Booking received!",
     "successDesc": "Your request is pending — waiting for the shop to confirm after checking WhatsApp.",
     "reminderHint": "Once they confirm the transfer, the booking shows as Confirmed in My bookings and you’ll get a notification here.",
-    "payAtShopSuccessTitle": "Booking confirmed! ✅",
-    "payAtShopSuccessDesc": "Your booking is confirmed ✅ You'll find it in My Bookings. Service price: {{price}} EGP, pay at the shop.",
+    "payAtShopSuccessTitle": "Booking reserved! 💈",
+    "payAtShopSuccessDesc": "Your slot has been reserved. Service price: {{price}} EGP, to be paid at the shop upon arrival.",
     "payAtShopSuccessHint": "See you on {{date}} at {{time}}.",
     "viewBookings": "My bookings",
     "contactShop": "WhatsApp the shop",
@@ -250,5 +250,11 @@
     "logo": "tito — Home",
     "openMenu": "Open menu",
     "closeMenu": "Close menu"
+  },
+  "auth": {
+    "inAppBrowserTitle": "Open in Safari or Chrome",
+    "inAppBrowserNotice": "Google blocks sign-in inside in-app browsers (WhatsApp, Instagram, Facebook, TikTok). Please tap ••• and choose 'Open in Browser', or copy the link below and open it in Safari or Chrome.",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied! Paste in Safari or Chrome"
   }
 }

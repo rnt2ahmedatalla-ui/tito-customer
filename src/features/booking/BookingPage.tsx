@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
 import { ProfileModal } from '@/components/layout/ProfileModal';
+import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { Button } from '@/components/ui/Button';
 import { ServiceCard } from '@/components/booking/ServiceCard';
 import { DateStrip } from '@/components/booking/DateStrip';
@@ -244,8 +245,8 @@ export default function BookingPage() {
       if (isPayAtShop) {
         const msg =
           i18n.language === 'ar'
-            ? `مرحباً ${shopName} 👋\nتمام، الحجز اتأكد ✅\nهتلاقيه في حجوزاتك من هنا: ${bookingsLink}\nالخدمة: ${serviceName}\nقيمة الخدمة: ${priceStr} جنيه وتدفعها في المحل.\nمستنيك يوم ${dateStr} الساعة ${timeStr}.`
-            : `Hi ${shopName} 👋\nYour booking is confirmed ✅\nYou'll find it in My Bookings here: ${bookingsLink}\nService: ${serviceName}\nService price: ${priceStr} EGP, pay at the shop.\nSee you on ${dateStr} at ${timeStr}.`;
+            ? `مرحباً ${shopName} 👋\nأنا حجزت موعد مع الدفع في المحل 💈\nالخدمة: ${serviceName}\nالموعد: يوم ${dateStr} الساعة ${timeStr}\nالمبلغ: ${priceStr} جنيه (كاش أو إنستاباي في المحل)\nرابط الحجز: ${bookingsLink}`
+            : `Hi ${shopName} 👋\nI booked an appointment (Pay at shop) 💈\nService: ${serviceName}\nAppointment: ${dateStr} at ${timeStr}\nTotal: ${priceStr} EGP (to pay at the shop)\nBooking link: ${bookingsLink}`;
         return buildWhatsAppUrl(settings.data.shop_whatsapp, msg);
       }
 
@@ -412,6 +413,7 @@ export default function BookingPage() {
             <div className="mt-6 rounded-card border-2 border-gold/60 bg-gold/10 p-5 text-center shadow-warm">
               <p className="text-base font-semibold text-espresso">{t('booking.loginRequired')}</p>
               <p className="mt-1 text-sm text-ink">{t('profile.completeProfileDesc')}</p>
+              <InAppBrowserNotice className="mt-4" />
               <Button size="lg" className="mt-4 w-full sm:w-auto" onClick={() => signIn()}>
                 {t('booking.signInGoogle')}
               </Button>
@@ -472,7 +474,11 @@ export default function BookingPage() {
           <LeatherPattern />
           <div className="relative">
             <h1 className="text-2xl font-bold">
-              {isPayAtShop ? t('booking.payAtShopSuccessTitle') : t('booking.successTitle')}
+              {isPayAtShop
+                ? booking.data?.status === 'confirmed'
+                  ? (i18n.language === 'ar' ? 'تم تأكيد حجزك! ✅' : 'Booking confirmed! ✅')
+                  : t('booking.payAtShopSuccessTitle')
+                : t('booking.successTitle')}
             </h1>
             <p className="mt-2 text-cream/80">
               {isPayAtShop
