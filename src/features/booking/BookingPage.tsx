@@ -59,6 +59,13 @@ export default function BookingPage() {
   const [holdExpired, setHoldExpired] = useState(false);
   const [pendingAction, setPendingAction] = useState<'book' | 'pay_at_shop' | null>(null);
   const [notes, setNotes] = useState('');
+  const [payAtShopChosen, setPayAtShopChosen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      params.get('pay_at_shop') === '1' ||
+      sessionStorage.getItem('tito_last_pay_mode') === 'pay_at_shop'
+    );
+  });
 
   const slots = useAvailableSlots(serviceId, date);
   const booking = useBooking(bookingId);
@@ -140,6 +147,12 @@ export default function BookingPage() {
   }, [booking.data?.hold_expires_at]);
 
   const handleConfirmBooking = async (payAtShop = false) => {
+    setPayAtShopChosen(payAtShop);
+    try {
+      sessionStorage.setItem('tito_last_pay_mode', payAtShop ? 'pay_at_shop' : 'online');
+    } catch {
+      /* ignore */
+    }
     if (!user) {
       const action = payAtShop ? 'pay_at_shop' : 'book';
       setPendingAction(action);
@@ -169,6 +182,10 @@ export default function BookingPage() {
       });
       try {
         sessionStorage.removeItem('tito_pending_book');
+        sessionStorage.setItem('tito_last_pay_mode', payAtShop ? 'pay_at_shop' : 'online');
+        if (id) {
+          sessionStorage.setItem(`tito_pay_mode_${id}`, payAtShop ? 'pay_at_shop' : 'online');
+        }
       } catch {
         /* ignore */
       }
@@ -176,7 +193,7 @@ export default function BookingPage() {
       if (payAtShop) {
         updateParams({ step: 'success', booking: id, service: null, date: null, slot: null, pay_at_shop: '1' });
       } else {
-        updateParams({ step: 'payment', booking: id });
+        updateParams({ step: 'payment', booking: id, pay_at_shop: null });
       }
     } catch (err) {
       if (extractErrorCode(err) === 'SLOT_TAKEN') {
@@ -215,11 +232,20 @@ export default function BookingPage() {
 
   const handlePaymentMarkedSent = async (data: { method: PaymentMethod }) => {
     if (!bookingId || !user) return;
+    setPayAtShopChosen(false);
+    try {
+      sessionStorage.setItem('tito_last_pay_mode', 'online');
+      if (bookingId) {
+        sessionStorage.setItem(`tito_pay_mode_${bookingId}`, 'online');
+      }
+    } catch {
+      /* ignore */
+    }
     await submitPayment.mutateAsync({
       bookingId,
       method: data.method,
     });
-    updateParams({ step: 'success' });
+    updateParams({ step: 'success', pay_at_shop: null });
   };
 
   const canProceed = () => {
@@ -228,7 +254,14 @@ export default function BookingPage() {
     return true;
   };
 
-  const isPayAtShop = params.get('pay_at_shop') === '1' || !!booking.data?.pay_at_shop;
+  const isPayAtShop =
+    payAtShopChosen ||
+    params.get('pay_at_shop') === '1' ||
+    booking.data?.pay_at_shop === true ||
+    (bookingId && typeof window !== 'undefined'
+      ? sessionStorage.getItem(`tito_pay_mode_${bookingId}`) === 'pay_at_shop'
+      : false) ||
+    (step === 'success' && typeof window !== 'undefined' && sessionStorage.getItem('tito_last_pay_mode') === 'pay_at_shop');
 
   const whatsappUrl = (() => {
     if (!settings.data?.shop_whatsapp) return null;
@@ -486,16 +519,12 @@ export default function BookingPage() {
           <div className="relative">
             <h1 className="text-2xl font-bold">
               {isPayAtShop
-                ? booking.data?.status === 'confirmed'
-                  ? (i18n.language === 'ar' ? 'تم تأكيد حجزك! ✅' : 'Booking confirmed! ✅')
-                  : t('booking.payAtShopSuccessTitle')
+                ? t('booking.payAtShopSuccessTitle')
                 : t('booking.successTitle')}
             </h1>
-            <p className="mt-2 text-cream/80">
+            <p className="mt-2 text-base font-medium text-cream/90">
               {isPayAtShop
-                ? t('booking.payAtShopSuccessDesc', {
-                    price: formatEGP(booking.data?.price_egp ?? orderTotal),
-                  })
+                ? t('booking.payAtShopSuccessDesc')
                 : t('booking.successDesc')}
             </p>
             <p className="mt-3 text-sm text-gold-soft">
