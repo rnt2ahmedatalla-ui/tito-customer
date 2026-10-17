@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { useAuth, useProfile, useSignIn, useSignOut } from './useAuth';
 import { useUpdateProfile } from './useProfile';
 import { setLanguage } from '@/i18n';
@@ -56,10 +57,14 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <PageShell>
-        <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-          <p className="text-ink">{t('booking.loginRequired')}</p>
+        <div className="mx-auto flex max-w-md flex-col items-center gap-5 py-16 text-center">
+          <p className="text-base font-semibold text-espresso">{t('booking.loginRequired')}</p>
           <InAppBrowserNotice className="w-full text-start" />
-          <Button onClick={() => void signIn()}>{t('booking.signInGoogle')}</Button>
+          <GoogleSignInButton
+            variant="gold"
+            label={t('booking.signInGoogle')}
+            onClick={() => void signIn()}
+          />
         </div>
       </PageShell>
     );

@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
@@ -20,25 +21,26 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handler);
-      document.body.style.overflow = '';
+      document.body.style.overflow = prevOverflow;
     };
   }, [open, onClose]);
 
   if (!open) return null;
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center"
+      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="sheet-title"
     >
       <button
         type="button"
-        className="absolute inset-0 bg-espresso/60 backdrop-blur-xs"
+        className="absolute inset-0 bg-espresso/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
         aria-label={t('common.close')}
       />
@@ -62,10 +64,13 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
             <X className="size-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-4 pb-[max(1.5rem,calc(env(safe-area-inset-bottom)+1rem))]">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-4 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+2rem))]">
           {children}
         </div>
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(content, document.body) : null;
 }
+

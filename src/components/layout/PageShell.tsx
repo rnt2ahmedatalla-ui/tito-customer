@@ -43,8 +43,8 @@ export function PageShell({
           !marketing &&
             !noPadding &&
             (withActionBar
-              ? 'px-4 py-6 pb-[calc(13rem+env(safe-area-inset-bottom))] sm:pb-8'
-              : 'px-4 py-6 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:pb-8'),
+              ? 'px-4 py-6 pb-[calc(18rem+env(safe-area-inset-bottom))] sm:pb-10'
+              : 'px-4 py-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-8'),
           marketing && 'pb-[calc(4.5rem+env(safe-area-inset-bottom))] sm:pb-0',
         )}
       >

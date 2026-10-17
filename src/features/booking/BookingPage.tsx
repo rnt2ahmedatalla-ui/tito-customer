@@ -6,6 +6,8 @@ import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
 import { ProfileModal } from '@/components/layout/ProfileModal';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
+import { GoogleIcon } from '@/components/auth/GoogleIcon';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { Button } from '@/components/ui/Button';
 import { ServiceCard } from '@/components/booking/ServiceCard';
 import { DateStrip } from '@/components/booking/DateStrip';
@@ -410,13 +412,22 @@ export default function BookingPage() {
             />
           </div>
           {!user && !authLoading ? (
-            <div className="mt-6 rounded-card border-2 border-gold/60 bg-gold/10 p-5 text-center shadow-warm">
-              <p className="text-base font-semibold text-espresso">{t('booking.loginRequired')}</p>
+            <div className="mt-6 rounded-card border-2 border-gold/70 bg-white p-5 text-center shadow-warm sm:p-6">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-sand/60 shadow-2xs">
+                <GoogleIcon className="size-6" />
+              </div>
+              <h3 className="mt-3 text-base font-bold text-espresso">{t('booking.loginRequired')}</h3>
               <p className="mt-1 text-sm text-ink">{t('profile.completeProfileDesc')}</p>
-              <InAppBrowserNotice className="mt-4" />
-              <Button size="lg" className="mt-4 w-full sm:w-auto" onClick={() => signIn()}>
-                {t('booking.signInGoogle')}
-              </Button>
+              <InAppBrowserNotice className="mt-4 text-start" />
+              <div className="mt-5 flex justify-center">
+                <GoogleSignInButton
+                  variant="gold"
+                  label={t('booking.signInGoogle')}
+                  onClick={() => signIn()}
+                  loading={authLoading}
+                  className="max-w-md"
+                />
+              </div>
             </div>
           ) : user && !isProfileComplete(profile.data) ? (
             <div className="mt-6 rounded-card border-2 border-warning/60 bg-warning/10 p-5 text-center shadow-warm">
@@ -539,14 +550,12 @@ export default function BookingPage() {
             {step === 'review' ? (
               <div className="flex w-full min-w-0 flex-col gap-2 min-[420px]:flex-1">
                 {!user ? (
-                  <Button
-                    fullWidth
-                    size="lg"
+                  <GoogleSignInButton
+                    variant="gold"
+                    label={t('booking.signInGoogle')}
                     onClick={() => signIn()}
                     loading={authLoading}
-                  >
-                    {t('booking.signInGoogle')}
-                  </Button>
+                  />
                 ) : !isProfileComplete(profile.data) ? (
                   <Button
                     fullWidth
