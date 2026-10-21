@@ -246,7 +246,6 @@ export default function BookingPage() {
       /* ignore */
     }
 
-    let receiptUrl: string | null = null;
 
     // 1. رفع صورة الإيصال إلى مجلد payment-proofs في Supabase Storage
     if (data.receipt) {
