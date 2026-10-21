@@ -426,7 +426,6 @@ export default function BookingPage() {
                 dates={dates}
                 selectedDate={date}
                 closedDays={closedDays}
-                fullyBookedDays={fullyBookedDays}
                 onSelect={(d) => updateParams({ date: d, slot: null })}
               />
               );
