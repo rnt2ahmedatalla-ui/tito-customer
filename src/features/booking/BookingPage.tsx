@@ -269,7 +269,7 @@ export default function BookingPage() {
           .from('payment-proofs')
           .getPublicUrl(fileName);
 
-        receiptUrl = publicUrlData.publicUrl;
+      #receiptUrl = publicUrlData.publicUrl;
       } catch (err) {
         console.error('Receipt upload exception:', err);
       }
