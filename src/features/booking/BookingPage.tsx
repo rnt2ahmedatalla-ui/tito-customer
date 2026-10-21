@@ -269,8 +269,7 @@ export default function BookingPage() {
           .from('payment-proofs')
           .getPublicUrl(fileName);
 
-        receiptUrl = publicUrlData.publicUrl;
-      } catch (err) {
+             } catch (err) {
         console.error('Receipt upload exception:', err);
       }
     }
@@ -426,7 +425,6 @@ export default function BookingPage() {
                 dates={dates}
                 selectedDate={date}
                 closedDays={closedDays}
-                fullyBookedDays={fullyBookedDays}
                 onSelect={(d) => updateParams({ date: d, slot: null })}
               />
               );
