@@ -20,8 +20,6 @@ export function PaymentPanel({
   amount,
   settings,
   bookingId,
-  serviceName,
-  whenLabel,
   onMarkedSent,
   loading,
 }: PaymentPanelProps) {
