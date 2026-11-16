@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
-import { supabase } from '@/lib/supabase';
 import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking} from './useBooking';
 import { ProfileModal } from '@/components/layout/ProfileModal';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
@@ -233,52 +232,27 @@ export default function BookingPage() {
     else if (action === 'book') void handleConfirmBooking(false);
   };
 
-  const handlePaymentMarkedSent = async (data: { method: PaymentMethod; receipt?: File }) => {
+  const handlePaymentMarkedSent = async (data: { method: PaymentMethod }) => {
     if (!bookingId || !user) return;
     setPayAtShopChosen(false);
 
     try {
       sessionStorage.setItem('tito_last_pay_mode', 'online');
-      if (bookingId) {
-        sessionStorage.setItem(`tito_pay_mode_${bookingId}`, 'online');
-      }
+      sessionStorage.setItem(`tito_pay_mode_${bookingId}`, 'online');
     } catch {
       /* ignore */
     }
 
-
-    // 1. رفع صورة الإيصال إلى مجلد payment-proofs في Supabase Storage
-    if (data.receipt) {
-      try {
-        const fileExt = data.receipt.name.split('.').pop();
-        const fileName = `${bookingId}_${Date.now()}.${fileExt}`;
-
-        // رفع الملف للـ Bucket
-        const { error: uploadError } = await supabase.storage
-          .from('payment-proofs')
-          .upload(fileName, data.receipt);
-
-        if (uploadError) {
-          console.error('Error uploading receipt to payment-proofs:', uploadError);
-          toast.error(i18n.language === 'ar' ? 'فشل رفع صورة الإيصال' : 'Failed to upload receipt');
-          return;
-        }
-
-        // استخراج الرابط المباشر للصورة
-        const { data: publicUrlData } = supabase.storage
-          .from('payment-proofs')
-          .getPublicUrl(fileName);
-
-             } catch (err) {
-        console.error('Receipt upload exception:', err);
-      }
+    // تسجيل الدفع للأدمن (الإيصال بيتبعت على واتساب، من غير رفع صورة)
+    try {
+      await submitPayment.mutateAsync({
+        bookingId,
+        method: data.method,
+      });
+    } catch {
+      // رسالة الخطأ بتظهر من useSubmitPayment، والعميل يفضل في خطوة الدفع
+      return;
     }
-
-  // إرسال طلب الدفع المعتمد بالطريقة الحالية
-    await submitPayment.mutateAsync({
-      bookingId,
-      method: data.method,
-    });
 
     updateParams({ step: 'success', pay_at_shop: null });
   };
@@ -616,7 +590,11 @@ export default function BookingPage() {
                 onClick={() => goToStep(STEPS[stepIndex - 1])}
                 className="w-full min-[420px]:w-auto min-[420px]:flex-1"
               >
-                <ChevronRight className="size-4 rtl:-scale-x-100" aria-hidden />
+                {i18n.language === 'ar' ? (
+                  <ChevronRight className="size-4" aria-hidden />
+                ) : (
+                  <ChevronLeft className="size-4" aria-hidden />
+                )}
                 {t('common.back')}
               </Button>
             ) : null}
@@ -666,7 +644,11 @@ export default function BookingPage() {
                 onClick={() => goToStep(STEPS[stepIndex + 1])}
               >
                 {t('common.next')}
-                <ChevronLeft className="size-4 rtl:-scale-x-100" aria-hidden />
+                {i18n.language === 'ar' ? (
+                  <ChevronLeft className="size-4" aria-hidden />
+                ) : (
+                  <ChevronRight className="size-4" aria-hidden />
+                )}
               </Button>
             )}
           </div>
