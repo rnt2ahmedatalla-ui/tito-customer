@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Upload, X, Copy, Check } from 'lucide-react';
+import { Copy, Check, ExternalLink, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { formatEGP } from '@/lib/money';
+import { instapayLink } from '@/lib/payLinks';
+import { buildWhatsAppUrl } from '@/lib/urls';
+import { cn } from '@/lib/cn';
 import type { PaymentMethod, Settings } from '@/types/database';
+
+// اسم صاحب الحساب (لسه ثابت في الكود، ممكن ننقله للإعدادات بعدين)
+const INSTAPAY_ACCOUNT_NAME = 'Ahmed Atalla Mohamed Abd Elhalim';
+const VODAFONE_ACCOUNT_NAME = 'أحمد عطاالله محمد عبدالحليم';
 
 interface PaymentPanelProps {
   amount: number;
@@ -12,84 +19,109 @@ interface PaymentPanelProps {
   bookingId: string;
   serviceName: string;
   whenLabel: string;
-  onMarkedSent: (data: { method: PaymentMethod; receipt?: File }) => void;
+  onMarkedSent: (data: { method: PaymentMethod }) => void | Promise<void>;
   loading?: boolean;
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(area);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
 }
 
 export function PaymentPanel({
   amount,
   settings,
   bookingId,
+  serviceName,
+  whenLabel,
   onMarkedSent,
   loading,
 }: PaymentPanelProps) {
   const { t, i18n } = useTranslation();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
-  const [screenshot, setScreenshot] = useState<File | null>(null);
   const [copied, setCopied] = useState(false);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
   const paymentNote = i18n.language === 'ar' ? settings.payment_note_ar : settings.payment_note_en;
   const shortId = bookingId.slice(0, 8).toUpperCase();
 
-  // 🔹 يمكنك تعديل اسم صاحب الحساب والرقم مباشرة من هنا أو تركها تقرأ من settings
-  const getAccountDetails = () => {
-    if (selectedMethod === 'instapay') {
-      return {
-        name: 'Ahmed Atalla Mohamed Abd Elhalim',
-        number: settings.instapay_number || '01012345678',
-      };
+  useEffect(() => {
+    if (selectedMethod) {
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
-    return {
-      name: 'أحمد عطاالله محمد عبدالحليم',
-      number: settings.vodafone_cash_number || '01012345678',
-    };
-  };
+  }, [selectedMethod]);
 
-  const accountDetails = selectedMethod ? getAccountDetails() : null;
-
-  const handleCopyNumber = (num: string) => {
-    navigator.clipboard.writeText(num.trim());
-    setCopied(true);
-    toast.success(i18n.language === 'ar' ? 'تم نسخ الرقم بنجاح' : 'Number copied!');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setScreenshot(e.target.files[0]);
-    }
-  };
-
-  const handleOpenModal = (m: PaymentMethod) => {
-    const value = m === 'instapay' ? settings.instapay_number : settings.vodafone_cash_number;
-    if (!value?.trim()) {
-      toast.error(t('booking.payLinkMissing'));
-      return;
-    }
-    setSelectedMethod(m);
-    setScreenshot(null);
+  const selectMethod = (method: PaymentMethod) => {
+    setSelectedMethod(method);
     setCopied(false);
   };
 
-  const handleConfirmPayment = () => {
-    if (!selectedMethod) return;
-    if (!screenshot) {
-      toast.error(i18n.language === 'ar' ? 'برجاء رفع صورة إيصال التحويل أولاً' : 'Please upload payment receipt first');
-      return;
+  const methodValue =
+    selectedMethod === 'instapay'
+      ? settings.instapay_number?.trim() ?? ''
+      : selectedMethod === 'vodafone_cash'
+        ? settings.vodafone_cash_number?.trim() ?? ''
+        : '';
+  const accountName =
+    selectedMethod === 'instapay' ? INSTAPAY_ACCOUNT_NAME : VODAFONE_ACCOUNT_NAME;
+  const payLink = selectedMethod === 'instapay' ? instapayLink(methodValue) : null;
+  const methodLabel =
+    selectedMethod === 'instapay' ? t('booking.instapay') : t('booking.vodafoneCash');
+
+  const handleCopy = async () => {
+    const ok = await copyText(methodValue);
+    if (ok) {
+      setCopied(true);
+      toast.success(t('booking.copied'));
+      setTimeout(() => setCopied(false), 2000);
     }
-    onMarkedSent({ method: selectedMethod, receipt: screenshot });
+  };
+
+  const whatsappUrl = (() => {
+    if (!settings.shop_whatsapp || !selectedMethod) return null;
+    const message = t('booking.receiptMessage', {
+      shop: settings.shop_name || 'tito',
+      id: shortId,
+      service: serviceName,
+      when: whenLabel,
+      amount: formatEGP(amount),
+      method: methodLabel,
+    });
+    return buildWhatsAppUrl(settings.shop_whatsapp, message);
+  })();
+
+  const handleSent = () => {
+    if (!selectedMethod || loading) return;
+    void onMarkedSent({ method: selectedMethod });
   };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* صندوق المبلغ المطلوب */}
+      {/* المبلغ المطلوب */}
       <div className="rounded-card bg-gold p-6 text-center">
         <p className="text-sm text-espresso/80">{t('booking.amountDue')}</p>
         <p className="mt-1 text-3xl font-bold text-espresso font-latin">{formatEGP(amount)}</p>
         <p className="mt-2 text-xs text-espresso/70 font-latin">#{shortId}</p>
       </div>
 
-      {/* خيارات طرق الدفع */}
+      {/* طرق الدفع */}
       <div>
         <p className="mb-1 text-sm font-semibold text-espresso">{t('booking.choosePayMethod')}</p>
         <p className="mb-3 text-xs text-ink">{t('booking.choosePayMethodHint')}</p>
@@ -99,7 +131,7 @@ export function PaymentPanel({
               fullWidth
               size="lg"
               variant={selectedMethod === 'vodafone_cash' ? 'primary' : 'secondary'}
-              onClick={() => handleOpenModal('vodafone_cash')}
+              onClick={() => selectMethod('vodafone_cash')}
             >
               {t('booking.vodafoneCash')}
             </Button>
@@ -110,7 +142,7 @@ export function PaymentPanel({
               fullWidth
               size="lg"
               variant={selectedMethod === 'instapay' ? 'primary' : 'secondary'}
-              onClick={() => handleOpenModal('instapay')}
+              onClick={() => selectMethod('instapay')}
             >
               {t('booking.instapay')}
             </Button>
@@ -122,6 +154,89 @@ export function PaymentPanel({
         </div>
       </div>
 
+      {/* تفاصيل الطريقة المختارة */}
+      {selectedMethod && methodValue ? (
+        <div
+          ref={detailsRef}
+          className="space-y-4 rounded-card border border-default bg-sand/30 p-4"
+        >
+          <div>
+            <p className="mb-1 text-xs text-ink">{t('booking.accountHolder')}</p>
+            <p className="text-sm font-bold text-espresso">{accountName}</p>
+          </div>
+
+          {payLink ? (
+            <a href={payLink} target="_blank" rel="noopener noreferrer" className="block">
+              <span
+                className={cn(
+                  'inline-flex w-full items-center justify-center gap-2 rounded-btn',
+                  'min-h-[52px] bg-gold px-6 text-lg font-semibold text-espresso font-latin',
+                )}
+              >
+                <ExternalLink className="size-5" aria-hidden />
+                {t('booking.openInstapay')}
+              </span>
+            </a>
+          ) : (
+            <div>
+              <p className="mb-1 text-xs text-ink">{t('booking.transferNumber')}</p>
+              <div className="flex items-center justify-between gap-2 rounded-btn border border-default bg-white p-2.5">
+                <span dir="ltr" className="select-all text-base font-bold text-espresso font-latin">
+                  {methodValue}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void handleCopy()}
+                  className="flex items-center gap-1 rounded bg-gold/20 px-3 py-1.5 text-xs font-medium text-espresso transition hover:bg-gold/40"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="size-4 text-green-600" aria-hidden />
+                      <span className="text-green-600">{t('booking.copied')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-4" aria-hidden />
+                      <span>{t('booking.copy')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <p className="text-xs text-ink">{t('booking.receiptHint')}</p>
+
+          {whatsappUrl ? (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleSent}
+              aria-disabled={loading}
+              className={cn('block', loading && 'pointer-events-none opacity-50')}
+            >
+              <span
+                className={cn(
+                  'inline-flex w-full items-center justify-center gap-2 rounded-btn',
+                  'min-h-[52px] bg-espresso px-6 text-lg font-semibold text-cream font-latin',
+                )}
+              >
+                <MessageCircle className="size-5" aria-hidden />
+                {t('booking.sendReceiptWhatsApp')}
+              </span>
+            </a>
+          ) : (
+            <div className="space-y-2">
+              <p className="rounded-btn bg-sand/50 p-3 text-sm text-ink">{t('booking.whatsappMissing')}</p>
+              <Button fullWidth size="lg" loading={loading} onClick={handleSent}>
+                {t('booking.markTransferred')}
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : null}
+
       {/* ملاحظات الدفع */}
       {paymentNote ? (
         <div className="rounded-card border border-default p-4">
@@ -129,100 +244,6 @@ export function PaymentPanel({
           <p className="mt-1 text-espresso">{paymentNote}</p>
         </div>
       ) : null}
-
-      {/* ---------------- النافذة المنبثقة (Modal) ---------------- */}
-      {selectedMethod && accountDetails && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl relative text-right dir-rtl">
-            
-            {/* زر الإغلاق */}
-            <button
-              onClick={() => setSelectedMethod(null)}
-              className="absolute top-4 left-4 text-gray-400 hover:text-gray-700 transition"
-            >
-              <X className="size-5" />
-            </button>
-
-            {/* عنوان النافذة */}
-            <h3 className="text-lg font-bold text-espresso mb-4 border-b pb-2">
-              {selectedMethod === 'instapay' ? t('booking.instapay') : t('booking.vodafoneCash')}
-            </h3>
-
-            {/* تفاصيل الحساب */}
-            <div className="bg-sand/30 p-4 rounded-lg mb-4 space-y-3 border border-default">
-              
-              {/* اسم صاحب الحساب */}
-              <div>
-                <p className="text-xs text-gray-500 mb-1">
-                  {i18n.language === 'ar' ? 'اسم صاحب الحساب:' : 'Account Holder Name:'}
-                </p>
-                <p className="text-sm font-bold text-espresso">
-                  {accountDetails.name}
-                </p>
-              </div>
-
-              {/* الرقم المترجم ومعه زر النسخ */}
-              <div>
-                <p className="text-xs text-gray-500 mb-1">
-                  {i18n.language === 'ar' ? 'رقم التحويل:' : 'Transfer Number:'}
-                </p>
-                <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border">
-                  <span className="text-base font-bold text-espresso font-latin select-all">
-                    {accountDetails.number}
-                  </span>
-                  <button
-                    onClick={() => handleCopyNumber(accountDetails.number)}
-                    className="flex items-center gap-1 text-xs bg-gold/20 hover:bg-gold/40 text-espresso px-3 py-1.5 rounded transition font-medium"
-                    title="نسخ الرقم"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="size-4 text-green-600" />
-                        <span className="text-green-600">تم النسخ</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="size-4" />
-                        <span>نسخ</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
-            {/* خانة رفع الإسكرين */}
-            <div className="mb-6 space-y-2">
-              <label className="block text-sm font-semibold text-espresso">
-                {i18n.language === 'ar' ? 'رفع إيصال الدفع (إسكرين شوت)' : 'Upload Payment Screenshot'}
-              </label>
-              <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
-                    <Upload className="size-6 text-gray-400 mb-1" />
-                    <p className="text-xs text-gray-500">
-                      {screenshot ? screenshot.name : (i18n.language === 'ar' ? 'اضغط هنا لاختيار صورة الإيصال' : 'Click to select screenshot')}
-                    </p>
-                  </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                </label>
-              </div>
-            </div>
-
-            {/* زر تأكيد الدفع */}
-            <Button
-              fullWidth
-              size="lg"
-              loading={loading}
-              disabled={!screenshot || loading}
-              onClick={handleConfirmPayment}
-            >
-              {i18n.language === 'ar' ? 'تأكيد الدفع' : 'Confirm Payment'}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
