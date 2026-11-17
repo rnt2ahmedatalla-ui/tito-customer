@@ -8,6 +8,8 @@ import { Logo } from '@/components/brand/Logo';
 import { LeatherPattern } from '@/components/brand/Pattern';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ShareAndQr } from '@/components/share/ShareAndQr';
+import { InstallBanner } from '@/components/layout/InstallBanner';
+import { InstallBanner } from '@/components/layout/InstallBanner';
 import { useSettings, useWorkingHours, useNextSlot } from './useHomeData';
 import { formatCairoTime, formatCairoDate, getCairoNow } from '@/lib/time';
 import { format } from 'date-fns';
@@ -451,10 +453,13 @@ export default function HomePage() {
         </div>
       </section>
 
+      <InstallBanner />
+
       <footer className="bg-espresso py-8 text-center text-sm text-cream/40">
         <Logo variant="dark" mark height={40} className="mx-auto opacity-90" />
         <p className="mt-3 font-latin tracking-wide">{settings.data?.shop_name || 'tito'}</p>
       </footer>
+      <InstallBanner />
     </PageShell>
   );
 }
