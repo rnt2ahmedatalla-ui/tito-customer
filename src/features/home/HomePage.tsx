@@ -16,6 +16,11 @@ import { buildWhatsAppUrl, isSafeUrl } from '@/lib/urls';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/cn';
 
+const DEFAULT_POLICY_AR =
+  'لو هتتأخر أكتر من ربع ساعة، ممكن نضطر نأجّل معادك أو نلغيه، عشان نحافظ على وقت باقي العملاء. ولو عايز تغيّر أو تلغي الحجز، اعمل ده من حجوزاتك قبل الموعد بوقت كفاية.';
+const DEFAULT_POLICY_EN =
+  'If you are more than 15 minutes late, we may have to reschedule or cancel your appointment to respect the time of other customers. To change or cancel, do it from your bookings well before your appointment.';
+
 const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -204,39 +209,44 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      <section className="mx-auto max-w-5xl px-5 py-10">
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { to: '/book', label: t('home.navBook') },
-            { to: locationUrl ?? '#visit', label: t('home.navLocation'), external: !!locationUrl },
-            { to: '#about', label: t('home.navAbout') },
-          ].map((item) =>
-            item.external ? (
-              <a
-                key={item.label}
-                href={item.to}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-btn border border-default bg-white px-3 py-4 text-center text-sm font-semibold text-espresso"
-              >
-                {item.label}
-              </a>
-            ) : (
-              <Link
-                key={item.label}
-                to={item.to.startsWith('#') ? `/${item.to}` : item.to}
-                className="rounded-btn border border-default bg-white px-3 py-4 text-center text-sm font-semibold text-espresso"
-                onClick={(e) => {
-                  if (item.to === '#about') {
-                    e.preventDefault();
-                    document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
+      {/* How it works — editorial, not card grid */}
+      <section className="bg-espresso text-cream">
+        <div className="mx-auto max-w-5xl px-5 py-16 sm:py-20">
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold font-latin">
+            {t('home.howEyebrow')}
+          </p>
+          <h2 className="mt-3 text-3xl font-bold sm:text-4xl">{t('home.howItWorks')}</h2>
+          <p className="mt-3 max-w-lg text-cream/70">{t('home.howSupport')}</p>
+
+          <ol className="mt-12 space-y-0 divide-y divide-cream/10">
+            {[
+              { step: '01', title: t('home.step1'), desc: t('home.step1Desc') },
+              { step: '02', title: t('home.step2'), desc: t('home.step2Desc') },
+              { step: '03', title: t('home.step3'), desc: t('home.step3Desc') },
+            ].map(({ step, title, desc }) => (
+              <li key={step} className="flex gap-6 py-8 first:pt-0 last:pb-0 sm:gap-10">
+                <span className="shrink-0 text-3xl font-bold text-gold font-latin tabular-nums">
+                  {step}
+                </span>
+                <div>
+                  <h3 className="text-xl font-semibold text-cream">{title}</h3>
+                  <p className="mt-2 max-w-md text-cream/65">{desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/* سياسة الحجز */}
+      <section className="mx-auto max-w-5xl px-5 pb-4 pt-2 sm:pb-8">
+        <div className="rounded-card border border-gold/40 bg-gold/10 p-6 sm:p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold font-latin">
+            {ar ? 'سياسة الحجز' : 'Booking policy'}
+          </p>
+          <p className="mt-3 whitespace-pre-line leading-relaxed text-ink">
+            {ar ? DEFAULT_POLICY_AR : DEFAULT_POLICY_EN}
+          </p>
         </div>
       </section>
 
@@ -323,34 +333,7 @@ export default function HomePage() {
         <ShareAndQr compact />
       </section>
 
-      {/* How it works — editorial, not card grid */}
-      <section className="bg-espresso text-cream">
-        <div className="mx-auto max-w-5xl px-5 py-16 sm:py-20">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold font-latin">
-            {t('home.howEyebrow')}
-          </p>
-          <h2 className="mt-3 text-3xl font-bold sm:text-4xl">{t('home.howItWorks')}</h2>
-          <p className="mt-3 max-w-lg text-cream/70">{t('home.howSupport')}</p>
-
-          <ol className="mt-12 space-y-0 divide-y divide-cream/10">
-            {[
-              { step: '01', title: t('home.step1'), desc: t('home.step1Desc') },
-              { step: '02', title: t('home.step2'), desc: t('home.step2Desc') },
-              { step: '03', title: t('home.step3'), desc: t('home.step3Desc') },
-            ].map(({ step, title, desc }) => (
-              <li key={step} className="flex gap-6 py-8 first:pt-0 last:pb-0 sm:gap-10">
-                <span className="shrink-0 text-3xl font-bold text-gold font-latin tabular-nums">
-                  {step}
-                </span>
-                <div>
-                  <h3 className="text-xl font-semibold text-cream">{title}</h3>
-                  <p className="mt-2 max-w-md text-cream/65">{desc}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      {/* لينكات السوشيال ميديا: هتتضاف هنا في الدفعة الجاية */}
 
       {/* Hours */}
       <section className="mx-auto max-w-5xl px-5 py-16 sm:py-20">
