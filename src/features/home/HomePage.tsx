@@ -81,6 +81,50 @@ function RecentReviews() {
   );
 }
 
+function SocialIcon({ name }: { name: string }) {
+  const common = {
+    width: 20,
+    height: 20,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  };
+  if (name === 'instagram') {
+    return (
+      <svg {...common}>
+        <rect x="3" y="3" width="18" height="18" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17.5" cy="6.5" r="0.9" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (name === 'facebook') {
+    return (
+      <svg {...common}>
+        <path d="M14 8h3V4h-3c-2.2 0-4 1.8-4 4v2H7v4h3v6h4v-6h3l1-4h-4V8z" />
+      </svg>
+    );
+  }
+  if (name === 'tiktok') {
+    return (
+      <svg {...common}>
+        <path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5" />
+        <path d="M14 4c.5 2.5 2.2 4 4.5 4.2" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common}>
+      <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
+      <path d="M10 9.5v5l4.5-2.5z" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function HomePage() {
   const { t, i18n } = useTranslation();
   const settings = useSettings();
@@ -108,6 +152,17 @@ export default function HomePage() {
     (ar ? settings.data?.about_ar : settings.data?.about_en) || t('home.aboutDefault');
   const tagline =
     (ar ? settings.data?.tagline_ar : settings.data?.tagline_en) || t('app.tagline');
+
+  const extra = settings.data as unknown as Record<string, string | null | undefined> | undefined;
+  const policyText =
+    (ar ? extra?.booking_policy_ar : extra?.booking_policy_en)?.trim() ||
+    (ar ? DEFAULT_POLICY_AR : DEFAULT_POLICY_EN);
+  const socialLinks = [
+    { key: 'instagram', label: 'Instagram', url: (extra?.social_instagram ?? '').trim() },
+    { key: 'facebook', label: 'Facebook', url: (extra?.social_facebook ?? '').trim() },
+    { key: 'tiktok', label: 'TikTok', url: (extra?.social_tiktok ?? '').trim() },
+    { key: 'youtube', label: 'YouTube', url: (extra?.social_youtube ?? '').trim() },
+  ].filter((x) => x.url && isSafeUrl(x.url));
 
   const nextSlotLabel = (() => {
     if (!nextSlot.data) return t('home.noSlots');
@@ -243,7 +298,7 @@ export default function HomePage() {
             {ar ? 'سياسة الحجز' : 'Booking policy'}
           </p>
           <p className="mt-3 whitespace-pre-line leading-relaxed text-ink">
-            {ar ? DEFAULT_POLICY_AR : DEFAULT_POLICY_EN}
+            {policyText}
           </p>
         </div>
       </section>
@@ -263,6 +318,26 @@ export default function HomePage() {
           <p className="mt-4 max-w-2xl whitespace-pre-line text-ink leading-relaxed">{about}</p>
         )}
       </section>
+
+      {socialLinks.length > 0 ? (
+        <section className="mx-auto max-w-5xl px-5 pb-12 sm:pb-16">
+          <div className="flex flex-wrap gap-3">
+            {socialLinks.map((x) => (
+              <a
+                key={x.key}
+                href={x.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={x.label}
+                title={x.label}
+                className="flex size-11 items-center justify-center rounded-btn border border-default bg-white text-espresso transition-colors hover:border-gold hover:text-gold"
+              >
+                <SocialIcon name={x.key} />
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* Reviews under services */}
       <section className="mx-auto max-w-5xl px-5 py-12 sm:py-16">
