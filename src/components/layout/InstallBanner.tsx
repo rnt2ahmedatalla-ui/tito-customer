@@ -53,8 +53,8 @@ export function InstallBanner() {
   };
 
   return (
-    <div className="fixed inset-x-3 bottom-4 z-40 lg:hidden">
-      <div className="flex items-start gap-3 rounded-card border border-bark/30 bg-espresso p-4 text-cream shadow-warm-lg">
+    <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] z-40 mx-auto max-w-md lg:hidden">
+      <div className="flex items-start gap-3 rounded-card border border-bark/30 bg-espresso p-4 text-cream shadow-warm-lg break-words">
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-gold">
             {isAr ? 'ثبّت تطبيق tito على موبايلك' : 'Install tito on your phone'}
