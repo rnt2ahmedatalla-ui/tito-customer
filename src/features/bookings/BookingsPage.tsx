@@ -60,7 +60,12 @@ function RescheduleBox({
 
   const saveMutation = useMutation({
     mutationFn: async (newStart: string) => {
-      const { error: rpcErr } = await supabase.rpc('customer_reschedule_booking', {
+      // الدالة مش موجودة في أنواع المشروع الحالية، فبنعدّي النوع يدوياً
+      const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ error: { message: string } | null }>;
+      const { error: rpcErr } = await rpcUntyped('customer_reschedule_booking', {
         p_booking_id: booking.id,
         p_new_start_at: newStart,
       });
