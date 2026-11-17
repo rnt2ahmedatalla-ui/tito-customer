@@ -4,12 +4,11 @@ import { MessageCircle, MapPin, AlertTriangle, Clock, Star } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query';
 import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
-import { ServiceCard } from '@/components/booking/ServiceCard';
 import { Logo } from '@/components/brand/Logo';
 import { LeatherPattern } from '@/components/brand/Pattern';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ShareAndQr } from '@/components/share/ShareAndQr';
-import { useServices, useSettings, useWorkingHours, useNextSlot } from './useHomeData';
+import { useSettings, useWorkingHours, useNextSlot } from './useHomeData';
 import { formatCairoTime, formatCairoDate, getCairoNow } from '@/lib/time';
 import { format } from 'date-fns';
 import { buildWhatsAppUrl, isSafeUrl } from '@/lib/urls';
@@ -84,7 +83,6 @@ function RecentReviews() {
 
 export default function HomePage() {
   const { t, i18n } = useTranslation();
-  const services = useServices();
   const settings = useSettings();
   const workingHours = useWorkingHours();
   const nextSlot = useNextSlot();
@@ -264,38 +262,6 @@ export default function HomePage() {
         ) : (
           <p className="mt-4 max-w-2xl whitespace-pre-line text-ink leading-relaxed">{about}</p>
         )}
-      </section>
-
-      {/* Services */}
-      <section className="mx-auto max-w-5xl px-5 py-16 sm:py-20">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold font-latin">
-          {t('home.servicesEyebrow')}
-        </p>
-        <h2 className="mt-3 text-3xl font-bold text-espresso sm:text-4xl">{t('home.services')}</h2>
-        <p className="mt-3 max-w-lg text-ink">{t('home.servicesSupport')}</p>
-        <div className="gold-rule my-8 max-w-xs" />
-
-        {services.isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-28" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {services.data?.filter((service) => !service.is_extra).map((service) => (
-              <Link key={service.id} to={`/book?step=service&service=${service.id}`}>
-                <ServiceCard service={service} onSelect={() => {}} />
-              </Link>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-10">
-          <Link to="/book">
-            <Button size="lg">{t('home.heroCta')}</Button>
-          </Link>
-        </div>
       </section>
 
       {/* Reviews under services */}
