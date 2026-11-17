@@ -13,6 +13,8 @@ interface ServiceCardProps {
 export function ServiceCard({ service, selected, onSelect }: ServiceCardProps) {
   const { t, i18n } = useTranslation();
   const name = i18n.language === 'ar' ? service.name_ar : service.name_en;
+  // الوصف اختياري: بيظهر بس لو الأدمن كتبه
+  const description = (i18n.language === 'ar' ? service.description_ar : service.description_en)?.trim();
 
   return (
     <div
@@ -37,6 +39,9 @@ export function ServiceCard({ service, selected, onSelect }: ServiceCardProps) {
           <h3 className="text-lg font-semibold text-espresso transition-colors group-hover:text-bark">
             {name}
           </h3>
+          {description ? (
+            <p className="mt-1.5 max-w-prose text-sm leading-relaxed text-ink-70">{description}</p>
+          ) : null}
           <div className="mt-2 flex items-center gap-1.5 text-sm text-ink">
             <Clock className="size-4 shrink-0" aria-hidden />
             <span className="font-latin">{t('home.duration', { min: service.duration_minutes })}</span>
