@@ -16,9 +16,19 @@ import { buildWhatsAppUrl } from '@/lib/urls';
 import { instapayLink } from '@/lib/payLinks';
 import { extractErrorCode } from '@/lib/errors';
 import { ProfileModal } from '@/components/layout/ProfileModal';
+import { ServiceCard } from '@/components/booking/ServiceCard';
+import { ExtraCard } from '@/components/booking/ExtraCard';
 import { cn } from '@/lib/cn';
 
-type Service = { id: string; name_ar: string; name_en: string; price_egp: number; duration_minutes: number };
+type Service = {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  price_egp: number;
+  duration_minutes: number;
+  description_ar?: string | null;
+  description_en?: string | null;
+};
 type PayChoice = 'shop' | 'instapay' | 'vodafone_cash';
 type Pick = { serviceId: string; date: string; slot: string | null; extras: string[] };
 
@@ -44,6 +54,7 @@ export default function GroupBookingPage() {
   const [picks, setPicks] = useState<Pick[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [method, setMethod] = useState<PayChoice | null>(null);
   const [copied, setCopied] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -54,7 +65,7 @@ export default function GroupBookingPage() {
     queryFn: async () => {
       const { data, error: e } = await supabase
         .from('services')
-        .select('id, name_ar, name_en, price_egp, duration_minutes')
+        .select('id, name_ar, name_en, price_egp, duration_minutes, description_ar, description_en')
         .eq('is_active', true)
         .eq('is_extra', false)
         .order('sort_order');
@@ -194,6 +205,7 @@ export default function GroupBookingPage() {
     }
     setBusy(true);
     setError(null);
+    setErrorDetail(null);
     const created: string[] = [];
     try {
       const payAtShop = activeMethod === 'shop';
@@ -230,6 +242,9 @@ export default function GroupBookingPage() {
         await rpcAny('customer_cancel_booking', { p_booking_id: id }).catch(() => undefined);
       }
       setError(friendlyError(e));
+      // السبب الحقيقي من قاعدة البيانات، عشان لو حصلت مشكلة نعرف نصلحها بسرعة
+      const raw = (e as { message?: string } | null)?.message;
+      setErrorDetail(raw && extractErrorCode(e) === 'UNKNOWN' ? String(raw).slice(0, 200) : null);
     } finally {
       setBusy(false);
     }
@@ -299,25 +314,19 @@ export default function GroupBookingPage() {
         {step === 'services' ? (
           <section className="space-y-3">
             <p className="font-semibold text-espresso">{isAr ? 'اختار الخدمات (لحد 3، كل خدمة لشخص)' : 'Pick services (up to 3, one per person)'}</p>
+            <p className="text-xs text-ink-70">
+              {isAr ? `اخترت ${picks.length} من 3` : `${picks.length} of 3 selected`}
+            </p>
             {servicesQuery.isLoading ? <Skeleton className="h-32" /> : (
-              <div className="grid gap-2">
-                {services.map((s) => {
-                  const on = picks.some((p) => p.serviceId === s.id);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => toggleService(s.id)}
-                      className={cn(
-                        'flex items-center justify-between rounded-card border p-3 text-start transition-colors',
-                        on ? 'border-gold bg-gold/15' : 'border-default bg-white',
-                      )}
-                    >
-                      <span className="font-medium text-espresso">{nameOf(s)}</span>
-                      <span className="font-latin text-sm text-ink-70">{formatEGP(s.price_egp)}</span>
-                    </button>
-                  );
-                })}
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {services.map((s) => (
+                  <ServiceCard
+                    key={s.id}
+                    service={s}
+                    selected={picks.some((p) => p.serviceId === s.id)}
+                    onSelect={() => toggleService(s.id)}
+                  />
+                ))}
               </div>
             )}
             <Button className="w-full" disabled={picks.length === 0} onClick={() => setStep('times')}>
@@ -458,7 +467,12 @@ export default function GroupBookingPage() {
               </p>
             ) : null}
 
-            {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
+            {error ? (
+              <div role="alert" className="rounded-btn border border-danger/30 bg-danger/5 p-3">
+                <p className="text-sm font-medium text-danger">{error}</p>
+                {errorDetail ? <p dir="ltr" className="mt-1 break-words font-latin text-[11px] text-ink-70">{errorDetail}</p> : null}
+              </div>
+            ) : null}
 
             <div className="flex gap-2">
               <Button variant="secondary" className="w-full" disabled={busy} onClick={() => setStep('review')}>{isAr ? 'رجوع' : 'Back'}</Button>
@@ -608,25 +622,18 @@ function SlotPicker({
           <p className="mb-1 text-xs font-medium text-ink-70">
             {isAr ? 'إضافات لهذا الشخص (اختياري، ممكن أكتر من واحدة)' : 'Add-ons for this person (optional, pick several)'}
           </p>
-          <div className="flex flex-wrap gap-1.5">
-            {extrasOptions.map((x) => {
-              const on = selectedExtras.includes(x.id);
-              return (
-                <button
-                  key={x.id}
-                  type="button"
-                  onClick={() =>
-                    onExtras(on ? selectedExtras.filter((i) => i !== x.id) : [...selectedExtras, x.id])
-                  }
-                  className={cn(
-                    'rounded-btn border px-2.5 py-1 text-xs transition-colors',
-                    on ? 'border-gold bg-gold/20 font-semibold' : 'border-default bg-white',
-                  )}
-                >
-                  {isAr ? x.name_ar : x.name_en} · <span className="font-latin">{formatEGP(x.price_egp)}</span>
-                </button>
-              );
-            })}
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            {extrasOptions.map((x) => (
+              <ExtraCard
+                key={x.id}
+                compact
+                extra={x}
+                selected={selectedExtras.includes(x.id)}
+                onToggle={() =>
+                  onExtras(selectedExtras.includes(x.id) ? selectedExtras.filter((i) => i !== x.id) : [...selectedExtras, x.id])
+                }
+              />
+            ))}
           </div>
         </div>
       ) : null}

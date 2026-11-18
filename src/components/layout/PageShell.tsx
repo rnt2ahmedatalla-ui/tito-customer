@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { OfflineBanner } from './OfflineBanner';
-import { PwaHint } from './PwaHint';
+import { PolicyGate } from './PolicyGate';
 import { cn } from '@/lib/cn';
 
 interface PageShellProps {
@@ -51,7 +51,7 @@ export function PageShell({
         {children}
       </main>
       <BottomNav />
-      <PwaHint />
+      <PolicyGate />
     </div>
   );
 }
