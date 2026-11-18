@@ -99,7 +99,12 @@ export default function GroupBookingPage() {
   // كل شخص بعد اللي قبله: لو معاد حد اتغيّر، أي معاد بعده لازم يتمسح لو بقى قبل نهايته
   const updatePick = (idx: number, patch: Partial<Pick>) =>
     setPicks((prev) => {
-      const next = prev.map((p, i) => (i === idx ? { ...p, ...patch } : p));
+      let next = prev.map((p, i) => (i === idx ? { ...p, ...patch } : p));
+      // لو الشخص الأول اختار يوم، كل الباقيين بيتحدثوا لنفس اليوم
+      if (idx === 0 && patch.date !== undefined) {
+        const d = patch.date;
+        next = next.map((p) => ({ ...p, date: d, slot: null }));
+      }
       let prevEnd = endOf(next[idx]);
       for (let j = idx + 1; j < next.length; j++) {
         if (prevEnd !== null && next[j].slot && new Date(next[j].slot as string).getTime() < prevEnd) {
@@ -152,6 +157,18 @@ export default function GroupBookingPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  // رجوع من خطوة الدفع: بنلغي الحجوزات اللي اتسجلت عشان المعاد يرجع متاح
+  const cancelAndBack = async () => {
+    setBusy(true);
+    setError(null);
+    for (const id of bookingIds) {
+      await rpcAny('customer_cancel_booking', { p_booking_id: id }).catch(() => undefined);
+    }
+    setBookingIds([]);
+    setBusy(false);
+    setStep('times');
   };
 
   const sendPaymentWhatsApp = async () => {
@@ -345,9 +362,19 @@ export default function GroupBookingPage() {
                 : 'After paying, tap the button to open WhatsApp with a ready message listing all bookings. Send the transfer screenshot there.'}
             </p>
             {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
-            <Button className="w-full" disabled={!method} loading={busy} onClick={() => void sendPaymentWhatsApp()}>
-              {isAr ? 'ابعت على واتساب' : 'Send on WhatsApp'}
-            </Button>
+            <p className="text-xs text-ink-70">
+              {isAr
+                ? 'الحجز اتسجل مؤقتاً لحد ما تدفع. لو رجعت أو خرجت، الحجوزات دي هتفضل في حجوزاتي لحد ما تلغيها من هناك.'
+                : 'Your bookings are held until you pay. If you go back or leave, they stay in My bookings until you cancel them there.'}
+            </p>
+            <div className="flex gap-2">
+              <Button variant="secondary" className="w-full" disabled={busy} onClick={() => void cancelAndBack()}>
+                {isAr ? 'رجوع وإلغاء الحجوزات' : 'Back and cancel bookings'}
+              </Button>
+              <Button className="w-full" disabled={!method} loading={busy} onClick={() => void sendPaymentWhatsApp()}>
+                {isAr ? 'ابعت على واتساب' : 'Send on WhatsApp'}
+              </Button>
+            </div>
           </section>
         ) : null}
 
