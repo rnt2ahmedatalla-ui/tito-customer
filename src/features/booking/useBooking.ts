@@ -40,16 +40,35 @@ export function useCreateBooking() {
       payAtShop = false,
       extraIds = [],
       notes,
+      coupon = null,
     }: {
       serviceId: string;
       startAt: string;
       payAtShop?: boolean;
       extraIds?: string[];
       notes?: string | null;
+      coupon?: string | null;
     }): Promise<string> => {
       if (!canAttempt('create_booking')) throw new Error('RATE_LIMITED');
       recordAttempt('create_booking');
 
+      if (coupon) {
+        // الدالة الجديدة مش في أنواع المشروع، فبنعدّي النوع يدوياً
+        const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
+          fn: string,
+          args: Record<string, unknown>,
+        ) => Promise<{ data: string | null; error: { message: string } | null }>;
+        const { data, error } = await rpcUntyped('create_booking_with_coupon', {
+          p_service_id: serviceId,
+          p_start_at: startAt,
+          p_pay_at_shop: payAtShop,
+          p_extra_ids: extraIds,
+          p_notes: notes?.trim() || null,
+          p_coupon: coupon,
+        });
+        if (error) throw error;
+        return data as string;
+      }
       const { data, error } = await supabase.rpc('create_booking', {
         p_service_id: serviceId,
         p_start_at: startAt,
