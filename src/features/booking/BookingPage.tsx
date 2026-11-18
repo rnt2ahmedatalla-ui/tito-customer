@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useQueries } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
@@ -21,7 +23,7 @@ import { useServices, useSettings, useWorkingHours } from '@/features/home/useHo
 import { useAuth, useProfile, isProfileComplete } from '@/features/profile/useAuth';
 import { useSignIn } from '@/features/profile/useAuth';
 
-import { getDateRange, formatCairoDate, formatCairoTime, isExpired } from '@/lib/time';
+import { getDateRange, formatCairoDate, formatCairoTime, formatDateKey, isExpired } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
 import { buildWhatsAppUrl } from '@/lib/urls';
 import { extractErrorCode } from '@/lib/errors';
@@ -94,6 +96,35 @@ export default function BookingPage() {
     });
     return closed;
   }, [workingHours.data]);
+
+  // الأيام اللي مواعيدها خلصت: بنسأل عن كل يوم مرة واحدة ونخفيه عن العميل
+  const dayAvailability = useQueries({
+    queries: dates.map((d) => {
+      const key = formatDateKey(d);
+      return {
+        queryKey: ['day-availability', serviceId, key],
+        queryFn: async (): Promise<number> => {
+          const { data, error } = await supabase.rpc('get_available_slots', {
+            p_service_id: serviceId as string,
+            p_date: key,
+          });
+          if (error) throw error;
+          return (data ?? []).length;
+        },
+        enabled: step === 'datetime' && !!serviceId && !closedDays.has(d.getDay()),
+        staleTime: 60_000,
+        retry: 0,
+      };
+    }),
+  });
+  const fullyBookedDays = useMemo(() => {
+    const full = new Set<string>();
+    dates.forEach((d, i) => {
+      const q = dayAvailability[i];
+      if (q?.isSuccess && q.data === 0) full.add(formatDateKey(d));
+    });
+    return full;
+  }, [dates, dayAvailability]);
 
   const stepIndex = STEPS.indexOf(step);
 
@@ -388,21 +419,13 @@ export default function BookingPage() {
         <section>
           <h1 className="text-2xl font-bold text-espresso">{t('booking.selectDate')}</h1>
           <div className="mt-4">
-            {(() => {
-              const fullyBookedDays = new Set<string>();
-              if (date && slots.data && slots.data.length === 0 && !slots.isLoading) {
-                fullyBookedDays.add(date);
-              }
-
-              return (
-                <DateStrip
-                dates={dates}
-                selectedDate={date}
-                closedDays={closedDays}
-                onSelect={(d) => updateParams({ date: d, slot: null })}
-              />
-              );
-            })()}
+            <DateStrip
+              dates={dates}
+              selectedDate={date}
+              closedDays={closedDays}
+              fullyBookedDays={fullyBookedDays}
+              onSelect={(d) => updateParams({ date: d, slot: null })}
+            />
           </div>
           {date ? (
             <div className="mt-6">

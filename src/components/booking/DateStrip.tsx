@@ -7,10 +7,11 @@ interface DateStripProps {
   dates: Date[];
   selectedDate: string | null;
   closedDays: Set<number>;
+  fullyBookedDays?: Set<string>;
   onSelect: (dateKey: string) => void;
 }
 
-export function DateStrip({ dates, selectedDate, closedDays, onSelect }: DateStripProps) {
+export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, onSelect }: DateStripProps) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -21,7 +22,9 @@ export function DateStrip({ dates, selectedDate, closedDays, onSelect }: DateStr
     >
       {dates.map((date) => {
         const key = formatDateKey(date);
-        const isClosed = closedDays.has(date.getDay());
+        const isFull = fullyBookedDays?.has(key) ?? false;
+        // اليوم بيتقفل لو إجازة أو مواعيده خلصت
+        const isClosed = closedDays.has(date.getDay()) || isFull;
         const isSelected = selectedDate === key;
         const isToday = key === formatDateKey(new Date());
         const weekday = new Intl.DateTimeFormat(i18n.language === 'ar' ? 'ar-EG' : 'en', {
@@ -46,7 +49,9 @@ export function DateStrip({ dates, selectedDate, closedDays, onSelect }: DateStr
           >
             <span className="max-w-full truncate text-[11px] font-medium leading-tight">{weekday}</span>
             <span className="text-lg font-semibold font-latin">{format(date, 'd')}</span>
-            {isToday ? (
+            {isFull ? (
+              <span className="text-[10px] font-medium">{i18n.language === 'ar' ? 'مكتمل' : 'Full'}</span>
+            ) : isToday ? (
               <span className={cn('text-[10px] font-medium', isSelected ? 'text-espresso' : 'text-gold')}>
                 {t('home.today')}
               </span>
