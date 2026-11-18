@@ -14,6 +14,7 @@ import { GoogleIcon } from '@/components/auth/GoogleIcon';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { Button } from '@/components/ui/Button';
 import { ServiceCard } from '@/components/booking/ServiceCard';
+import { ExtraCard } from '@/components/booking/ExtraCard';
 import { DateStrip } from '@/components/booking/DateStrip';
 import { SlotGrid } from '@/components/booking/SlotGrid';
 import { HoldTimer } from '@/components/booking/HoldTimer';
@@ -150,25 +151,15 @@ export default function BookingPage() {
   const extrasPicker = extraServices.length > 0 ? (
     <div className="mt-8">
       <h2 className="text-lg font-semibold text-espresso">{t('booking.extras')}</h2>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {extraServices.map((extra) => {
-          const on = extraIds.includes(extra.id);
-          const name = i18n.language === 'ar' ? extra.name_ar : extra.name_en;
-          return (
-            <button
-              key={extra.id}
-              type="button"
-              aria-pressed={on}
-              onClick={() => toggleExtra(extra.id)}
-              className={cn(
-                'rounded-pill border px-3 py-2 text-sm',
-                on ? 'border-gold bg-gold/15 font-medium text-espresso' : 'border-default bg-white text-ink',
-              )}
-            >
-              {name} · <span className="font-latin">{formatEGP(extra.price_egp)}</span>
-            </button>
-          );
-        })}
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {extraServices.map((extra) => (
+          <ExtraCard
+            key={extra.id}
+            extra={extra}
+            selected={extraIds.includes(extra.id)}
+            onToggle={() => toggleExtra(extra.id)}
+          />
+        ))}
       </div>
     </div>
   ) : null;
@@ -367,10 +358,10 @@ export default function BookingPage() {
           >
             {i18n.language === 'ar' ? 'عايز تحجز لأكتر من شخص؟ اضغط هنا' : 'Booking for more than one person? Tap here'}
           </Link>
-          <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          <div className="mt-4 space-y-6">
             <div>
               <h2 className="mb-2 text-sm font-semibold text-ink">{t('booking.stepService')}</h2>
-              <div className="grid gap-2">
+              <div className="grid gap-2.5 md:grid-cols-2">
                 {mainServices.map((service) => (
                   <ServiceCard
                     key={service.id}
@@ -381,33 +372,21 @@ export default function BookingPage() {
                 ))}
               </div>
             </div>
-            <div>
-              <h2 className="mb-3 text-sm font-semibold text-ink">{t('booking.extras')}</h2>
-              {extraServices.length === 0 ? (
-                <p className="text-sm text-ink-70">—</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {extraServices.map((extra) => {
-                    const on = extraIds.includes(extra.id);
-                    const name = i18n.language === 'ar' ? extra.name_ar : extra.name_en;
-                    return (
-                      <button
-                        key={extra.id}
-                        type="button"
-                        aria-pressed={on}
-                        onClick={() => toggleExtra(extra.id)}
-                        className={cn(
-                          'rounded-pill border px-3 py-2 text-sm',
-                          on ? 'border-gold bg-gold/15 font-medium text-espresso' : 'border-default bg-white text-ink',
-                        )}
-                      >
-                        {name} · <span className="font-latin">{formatEGP(extra.price_egp)}</span>
-                      </button>
-                    );
-                  })}
+            {extraServices.length > 0 ? (
+              <div>
+                <h2 className="mb-2 text-sm font-semibold text-ink">{t('booking.extras')}</h2>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {extraServices.map((extra) => (
+                    <ExtraCard
+                      key={extra.id}
+                      extra={extra}
+                      selected={extraIds.includes(extra.id)}
+                      onToggle={() => toggleExtra(extra.id)}
+                    />
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : null}
           </div>
           <div className="sticky bottom-[calc(8.5rem+env(safe-area-inset-bottom))] z-10 mt-6 rounded-card border border-gold/40 bg-cream/95 p-3 shadow-warm backdrop-blur sm:static sm:shadow-none">
             <div className="flex items-center justify-between gap-3">

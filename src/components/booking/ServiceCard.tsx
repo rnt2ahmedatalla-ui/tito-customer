@@ -1,20 +1,30 @@
 import { useTranslation } from 'react-i18next';
-import { Clock } from 'lucide-react';
+import { Check, Clock } from 'lucide-react';
 import { formatEGP } from '@/lib/money';
 import { cn } from '@/lib/cn';
-import type { Service } from '@/types/database';
+
+export interface ServiceCardData {
+  id: string;
+  name_ar: string;
+  name_en: string;
+  price_egp: number | string;
+  duration_minutes: number;
+  description_ar?: string | null;
+  description_en?: string | null;
+}
 
 interface ServiceCardProps {
-  service: Service;
+  service: ServiceCardData;
   selected?: boolean;
   onSelect: () => void;
 }
 
+/** كارت الخدمة الأساسية: اختيار واحد (دايرة). نفس الشكل في الحجز العادي والجماعي. */
 export function ServiceCard({ service, selected, onSelect }: ServiceCardProps) {
   const { t, i18n } = useTranslation();
-  const name = i18n.language === 'ar' ? service.name_ar : service.name_en;
-  // الوصف اختياري: بيظهر بس لو الأدمن كتبه
-  const description = (i18n.language === 'ar' ? service.description_ar : service.description_en)?.trim();
+  const isAr = i18n.language?.startsWith('ar');
+  const name = isAr ? service.name_ar : service.name_en;
+  const description = (isAr ? service.description_ar : service.description_en)?.trim();
 
   return (
     <div
@@ -29,31 +39,33 @@ export function ServiceCard({ service, selected, onSelect }: ServiceCardProps) {
       }}
       aria-pressed={selected}
       className={cn(
-        'group relative w-full cursor-pointer border-b border-default py-5 text-start transition-colors duration-brand ease-brand',
-        'hover:bg-sand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
-        selected && 'bg-gold/10',
+        'group relative flex w-full cursor-pointer items-start gap-3 rounded-card border bg-white p-4 text-start shadow-warm transition-all duration-brand ease-brand',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
+        selected ? 'border-gold bg-gold/10 ring-1 ring-gold' : 'border-default hover:border-gold/60 hover:bg-sand/30',
       )}
     >
-      <div className="flex items-start justify-between gap-4 px-1">
-        <div className="min-w-0">
-          <h3 className="text-lg font-semibold text-espresso transition-colors group-hover:text-bark">
-            {name}
-          </h3>
-          {description ? (
-            <p className="mt-1.5 max-w-prose text-sm leading-relaxed text-ink-70">{description}</p>
-          ) : null}
-          <div className="mt-2 flex items-center gap-1.5 text-sm text-ink">
-            <Clock className="size-4 shrink-0" aria-hidden />
-            <span className="font-latin">{t('home.duration', { min: service.duration_minutes })}</span>
-          </div>
+      <span
+        aria-hidden
+        className={cn(
+          'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+          selected ? 'border-gold bg-gold text-espresso' : 'border-bark/30 bg-white',
+        )}
+      >
+        {selected ? <Check className="size-3" strokeWidth={3} /> : null}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="break-words text-base font-semibold text-espresso sm:text-lg">{name}</h3>
+        {description ? (
+          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink">{description}</p>
+        ) : null}
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-ink">
+          <Clock className="size-3.5 shrink-0" aria-hidden />
+          <span className="font-latin">{t('home.duration', { min: service.duration_minutes })}</span>
         </div>
-        <span className="shrink-0 bg-gold px-3.5 py-1.5 text-sm font-semibold text-espresso font-latin">
-          {formatEGP(service.price_egp)}
-        </span>
       </div>
-      {selected ? (
-        <span className="absolute inset-y-0 start-0 w-1 bg-gold" aria-hidden />
-      ) : null}
+      <span className="shrink-0 rounded-pill bg-gold px-3 py-1 font-latin text-sm font-bold text-espresso">
+        {formatEGP(Number(service.price_egp))}
+      </span>
     </div>
   );
 }

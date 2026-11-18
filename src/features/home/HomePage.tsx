@@ -8,18 +8,13 @@ import { Logo } from '@/components/brand/Logo';
 import { LeatherPattern } from '@/components/brand/Pattern';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ShareAndQr } from '@/components/share/ShareAndQr';
-import { InstallBanner } from '@/components/layout/InstallBanner';
+import { usePolicyText } from '@/lib/policy';
 import { useSettings, useWorkingHours, useNextSlot } from './useHomeData';
 import { formatCairoTime, formatCairoDate, getCairoNow } from '@/lib/time';
 import { format } from 'date-fns';
 import { buildWhatsAppUrl, isSafeUrl } from '@/lib/urls';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/cn';
-
-const DEFAULT_POLICY_AR =
-  'لو هتتأخر أكتر من ربع ساعة، ممكن نضطر نأجّل معادك أو نلغيه، عشان نحافظ على وقت باقي العملاء. ولو عايز تغيّر أو تلغي الحجز، اعمل ده من حجوزاتك قبل الموعد بوقت كفاية.';
-const DEFAULT_POLICY_EN =
-  'If you are more than 15 minutes late, we may have to reschedule or cancel your appointment to respect the time of other customers. To change or cancel, do it from your bookings well before your appointment.';
 
 const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -155,9 +150,7 @@ export default function HomePage() {
     (ar ? settings.data?.tagline_ar : settings.data?.tagline_en) || t('app.tagline');
 
   const extra = settings.data as unknown as Record<string, string | null | undefined> | undefined;
-  const policyText =
-    (ar ? extra?.booking_policy_ar : extra?.booking_policy_en)?.trim() ||
-    (ar ? DEFAULT_POLICY_AR : DEFAULT_POLICY_EN);
+  const { text: policyText } = usePolicyText(!!ar);
   const socialLinks = [
     { key: 'instagram', label: 'Instagram', url: (extra?.social_instagram ?? '').trim() },
     { key: 'facebook', label: 'Facebook', url: (extra?.social_facebook ?? '').trim() },
@@ -452,7 +445,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <InstallBanner />
 
       <footer className="bg-espresso py-8 text-center text-sm text-cream/40">
         <Logo variant="dark" mark height={40} className="mx-auto opacity-90" />
