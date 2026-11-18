@@ -16,8 +16,10 @@ import { cn } from '@/lib/cn';
 
 type Service = { id: string; name_ar: string; name_en: string; price_egp: number; duration_minutes: number };
 type Pick = { serviceId: string; date: string; slot: string | null; extras: string[] };
+type Method = 'in_shop' | 'instapay' | 'vodafone_cash';
+type Step = 'services' | 'times' | 'review' | 'pay' | 'done';
 
-// دوال الحجز الجديدة مش في أنواع المشروع، فبنعدّي النوع يدوياً
+// دوال الحجز مش في أنواع المشروع، فبنعدّي النوع يدوياً
 const rpcAny = (name: string, args: Record<string, unknown>) =>
   (supabase.rpc.bind(supabase) as unknown as (
     fn: string,
@@ -33,12 +35,13 @@ export default function GroupBookingPage() {
   const signIn = useSignIn();
   const settings = useSettings();
 
-  const [step, setStep] = useState<'services' | 'times' | 'review' | 'pay' | 'done'>('services');
+  const [step, setStep] = useState<Step>('services');
   const [picks, setPicks] = useState<Pick[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [bookingIds, setBookingIds] = useState<string[]>([]);
-  const [method, setMethod] = useState<'instapay' | 'vodafone_cash' | null>(null);
+  const [method, setMethod] = useState<Method | null>(null);
+  const [doneMethod, setDoneMethod] = useState<Method | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const servicesQuery = useQuery({
     queryKey: ['group-services'],
@@ -74,14 +77,19 @@ export default function GroupBookingPage() {
   const extras = extrasQuery.data ?? [];
   const extrasById = useMemo(() => new Map(extras.map((x) => [x.id, x])), [extras]);
 
-  const total = picks.reduce(
-    (sum, p) =>
-      sum +
-      Number(byId.get(p.serviceId)?.price_egp ?? 0) +
-      p.extras.reduce((s, id) => s + Number(extrasById.get(id)?.price_egp ?? 0), 0),
-    0,
-  );
+  const lineTotal = (p: Pick) =>
+    Number(byId.get(p.serviceId)?.price_egp ?? 0) +
+    p.extras.reduce((s, id) => s + Number(extrasById.get(id)?.price_egp ?? 0), 0);
+  const total = picks.reduce((sum, p) => sum + lineTotal(p), 0);
+
   const nameOf = (s: Service) => (isAr ? s.name_ar : s.name_en);
+  const extraName = (id: string) => {
+    const x = extrasById.get(id);
+    return x ? (isAr ? x.name_ar : x.name_en) : '';
+  };
+  const durationOf = (serviceId: string) => Number(byId.get(serviceId)?.duration_minutes ?? 0);
+  const endOf = (p: Pick): number | null =>
+    p.slot ? new Date(p.slot).getTime() + durationOf(p.serviceId) * 60000 : null;
 
   const toggleService = (id: string) => {
     setError(null);
@@ -92,15 +100,11 @@ export default function GroupBookingPage() {
     });
   };
 
-  const durationOf = (serviceId: string) => Number(byId.get(serviceId)?.duration_minutes ?? 0);
-  const endOf = (p: Pick): number | null =>
-    p.slot ? new Date(p.slot).getTime() + durationOf(p.serviceId) * 60000 : null;
-
-  // كل شخص بعد اللي قبله: لو معاد حد اتغيّر، أي معاد بعده لازم يتمسح لو بقى قبل نهايته
+  // لو الشخص الأول اختار يوم، الباقيين بيتحدثوا لنفس اليوم.
+  // ولو معاد حد اتغيّر، أي معاد بعده لازم يتمسح لو بقى قبل نهاية اللي قبله.
   const updatePick = (idx: number, patch: Partial<Pick>) =>
     setPicks((prev) => {
       let next = prev.map((p, i) => (i === idx ? { ...p, ...patch } : p));
-      // لو الشخص الأول اختار يوم، كل الباقيين بيتحدثوا لنفس اليوم
       if (idx === 0 && patch.date !== undefined) {
         const d = patch.date;
         next = next.map((p) => ({ ...p, date: d, slot: null }));
@@ -115,7 +119,6 @@ export default function GroupBookingPage() {
       return next;
     });
 
-  // أقل وقت مسموح للشخص ده: بعد نهاية اللي قبله
   const minStartFor = (idx: number): { waitForPrev: boolean; minMs: number | null } => {
     if (idx === 0) return { waitForPrev: false, minMs: null };
     const prev = picks[idx - 1];
@@ -123,85 +126,94 @@ export default function GroupBookingPage() {
     return { waitForPrev: false, minMs: endOf(prev) };
   };
 
-  // بنحجز كل خدمة بمعادها، ولو حاجة وقعت بنلغي اللي اتحجز قبلها
-  const createAll = async () => {
-    setBusy(true);
-    setError(null);
-    const created: string[] = [];
-    try {
-      for (const p of picks) {
-        const { data, error: e } = await rpcAny('create_booking', {
-          p_service_id: p.serviceId,
-          p_start_at: p.slot,
-          p_pay_at_shop: false,
-          p_extra_ids: p.extras,
-          p_notes: null,
-        });
-        if (e) throw e;
-        created.push(String(data));
-      }
-      setBookingIds(created);
-      setStep('pay');
-    } catch (e) {
-      for (const id of created) {
-        await rpcAny('customer_cancel_booking', { p_booking_id: id }).catch(() => undefined);
-      }
-      const msg = (e as { message?: string })?.message ?? '';
-      setError(
-        msg.includes('SLOT_TAKEN')
-          ? isAr ? 'واحد من المعادات اتحجز قبل كده، اختار معاد تاني' : 'One of the times was just booked, pick another'
-          : msg.includes('PROFILE_INCOMPLETE')
-            ? isAr ? 'كمّل بيانات حسابك الأول من صفحة الحجز' : 'Complete your profile first from the booking page'
-            : isAr ? 'حصلت مشكلة، حاول تاني' : 'Something went wrong, try again',
-      );
-    } finally {
-      setBusy(false);
-    }
+  // أكتر رسالة مفهومة للعميل، ومعاها الكود عشان نعرف المشكلة لو لسه فيه
+  const errorText = (msg: string) => {
+    if (msg.includes('SLOT_TAKEN'))
+      return isAr ? 'واحد من المعادات اتحجز قبل كده، اختار معاد تاني' : 'One of the times was just booked, pick another';
+    if (msg.includes('TOO_MANY_PENDING'))
+      return isAr
+        ? 'عندك حجوزات كتير مستنية الدفع. ادفع أو ألغي اللي قبل كده الأول'
+        : 'You have too many bookings waiting for payment. Pay or cancel them first';
+    if (msg.includes('PROFILE_INCOMPLETE'))
+      return isAr ? 'كمّل بيانات حسابك الأول من صفحة الحجز' : 'Complete your profile first from the booking page';
+    if (msg.includes('BOOKING_CLOSED')) return isAr ? 'الحجز مقفول دلوقتي' : 'Booking is closed right now';
+    if (msg.includes('TOO_SOON')) return isAr ? 'واحد من المعادات قريب أوي، اختار وقت أبعد' : 'One time is too soon, pick a later time';
+    if (msg.includes('TOO_FAR')) return isAr ? 'واحد من المعادات بعيد أوي' : 'One time is too far away';
+    if (msg.includes('PAY_AT_SHOP_DISABLED'))
+      return isAr ? 'الدفع في المحل مش متاح دلوقتي' : 'Paying at the shop is not available right now';
+    if (msg.includes('BLOCKED_USER')) return isAr ? 'حسابك مش مسموح له يحجز' : 'Your account cannot book';
+    return isAr ? `حصلت مشكلة: ${msg || 'حاول تاني'}` : `Something went wrong: ${msg || 'try again'}`;
   };
 
-  // رجوع من خطوة الدفع: بنلغي الحجوزات اللي اتسجلت عشان المعاد يرجع متاح
-  const cancelAndBack = async () => {
-    setBusy(true);
-    setError(null);
-    for (const id of bookingIds) {
-      await rpcAny('customer_cancel_booking', { p_booking_id: id }).catch(() => undefined);
-    }
-    setBookingIds([]);
-    setBusy(false);
-    setStep('times');
-  };
+  // كل الحجوزات بتتسجل في خطوة واحدة في السيرفر: لو حاجة وقعت، ما بيتسجلش أي حاجة
+  const payload = () =>
+    picks.map((p) => ({ service_id: p.serviceId, start_at: p.slot, extra_ids: p.extras }));
 
-  const sendPaymentWhatsApp = async () => {
-    if (!method || bookingIds.length === 0) return;
+  const confirmInShop = async () => {
     setBusy(true);
     setError(null);
     try {
-      const { error: e } = await rpcAny('submit_group_payment', {
-        p_booking_ids: bookingIds,
-        p_method: method,
-        p_transaction_ref: null,
-        p_proof_path: null,
-      });
+      const { error: e } = await rpcAny('create_group_booking', { p_items: payload(), p_method: 'in_shop' });
       if (e) throw e;
-
-      const lines = picks.map((p) => {
-        const s = byId.get(p.serviceId);
-        return `• ${s ? nameOf(s) : ''} — ${p.slot ? formatCairoTime(p.slot, i18n.language) : ''}`;
-      });
-      const shopName = settings.data?.shop_name || 'tito';
-      const methodLabel = method === 'instapay' ? 'InstaPay' : isAr ? 'فودافون كاش' : 'Vodafone Cash';
-      const msg = isAr
-        ? `مرحباً ${shopName} 👋\nحجزت ${picks.length} خدمات:\n${lines.join('\n')}\nالإجمالي: ${formatEGP(total)}\nطريقة الدفع: ${methodLabel}\nهبعتلكم صورة التحويل هنا 🧾`
-        : `Hi ${shopName} 👋\nI booked ${picks.length} services:\n${lines.join('\n')}\nTotal: ${formatEGP(total)}\nPayment: ${methodLabel}\nI'll send the transfer screenshot here 🧾`;
-      const url = buildWhatsAppUrl(settings.data?.shop_whatsapp ?? '', msg);
-      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+      setDoneMethod('in_shop');
       setStep('done');
     } catch (e) {
-      setError((e as { message?: string })?.message ?? (isAr ? 'حصلت مشكلة' : 'Something went wrong'));
+      setError(errorText((e as { message?: string })?.message ?? ''));
     } finally {
       setBusy(false);
     }
   };
+
+  // نفس الحجز العادي: الحجز بيتسجل ويتبعت للمحل لما العميل يبعت على واتساب
+  const submitOnline = async (m: Method) => {
+    // نفتح الواتساب بشكل متزامن عشان المتصفح ما يمنعوش، ونحدد الرابط بعد النجاح
+    const win = window.open('', '_blank');
+    setBusy(true);
+    setError(null);
+    try {
+      const { error: e } = await rpcAny('create_group_booking', { p_items: payload(), p_method: m });
+      if (e) throw e;
+      const url = buildWhatsAppUrl(settings.data?.shop_whatsapp ?? '', summaryMessage(m));
+      if (win && url) win.location.href = url;
+      else win?.close();
+      setDoneMethod(m);
+      setStep('done');
+    } catch (e) {
+      win?.close();
+      setError(errorText((e as { message?: string })?.message ?? ''));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const summaryMessage = (m: Method) => {
+    const shopName = settings.data?.shop_name || 'tito';
+    const lines = picks.map((p) => {
+      const extrasText = p.extras.length ? ` (+ ${p.extras.map(extraName).join(' + ')})` : '';
+      return `• ${nameOf(byId.get(p.serviceId) ?? { id: '', name_ar: '', name_en: '', price_egp: 0, duration_minutes: 0 })}${extrasText} — ${p.slot ? formatCairoTime(p.slot, i18n.language) : ''}`;
+    });
+    const methodLabel =
+      m === 'in_shop' ? (isAr ? 'الدفع في المحل' : 'Pay at the shop') : m === 'instapay' ? 'InstaPay' : isAr ? 'فودافون كاش' : 'Vodafone Cash';
+    return isAr
+      ? `أهلاً ${shopName} 👋\nحجزت ${picks.length} ${picks.length > 1 ? 'مواعيد' : 'ميعاد'}:\n${lines.join('\n')}\nالإجمالي: ${formatEGP(total)}\nطريقة الدفع: ${methodLabel}${m === 'in_shop' ? '' : '\nهبعتلكم صورة التحويل هنا 🧾'}`
+      : `Hi ${shopName} 👋\nI booked ${picks.length} appointment(s):\n${lines.join('\n')}\nTotal: ${formatEGP(total)}\nPayment: ${methodLabel}${m === 'in_shop' ? '' : '\nI will send the transfer screenshot here 🧾'}`;
+  };
+
+  const openWhatsApp = (m: Method) => {
+    const url = buildWhatsAppUrl(settings.data?.shop_whatsapp ?? '', summaryMessage(m));
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const copyNumber = (num: string) => {
+    void navigator.clipboard.writeText(num);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const instapayLink = (settings.data?.instapay_number ?? '').trim();
+  const instapayReady = /^https?:\/\//.test(instapayLink);
+  const vodafoneNumber = (settings.data?.vodafone_cash_number ?? '').trim();
+  const allowInShop = !!settings.data?.allow_pay_at_shop;
 
   if (authLoading) {
     return (
@@ -215,33 +227,39 @@ export default function GroupBookingPage() {
     return (
       <PageShell>
         <div className="mx-auto flex max-w-md flex-col items-center gap-5 py-16 text-center">
-          <p className="font-semibold text-espresso">{isAr ? 'سجّل دخول عشان تحجز لأكتر من شخص' : 'Sign in to book for more than one person'}</p>
+          <p className="font-semibold text-espresso">
+            {isAr ? 'سجّل دخول عشان تحجز لأكتر من شخص' : 'Sign in to book for more than one person'}
+          </p>
           <GoogleSignInButton variant="gold" label={isAr ? 'سجّل بجوجل' : 'Sign in with Google'} onClick={() => void signIn()} />
         </div>
       </PageShell>
     );
   }
 
-  const stepIdx = ['services', 'times', 'review', 'pay'].indexOf(step);
+  const stepNumber = { services: 1, times: 2, review: 3, pay: 4, done: 4 }[step];
 
   return (
     <PageShell>
       <div className="mx-auto max-w-2xl space-y-5">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold text-espresso">{isAr ? 'احجز لأكتر من شخص' : 'Book for more than one person'}</h1>
-          <Link to="/book" className="text-sm text-gold underline">{isAr ? 'حجز عادي' : 'Regular booking'}</Link>
+          <Link to="/book" className="shrink-0 text-sm text-gold underline">
+            {isAr ? 'حجز عادي' : 'Regular booking'}
+          </Link>
         </div>
 
         {step !== 'done' ? (
-          <p className="text-sm text-ink-70">
-            {isAr ? `الخطوة ${stepIdx + 1} من 4` : `Step ${stepIdx + 1} of 4`}
-          </p>
+          <p className="text-sm text-ink-70">{isAr ? `الخطوة ${stepNumber} من 4` : `Step ${stepNumber} of 4`}</p>
         ) : null}
 
         {step === 'services' ? (
           <section className="space-y-3">
-            <p className="font-semibold text-espresso">{isAr ? 'اختار الخدمات (لحد 3، كل خدمة لشخص)' : 'Pick services (up to 3, one per person)'}</p>
-            {servicesQuery.isLoading ? <Skeleton className="h-32" /> : (
+            <p className="font-semibold text-espresso">
+              {isAr ? 'اختار الخدمات (لحد 3، كل خدمة لشخص)' : 'Pick services (up to 3, one per person)'}
+            </p>
+            {servicesQuery.isLoading ? (
+              <Skeleton className="h-32" />
+            ) : (
               <div className="grid gap-2">
                 {services.map((s) => {
                   const on = picks.some((p) => p.serviceId === s.id);
@@ -287,7 +305,9 @@ export default function GroupBookingPage() {
               />
             ))}
             <div className="flex gap-2">
-              <Button variant="secondary" className="w-full" onClick={() => setStep('services')}>{isAr ? 'رجوع' : 'Back'}</Button>
+              <Button variant="secondary" className="w-full" onClick={() => setStep('services')}>
+                {isAr ? 'رجوع' : 'Back'}
+              </Button>
               <Button className="w-full" disabled={picks.some((p) => !p.slot)} onClick={() => setStep('review')}>
                 {isAr ? 'كمّل' : 'Continue'}
               </Button>
@@ -301,16 +321,17 @@ export default function GroupBookingPage() {
               {picks.map((p) => {
                 const s = byId.get(p.serviceId);
                 return (
-                  <li key={p.serviceId} className="flex items-center justify-between gap-3 p-3 text-sm">
+                  <li key={p.serviceId} className="flex items-start justify-between gap-3 p-3 text-sm">
                     <span className="min-w-0 break-words">
-                      {s ? nameOf(s) : ''} · {p.slot ? formatCairoTime(p.slot, i18n.language) : ''}
+                      <span className="font-semibold text-espresso">{s ? nameOf(s) : ''}</span>
+                      <span className="block text-ink-70">
+                        {p.slot ? formatCairoTime(p.slot, i18n.language) : ''}
+                      </span>
                       {p.extras.length > 0 ? (
-                        <span className="block text-xs text-ink-70">
-                          + {p.extras.map((id) => (isAr ? extrasById.get(id)?.name_ar : extrasById.get(id)?.name_en)).join(' · ')}
-                        </span>
+                        <span className="block text-xs text-ink-70">+ {p.extras.map(extraName).join(' · ')}</span>
                       ) : null}
                     </span>
-                    <span className="font-latin shrink-0">{formatEGP(s?.price_egp ?? 0)}</span>
+                    <span className="font-latin shrink-0">{formatEGP(lineTotal(p))}</span>
                   </li>
                 );
               })}
@@ -319,11 +340,12 @@ export default function GroupBookingPage() {
                 <span className="font-latin">{formatEGP(total)}</span>
               </li>
             </ul>
-            {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
             <div className="flex gap-2">
-              <Button variant="secondary" className="w-full" onClick={() => setStep('times')}>{isAr ? 'رجوع' : 'Back'}</Button>
-              <Button className="w-full" loading={busy} onClick={() => void createAll()}>
-                {isAr ? 'أكد الحجز' : 'Confirm booking'}
+              <Button variant="secondary" className="w-full" onClick={() => setStep('times')}>
+                {isAr ? 'رجوع' : 'Back'}
+              </Button>
+              <Button className="w-full" onClick={() => setStep('pay')}>
+                {isAr ? 'كمّل للدفع' : 'Continue to payment'}
               </Button>
             </div>
           </section>
@@ -331,64 +353,116 @@ export default function GroupBookingPage() {
 
         {step === 'pay' ? (
           <section className="space-y-4">
-            <p className="font-semibold text-espresso">{isAr ? 'ادفع الإجمالي مرة واحدة' : 'Pay the total once'}</p>
-            <p className="font-latin text-2xl font-bold text-espresso">{formatEGP(total)}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {(['instapay', 'vodafone_cash'] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMethod(m)}
-                  className={cn(
-                    'rounded-btn border px-3 py-2.5 text-sm transition-colors',
-                    method === m ? 'border-gold bg-gold/20 font-semibold' : 'border-default bg-white',
-                  )}
-                >
-                  {m === 'instapay' ? 'InstaPay' : isAr ? 'فودافون كاش' : 'Vodafone Cash'}
-                </button>
-              ))}
+            <div className="flex items-center justify-between rounded-card border border-gold/40 bg-gold/10 p-4">
+              <span className="font-semibold text-espresso">{isAr ? 'الإجمالي' : 'Total'}</span>
+              <span className="font-latin text-xl font-bold text-espresso">{formatEGP(total)}</span>
             </div>
-            {method === 'instapay' && settings.data?.instapay_number ? (
-              <a href={settings.data.instapay_number} target="_blank" rel="noopener noreferrer" className="block text-sm text-gold underline">
-                {isAr ? 'افتح لينك إنستاباي' : 'Open InstaPay link'}
+
+            <p className="font-semibold text-espresso">{isAr ? 'اختار طريقة الدفع' : 'Choose how to pay'}</p>
+            <div className="grid gap-2">
+              {allowInShop ? (
+                <PayOption active={method === 'in_shop'} onClick={() => setMethod('in_shop')} title={isAr ? 'ادفع في المحل' : 'Pay at the shop'} />
+              ) : null}
+              {instapayReady ? (
+                <PayOption active={method === 'instapay'} onClick={() => setMethod('instapay')} title="InstaPay" />
+              ) : null}
+              {vodafoneNumber ? (
+                <PayOption active={method === 'vodafone_cash'} onClick={() => setMethod('vodafone_cash')} title={isAr ? 'فودافون كاش' : 'Vodafone Cash'} />
+              ) : null}
+            </div>
+
+            {method === 'instapay' && instapayReady ? (
+              <a href={instapayLink} target="_blank" rel="noopener noreferrer" className="block rounded-btn border border-gold/50 bg-white p-3 text-center text-sm font-semibold text-gold">
+                {isAr ? 'افتح إنستاباي وادفع' : 'Open InstaPay and pay'}
               </a>
             ) : null}
-            {method === 'vodafone_cash' && settings.data?.vodafone_cash_number ? (
-              <p className="font-latin text-sm text-espresso">{settings.data.vodafone_cash_number}</p>
+            {method === 'vodafone_cash' && vodafoneNumber ? (
+              <div className="flex items-center justify-between gap-2 rounded-btn border border-default bg-white p-3">
+                <span className="font-latin font-bold text-espresso">{vodafoneNumber}</span>
+                <button type="button" onClick={() => copyNumber(vodafoneNumber)} className="rounded bg-gold/20 px-3 py-1.5 text-xs font-medium text-espresso">
+                  {copied ? (isAr ? 'اتنسخ' : 'Copied') : isAr ? 'نسخ' : 'Copy'}
+                </button>
+              </div>
             ) : null}
-            <p className="text-xs text-ink-70">
-              {isAr
-                ? 'بعد ما تدفع، اضغط الزرار ده، وهيفتحلك واتساب برسالة جاهزة بكل الحجوزات. ابعت صورة التحويل فيها.'
-                : 'After paying, tap the button to open WhatsApp with a ready message listing all bookings. Send the transfer screenshot there.'}
-            </p>
+
+            {method ? (
+              <p className="text-xs text-ink-70">
+                {method === 'in_shop'
+                  ? isAr ? 'هتدفع لما تيجي المحل، والحجز هيتأكد دلوقتي.' : 'You pay when you come to the shop. The booking is confirmed now.'
+                  : isAr ? 'الحجز هيتسجل، وبعدها ابعت صورة التحويل على واتساب، والمحل هيأكد الحجز.' : 'The booking is saved, then send the transfer screenshot on WhatsApp and the shop will confirm it.'}
+              </p>
+            ) : null}
+
             {error ? <p className="text-sm text-danger" role="alert">{error}</p> : null}
-            <p className="text-xs text-ink-70">
-              {isAr
-                ? 'الحجز اتسجل مؤقتاً لحد ما تدفع. لو رجعت أو خرجت، الحجوزات دي هتفضل في حجوزاتي لحد ما تلغيها من هناك.'
-                : 'Your bookings are held until you pay. If you go back or leave, they stay in My bookings until you cancel them there.'}
-            </p>
+
             <div className="flex gap-2">
-              <Button variant="secondary" className="w-full" disabled={busy} onClick={() => void cancelAndBack()}>
-                {isAr ? 'رجوع وإلغاء الحجوزات' : 'Back and cancel bookings'}
+              <Button variant="secondary" className="w-full" disabled={busy} onClick={() => setStep('review')}>
+                {isAr ? 'رجوع' : 'Back'}
               </Button>
-              <Button className="w-full" disabled={!method} loading={busy} onClick={() => void sendPaymentWhatsApp()}>
-                {isAr ? 'ابعت على واتساب' : 'Send on WhatsApp'}
-              </Button>
+              {method === 'in_shop' ? (
+                <Button className="w-full" disabled={busy} loading={busy} onClick={() => void confirmInShop()}>
+                  {isAr ? 'أكد الحجز' : 'Confirm booking'}
+                </Button>
+              ) : (
+                <Button className="w-full" disabled={!method || busy} loading={busy} onClick={() => method && void submitOnline(method)}>
+                  {isAr ? 'أكد وابعت على واتساب' : 'Confirm and send on WhatsApp'}
+                </Button>
+              )}
             </div>
           </section>
         ) : null}
 
-        {step === 'done' ? (
-          <section className="space-y-3 rounded-card border border-gold/40 bg-white p-5 text-center">
-            <p className="text-lg font-bold text-espresso">{isAr ? 'تمام، حجوزاتك اتسجلت ✅' : 'Done, your bookings are saved ✅'}</p>
-            <p className="text-sm text-ink-70">
-              {isAr ? 'المحل هيأكد الدفع ويبعتلك تأكيد. تقدر تتابع حجوزاتك من صفحة الحجوزات.' : 'The shop will confirm the payment. You can follow your bookings from the bookings page.'}
-            </p>
-            <Link to="/bookings" className="inline-block text-sm text-gold underline">{isAr ? 'حجوزاتي' : 'My bookings'}</Link>
+        {step === 'done' && doneMethod ? (
+          <section className="space-y-4 rounded-card border border-gold/40 bg-white p-5">
+            <div className="text-center">
+              <p className="text-xl font-bold text-espresso">{isAr ? 'حجزك وصل ✅' : 'Your booking is in ✅'}</p>
+              <p className="mt-1 text-sm text-ink-70">
+                {doneMethod === 'in_shop'
+                  ? isAr ? 'هتدفع في المحل لما تيجي.' : 'You pay at the shop when you come.'
+                  : isAr ? 'ابعت صورة التحويل على واتساب عشان المحل يأكد.' : 'Send the transfer screenshot on WhatsApp so the shop confirms.'}
+              </p>
+            </div>
+
+            <ul className="divide-y divide-bark/10 rounded-btn border border-bark/10">
+              {picks.map((p) => (
+                <li key={p.serviceId} className="p-3 text-sm">
+                  <p className="font-semibold text-espresso">{nameOf(byId.get(p.serviceId) ?? { id: '', name_ar: '', name_en: '', price_egp: 0, duration_minutes: 0 })}</p>
+                  <p className="font-latin text-ink-70">{p.slot ? formatCairoTime(p.slot, i18n.language) : ''}</p>
+                  {p.extras.length > 0 ? <p className="text-xs text-ink-70">+ {p.extras.map(extraName).join(' · ')}</p> : null}
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex items-center justify-between font-bold text-espresso">
+              <span>{isAr ? 'الإجمالي' : 'Total'}</span>
+              <span className="font-latin">{formatEGP(total)}</span>
+            </div>
+
+            <Button className="w-full" onClick={() => openWhatsApp(doneMethod)}>
+              {isAr ? 'ابعت تفاصيل الحجز على واتساب' : 'Send booking details on WhatsApp'}
+            </Button>
+            <Link to="/bookings" className="block text-center text-sm text-gold underline">
+              {isAr ? 'حجوزاتي' : 'My bookings'}
+            </Link>
           </section>
         ) : null}
       </div>
     </PageShell>
+  );
+}
+
+function PayOption({ active, onClick, title }: { active: boolean; onClick: () => void; title: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'rounded-card border p-3 text-start text-sm font-semibold transition-colors',
+        active ? 'border-gold bg-gold/15 text-espresso' : 'border-default bg-white text-espresso',
+      )}
+    >
+      {title}
+    </button>
   );
 }
 
