@@ -63,6 +63,10 @@ export default function BookingPage() {
   const [holdExpired, setHoldExpired] = useState(false);
   const [pendingAction, setPendingAction] = useState<'book' | 'pay_at_shop' | null>(null);
   const [notes, setNotes] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponChecking, setCouponChecking] = useState(false);
   const [payAtShopChosen, setPayAtShopChosen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return (
@@ -86,6 +90,48 @@ export default function BookingPage() {
     (booking.data?.service && !booking.data.service.is_extra ? booking.data.service : null) ??
     null;
   const orderTotal = Number(selectedService?.price_egp ?? 0) + extrasTotal;
+  const discountedTotal = appliedCoupon ? Math.max(0, orderTotal - appliedCoupon.discount) : orderTotal;
+
+  // بنتحقق من الكوبون قبل الحجز عشان العميل يشوف الخصم
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setCouponChecking(true);
+    setCouponError(null);
+    try {
+      // جدول الكوبونات مش في أنواع المشروع الحالية
+      const db = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            eq: (k: string, v: string) => {
+              maybeSingle: () => Promise<{
+                data: { code: string; percent_off: number | null; amount_off_egp: number | null; active: boolean; valid_until: string | null } | null;
+                error: { message: string } | null;
+              }>;
+            };
+          };
+        };
+      };
+      const { data, error } = await db
+        .from('coupons')
+        .select('code, percent_off, amount_off_egp, active, valid_until')
+        .eq('code', code)
+        .maybeSingle();
+      const valid = !error && !!data && data.active && (!data.valid_until || new Date(data.valid_until) > new Date());
+      if (!valid || !data) {
+        setAppliedCoupon(null);
+        setCouponError(i18n.language === 'ar' ? 'الكود ده مش صالح أو خلص' : 'This code is not valid or has expired');
+        return;
+      }
+      const discount =
+        data.percent_off !== null
+          ? Math.round((orderTotal * data.percent_off) / 100 * 100) / 100
+          : Math.min(Number(data.amount_off_egp ?? 0), orderTotal);
+      setAppliedCoupon({ code: data.code, discount });
+    } finally {
+      setCouponChecking(false);
+    }
+  };
   const maxDays = settings.data?.max_days_ahead ?? 14;
   const dates = useMemo(() => getDateRange(maxDays), [maxDays]);
 
@@ -212,6 +258,7 @@ export default function BookingPage() {
         payAtShop,
         extraIds,
         notes: notes.trim() || null,
+        coupon: appliedCoupon?.code ?? null,
       });
       try {
         sessionStorage.removeItem('tito_pending_book');
@@ -466,12 +513,62 @@ export default function BookingPage() {
                 <span className="font-latin font-medium sm:text-end">{formatEGP(extra.price_egp)}</span>
               </div>
             ))}
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between gap-3 text-sm text-success">
+                <span>
+                  {i18n.language === 'ar' ? `خصم (${appliedCoupon.code})` : `Discount (${appliedCoupon.code})`}
+                </span>
+                <span className="font-latin">- {formatEGP(appliedCoupon.discount)}</span>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-3 border-t border-default pt-4">
               <span className="text-ink">{t('booking.price')}</span>
-              <span className="text-lg font-bold text-espresso font-latin">{formatEGP(orderTotal)}</span>
+              <span className="text-lg font-bold text-espresso font-latin">{formatEGP(discountedTotal)}</span>
             </div>
           </div>
           {extrasPicker}
+          <div className="mt-4">
+            <label className="mb-1 block text-sm text-ink" htmlFor="booking-coupon">
+              {i18n.language === 'ar' ? 'كود خصم (اختياري)' : 'Discount code (optional)'}
+            </label>
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between gap-2 rounded-btn border border-gold/40 bg-gold/10 px-3 py-2 text-sm">
+                <span className="font-latin font-semibold">{appliedCoupon.code}</span>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-gold"
+                  onClick={() => {
+                    setAppliedCoupon(null);
+                    setCouponInput('');
+                  }}
+                >
+                  {i18n.language === 'ar' ? 'شيله' : 'Remove'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  id="booking-coupon"
+                  className="min-h-11 flex-1 rounded-btn border border-default bg-white px-3 font-latin text-sm uppercase"
+                  value={couponInput}
+                  onChange={(e) => {
+                    setCouponInput(e.target.value);
+                    setCouponError(null);
+                  }}
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  loading={couponChecking}
+                  disabled={!couponInput.trim()}
+                  onClick={() => void applyCoupon()}
+                >
+                  {i18n.language === 'ar' ? 'طبّق' : 'Apply'}
+                </Button>
+              </div>
+            )}
+            {couponError ? <p className="mt-1 text-sm text-danger">{couponError}</p> : null}
+          </div>
           <div className="mt-4">
             <label className="mb-1 block text-sm text-ink" htmlFor="booking-notes">
               {t('booking.notes')}
