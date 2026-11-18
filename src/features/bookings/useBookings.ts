@@ -76,7 +76,7 @@ export function useCancelBooking() {
 
   return useMutation({
     mutationFn: async (bookingId: string) => {
-      if (!canAttempt('cancel_booking')) throw new Error('RATE_LIMITED');
+      if (!canAttempt('cancel_booking', { cooldownMs: 400, maxPerMinute: 30 })) throw new Error('RATE_LIMITED');
       recordAttempt('cancel_booking');
 
       const { error } = await supabase.rpc('customer_cancel_booking', {

@@ -5,10 +5,17 @@ const WINDOW_MS = 60_000;
 const lastAttempt = new Map<string, number>();
 const attemptCounts = new Map<string, { count: number; windowStart: number }>();
 
-export function canAttempt(key: string): boolean {
+export interface RateOptions {
+  cooldownMs?: number;
+  maxPerMinute?: number;
+}
+
+export function canAttempt(key: string, opts: RateOptions = {}): boolean {
+  const cooldown = opts.cooldownMs ?? COOLDOWN_MS;
+  const max = opts.maxPerMinute ?? MAX_PER_MINUTE;
   const now = Date.now();
   const last = lastAttempt.get(key) ?? 0;
-  if (now - last < COOLDOWN_MS) return false;
+  if (now - last < cooldown) return false;
 
   const record = attemptCounts.get(key);
   if (!record || now - record.windowStart > WINDOW_MS) {
@@ -16,7 +23,7 @@ export function canAttempt(key: string): boolean {
     return true;
   }
 
-  return record.count < MAX_PER_MINUTE;
+  return record.count < max;
 }
 
 export function recordAttempt(key: string): void {
