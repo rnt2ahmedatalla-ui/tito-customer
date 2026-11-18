@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 
 const HomePage = lazy(() => import('@/features/home/HomePage'));
 const BookingPage = lazy(() => import('@/features/booking/BookingPage'));
+const GroupBookingPage = lazy(() => import('@/features/booking/GroupBookingPage'));
 const BookingsPage = lazy(() => import('@/features/bookings/BookingsPage'));
 const MovePage = lazy(() => import('@/features/move/MovePage'));
 const RatePage = lazy(() => import('@/features/rate/RatePage'));
@@ -35,6 +36,7 @@ const router = createBrowserRouter(
   [
     { path: '/', element: withSuspense(HomePage) },
     { path: '/book', element: withSuspense(BookingPage) },
+    { path: '/book/group', element: withSuspense(GroupBookingPage) },
     { path: '/bookings', element: withSuspense(BookingsPage) },
     { path: '/move/:token', element: withSuspense(MovePage) },
     { path: '/rate/:token', element: withSuspense(RatePage) },
