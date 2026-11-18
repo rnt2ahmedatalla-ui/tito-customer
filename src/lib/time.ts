@@ -1,4 +1,5 @@
 import { format, parseISO, addDays, startOfDay, isBefore, isAfter } from 'date-fns';
+import { ar as arLocale } from 'date-fns/locale';
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 export const CAIRO_TZ = 'Africa/Cairo';
@@ -14,7 +15,7 @@ export function fromCairoLocalToUtc(localDate: Date): Date {
 export function formatCairoDate(utcIso: string, locale: string): string {
   const pattern = locale === 'ar' ? 'EEEE d MMMM' : 'EEEE, MMMM d';
   return formatInTimeZone(parseISO(utcIso), CAIRO_TZ, pattern, {
-    locale: undefined,
+    locale: locale === 'ar' ? arLocale : undefined,
   });
 }
 
@@ -33,7 +34,7 @@ export function formatCairoDateShort(utcIso: string): string {
 
 export function formatCairoWeekdayAbbr(date: Date, locale: string): string {
   const pattern = locale === 'ar' ? 'EEEE' : 'EEE';
-  return format(date, pattern);
+  return format(date, pattern, { locale: locale === 'ar' ? arLocale : undefined });
 }
 
 export function getCairoNow(): Date {
