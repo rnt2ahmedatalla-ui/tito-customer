@@ -15,7 +15,7 @@ import { buildWhatsAppUrl } from '@/lib/urls';
 import { cn } from '@/lib/cn';
 
 type Service = { id: string; name_ar: string; name_en: string; price_egp: number; duration_minutes: number };
-type Pick = { serviceId: string; date: string; slot: string | null };
+type Pick = { serviceId: string; date: string; slot: string | null; extras: string[] };
 
 // دوال الحجز الجديدة مش في أنواع المشروع، فبنعدّي النوع يدوياً
 const rpcAny = (name: string, args: Record<string, unknown>) =>
@@ -57,7 +57,30 @@ export default function GroupBookingPage() {
   const services = servicesQuery.data ?? [];
   const byId = useMemo(() => new Map(services.map((s) => [s.id, s])), [services]);
 
-  const total = picks.reduce((sum, p) => sum + Number(byId.get(p.serviceId)?.price_egp ?? 0), 0);
+  const extrasQuery = useQuery({
+    queryKey: ['group-extras'],
+    queryFn: async () => {
+      const { data, error: e } = await supabase
+        .from('services')
+        .select('id, name_ar, name_en, price_egp, duration_minutes')
+        .eq('is_active', true)
+        .eq('is_extra', true)
+        .order('sort_order');
+      if (e) throw e;
+      return (data ?? []) as Service[];
+    },
+    staleTime: 60_000,
+  });
+  const extras = extrasQuery.data ?? [];
+  const extrasById = useMemo(() => new Map(extras.map((x) => [x.id, x])), [extras]);
+
+  const total = picks.reduce(
+    (sum, p) =>
+      sum +
+      Number(byId.get(p.serviceId)?.price_egp ?? 0) +
+      p.extras.reduce((s, id) => s + Number(extrasById.get(id)?.price_egp ?? 0), 0),
+    0,
+  );
   const nameOf = (s: Service) => (isAr ? s.name_ar : s.name_en);
 
   const toggleService = (id: string) => {
@@ -65,12 +88,35 @@ export default function GroupBookingPage() {
     setPicks((prev) => {
       if (prev.some((p) => p.serviceId === id)) return prev.filter((p) => p.serviceId !== id);
       if (prev.length >= 3) return prev;
-      return [...prev, { serviceId: id, date: todayStr(), slot: null }];
+      return [...prev, { serviceId: id, date: todayStr(), slot: null, extras: [] }];
     });
   };
 
+  const durationOf = (serviceId: string) => Number(byId.get(serviceId)?.duration_minutes ?? 0);
+  const endOf = (p: Pick): number | null =>
+    p.slot ? new Date(p.slot).getTime() + durationOf(p.serviceId) * 60000 : null;
+
+  // كل شخص بعد اللي قبله: لو معاد حد اتغيّر، أي معاد بعده لازم يتمسح لو بقى قبل نهايته
   const updatePick = (idx: number, patch: Partial<Pick>) =>
-    setPicks((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
+    setPicks((prev) => {
+      const next = prev.map((p, i) => (i === idx ? { ...p, ...patch } : p));
+      let prevEnd = endOf(next[idx]);
+      for (let j = idx + 1; j < next.length; j++) {
+        if (prevEnd !== null && next[j].slot && new Date(next[j].slot as string).getTime() < prevEnd) {
+          next[j] = { ...next[j], slot: null };
+        }
+        prevEnd = endOf(next[j]);
+      }
+      return next;
+    });
+
+  // أقل وقت مسموح للشخص ده: بعد نهاية اللي قبله
+  const minStartFor = (idx: number): { waitForPrev: boolean; minMs: number | null } => {
+    if (idx === 0) return { waitForPrev: false, minMs: null };
+    const prev = picks[idx - 1];
+    if (!prev.slot) return { waitForPrev: true, minMs: null };
+    return { waitForPrev: false, minMs: endOf(prev) };
+  };
 
   // بنحجز كل خدمة بمعادها، ولو حاجة وقعت بنلغي اللي اتحجز قبلها
   const createAll = async () => {
@@ -83,7 +129,7 @@ export default function GroupBookingPage() {
           p_service_id: p.serviceId,
           p_start_at: p.slot,
           p_pay_at_shop: false,
-          p_extra_ids: [],
+          p_extra_ids: p.extras,
           p_notes: null,
         });
         if (e) throw e;
@@ -215,6 +261,10 @@ export default function GroupBookingPage() {
                 label={nameOf(byId.get(p.serviceId) ?? { id: '', name_ar: '', name_en: '', price_egp: 0, duration_minutes: 0 })}
                 date={p.date}
                 slot={p.slot}
+                rules={minStartFor(idx)}
+                extrasOptions={extras}
+                selectedExtras={p.extras}
+                onExtras={(ids) => updatePick(idx, { extras: ids })}
                 onDate={(d) => updatePick(idx, { date: d, slot: null })}
                 onSlot={(s) => updatePick(idx, { slot: s })}
               />
@@ -237,6 +287,11 @@ export default function GroupBookingPage() {
                   <li key={p.serviceId} className="flex items-center justify-between gap-3 p-3 text-sm">
                     <span className="min-w-0 break-words">
                       {s ? nameOf(s) : ''} · {p.slot ? formatCairoTime(p.slot, i18n.language) : ''}
+                      {p.extras.length > 0 ? (
+                        <span className="block text-xs text-ink-70">
+                          + {p.extras.map((id) => (isAr ? extrasById.get(id)?.name_ar : extrasById.get(id)?.name_en)).join(' · ')}
+                        </span>
+                      ) : null}
                     </span>
                     <span className="font-latin shrink-0">{formatEGP(s?.price_egp ?? 0)}</span>
                   </li>
@@ -316,6 +371,10 @@ function SlotPicker({
   label,
   date,
   slot,
+  rules,
+  extrasOptions,
+  selectedExtras,
+  onExtras,
   onDate,
   onSlot,
 }: {
@@ -324,6 +383,10 @@ function SlotPicker({
   label: string;
   date: string;
   slot: string | null;
+  rules: { waitForPrev: boolean; minMs: number | null };
+  extrasOptions: Service[];
+  selectedExtras: string[];
+  onExtras: (ids: string[]) => void;
   onDate: (d: string) => void;
   onSlot: (s: string) => void;
 }) {
@@ -339,7 +402,8 @@ function SlotPicker({
     },
     staleTime: 30_000,
   });
-  const slots = slotsQuery.data ?? [];
+  const allSlots = slotsQuery.data ?? [];
+  const slots = rules.minMs ? allSlots.filter((s) => new Date(s).getTime() >= (rules.minMs as number)) : allSlots;
 
   return (
     <div className="space-y-2 rounded-card border border-default bg-white p-4">
@@ -354,10 +418,16 @@ function SlotPicker({
         onChange={(e) => onDate(e.target.value)}
         className="min-h-11 w-full rounded-btn border border-default bg-white px-3 text-sm font-latin"
       />
-      {slotsQuery.isLoading ? (
+      {rules.waitForPrev ? (
+        <p className="text-xs text-ink-70">
+          {isAr ? 'اختار معاد الشخص اللي قبله الأول' : 'Pick the previous person\'s time first'}
+        </p>
+      ) : slotsQuery.isLoading ? (
         <Skeleton className="h-10" />
       ) : slots.length === 0 ? (
-        <p className="text-xs text-ink-70">{isAr ? 'مفيش مواعيد في اليوم ده' : 'No times on this day'}</p>
+        <p className="text-xs text-ink-70">
+          {isAr ? 'مفيش مواعيد متاحة بعد اللي قبله في اليوم ده' : 'No times available after the previous person on this day'}
+        </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {slots.map((s) => (
@@ -375,6 +445,34 @@ function SlotPicker({
           ))}
         </div>
       )}
+
+      {extrasOptions.length > 0 ? (
+        <div className="pt-2">
+          <p className="mb-1 text-xs font-medium text-ink-70">
+            {isAr ? 'إضافات لهذا الشخص (اختياري، ممكن أكتر من واحدة)' : 'Add-ons for this person (optional, pick several)'}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {extrasOptions.map((x) => {
+              const on = selectedExtras.includes(x.id);
+              return (
+                <button
+                  key={x.id}
+                  type="button"
+                  onClick={() =>
+                    onExtras(on ? selectedExtras.filter((i) => i !== x.id) : [...selectedExtras, x.id])
+                  }
+                  className={cn(
+                    'rounded-btn border px-2.5 py-1 text-xs transition-colors',
+                    on ? 'border-gold bg-gold/20 font-semibold' : 'border-default bg-white',
+                  )}
+                >
+                  {isAr ? x.name_ar : x.name_en} · <span className="font-latin">{formatEGP(x.price_egp)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
