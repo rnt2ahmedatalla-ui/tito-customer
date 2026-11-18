@@ -250,6 +250,11 @@ export default function BookingsPage() {
                 ? isWithinCancelWindow(booking.start_at, cancelWindowHours)
                 : false;
             const isRejected = booking.payment?.status === 'rejected';
+            const isAr = i18n.language === 'ar';
+            // الدفع اتبعت والمحل لسه مأكدش
+            const awaitingShop = booking.status === 'pending_payment' && booking.payment?.status === 'submitted';
+            const needsPayment =
+              booking.status === 'pending_payment' && !awaitingShop && !isRejected && !booking.pay_at_shop;
 
             return (
               <article key={booking.id} className="rounded-card border border-default bg-cream p-4 shadow-warm">
@@ -262,7 +267,17 @@ export default function BookingsPage() {
                       {formatCairoDate(booking.start_at, i18n.language)}
                     </p>
                   </div>
-                  <Badge status={booking.status} label={t(`status.${booking.status}`)} className="max-w-full shrink-0" />
+                  <Badge
+                    status={booking.status}
+                    label={
+                      awaitingShop
+                        ? isAr
+                          ? 'في انتظار تأكيد المحل'
+                          : 'Waiting for shop confirmation'
+                        : t(`status.${booking.status}`)
+                    }
+                    className="max-w-full shrink-0"
+                  />
                 </div>
                 <p className="mt-2 font-medium text-espresso">{serviceName}</p>
                 {booking.extras.length > 0 ? (
@@ -292,10 +307,17 @@ export default function BookingsPage() {
                 ) : null}
 
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                  {booking.status === 'pending_payment' ? (
+                  {needsPayment ? (
                     <Link to={`/book?step=payment&booking=${booking.id}`} className="sm:w-auto">
-                      <Button size="sm" className="w-full sm:w-auto">{t('bookings.completePayment')}</Button>
+                      <Button size="sm" className="w-full sm:w-auto">{isAr ? 'ادفع دلوقتي' : 'Pay now'}</Button>
                     </Link>
+                  ) : null}
+                  {awaitingShop ? (
+                    <p className="w-full rounded-btn bg-sand/60 p-3 text-sm text-espresso">
+                      {isAr
+                        ? 'وصلنا إيصالك ✅ المحل هيراجع الدفع ويأكد حجزك قريب.'
+                        : 'We received your receipt ✅ The shop will review the payment and confirm your booking soon.'}
+                    </p>
                   ) : null}
                   {isRejected ? (
                     <Link to={`/book?step=payment&booking=${booking.id}`}>
