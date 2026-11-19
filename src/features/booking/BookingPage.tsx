@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
-import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking} from './useBooking';
+import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking, useActiveStaff } from './useBooking';
 import { ProfileModal } from '@/components/layout/ProfileModal';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { GoogleIcon } from '@/components/auth/GoogleIcon';
@@ -74,7 +74,16 @@ export default function BookingPage() {
     );
   });
 
-  const slots = useAvailableSlots(serviceId, date);
+  const staffQuery = useActiveStaff();
+  const activeStaff = staffQuery.data ?? [];
+  const staffNeeded = activeStaff.length >= 2;
+  const staffParam = params.get('staff');
+  // لو فيه حلاق واحد شغال بنحجز عليه تلقائي (علشان جدوله واستراحاته تتطبّق)، ولو أكتر العميل بيختار
+  const staffId = staffNeeded
+    ? activeStaff.some((m) => m.id === staffParam) ? staffParam : null
+    : activeStaff.length === 1 ? (activeStaff[0]?.id ?? null) : null;
+  const chosenStaff = activeStaff.find((m) => m.id === staffId) ?? null;
+  const slots = useAvailableSlots(serviceId, date, staffId, !staffNeeded || !!staffId);
   const booking = useBooking(bookingId);
 
   const catalog = services.data ?? [];
@@ -110,8 +119,21 @@ export default function BookingPage() {
     queries: dates.map((d) => {
       const key = formatDateKey(d);
       return {
-        queryKey: ['day-availability', serviceId, key],
+        queryKey: ['day-availability', serviceId, key, staffId],
         queryFn: async (): Promise<number> => {
+          if (staffId) {
+            const rpcStaff = supabase.rpc.bind(supabase) as unknown as (
+              fn: string,
+              args: Record<string, unknown>,
+            ) => Promise<{ data: unknown; error: { message: string } | null }>;
+            const r = await rpcStaff('get_available_slots_staff', {
+              p_service_id: serviceId as string,
+              p_date: key,
+              p_staff_id: staffId,
+            });
+            if (r.error) throw r.error;
+            return ((r.data ?? []) as unknown[]).length;
+          }
           const { data, error } = await supabase.rpc('get_available_slots', {
             p_service_id: serviceId as string,
             p_date: key,
@@ -119,7 +141,7 @@ export default function BookingPage() {
           if (error) throw error;
           return (data ?? []).length;
         },
-        enabled: step === 'datetime' && !!serviceId && !closedDays.has(d.getDay()),
+        enabled: step === 'datetime' && !!serviceId && (!staffNeeded || !!staffId) && !closedDays.has(d.getDay()),
         staleTime: 60_000,
         retry: 0,
       };
@@ -211,6 +233,7 @@ export default function BookingPage() {
         extraIds,
         notes: notes.trim() || null,
         coupon: coupon?.code ?? null,
+        staffId,
       });
       try {
         sessionStorage.removeItem('tito_pending_book');
@@ -411,7 +434,48 @@ export default function BookingPage() {
       {step === 'datetime' ? (
         <section>
           <h1 className="text-2xl font-bold text-espresso">{t('booking.selectDate')}</h1>
-          <div className="mt-4">
+          {staffNeeded ? (
+            <div className="mt-4">
+              <h2 className="mb-2 text-lg font-semibold text-espresso">{i18n.language === 'ar' ? 'اختار الحلاق' : 'Choose your barber'}</h2>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {activeStaff.map((m) => {
+                  const on = m.id === staffId;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => updateParams({ staff: m.id, slot: null })}
+                      aria-pressed={on}
+                      className={`flex items-center gap-3 rounded-card border-2 p-3 text-start transition-colors ${
+                        on ? 'border-gold bg-gold/10' : 'border-default bg-white hover:bg-sand/40'
+                      }`}
+                    >
+                      {m.photo ? (
+                        <img src={m.photo} alt={m.name} className="size-14 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gold/25 text-xl font-bold text-espresso" aria-hidden>
+                          {m.name.trim().charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-espresso">{m.name}</span>
+                        {m.experience_years != null ? (
+                          <span className="block text-xs text-ink">
+                            {i18n.language === 'ar' ? `${m.experience_years} سنة خبرة` : `${m.experience_years} yrs experience`}
+                          </span>
+                        ) : null}
+                        {m.bio ? <span className="block truncate text-xs text-ink/80">{m.bio}</span> : null}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {!staffId ? (
+                <p className="mt-3 text-sm text-ink">{i18n.language === 'ar' ? 'اختار الحلاق الأول عشان تشوف المواعيد المتاحة.' : 'Pick a barber first to see available times.'}</p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className={`mt-4 ${staffNeeded && !staffId ? 'hidden' : ''}`}>
             <DateStrip
               dates={dates}
               selectedDate={date}
@@ -420,7 +484,7 @@ export default function BookingPage() {
               onSelect={(d) => updateParams({ date: d, slot: null })}
             />
           </div>
-          {date ? (
+          {date && (!staffNeeded || staffId) ? (
             <div className="mt-6">
               <h2 className="mb-3 text-lg font-semibold text-espresso">{t('booking.selectTime')}</h2>
               <SlotGrid
@@ -446,6 +510,7 @@ export default function BookingPage() {
                 [t('booking.service'), i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en],
                 [t('booking.date'), date && slot ? formatCairoDate(slot, i18n.language) : '—'],
                 [t('booking.time'), slot ? formatCairoTime(slot, i18n.language) : '—'],
+                ...(chosenStaff ? ([[i18n.language === 'ar' ? 'الحلاق' : 'Barber', chosenStaff.name]] as const) : []),
               ] as const
             ).map(([label, value]) => (
               <div key={label} className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
