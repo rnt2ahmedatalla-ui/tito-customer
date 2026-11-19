@@ -26,6 +26,7 @@ import { useSignIn } from '@/features/profile/useAuth';
 
 import { getDateRange, formatCairoDate, formatCairoTime, formatDateKey, isExpired } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
+import { CouponBox, type AppliedCoupon } from '@/components/booking/CouponBox';
 import { buildWhatsAppUrl } from '@/lib/urls';
 import { extractErrorCode } from '@/lib/errors';
 import type { PaymentMethod } from '@/types/database';
@@ -64,6 +65,7 @@ export default function BookingPage() {
   const [holdExpired, setHoldExpired] = useState(false);
   const [pendingAction, setPendingAction] = useState<'book' | 'pay_at_shop' | null>(null);
   const [notes, setNotes] = useState('');
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
   const [payAtShopChosen, setPayAtShopChosen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return (
@@ -86,7 +88,12 @@ export default function BookingPage() {
     mainServices.find((s) => s.id === serviceId) ??
     (booking.data?.service && !booking.data.service.is_extra ? booking.data.service : null) ??
     null;
-  const orderTotal = Number(selectedService?.price_egp ?? 0) + extrasTotal;
+  const orderSubtotal = Number(selectedService?.price_egp ?? 0) + extrasTotal;
+  const orderTotal = Math.max(0, orderSubtotal - (coupon?.discount ?? 0));
+  // لو السعر اتغيّر (إضافات اتزادت/اتشالت) الخصم لازم يتحسب تاني
+  useEffect(() => {
+    setCoupon(null);
+  }, [orderSubtotal]);
   const maxDays = settings.data?.max_days_ahead ?? 14;
   const dates = useMemo(() => getDateRange(maxDays), [maxDays]);
 
@@ -203,6 +210,7 @@ export default function BookingPage() {
         payAtShop,
         extraIds,
         notes: notes.trim() || null,
+        coupon: coupon?.code ?? null,
       });
       try {
         sessionStorage.removeItem('tito_pending_book');
@@ -451,12 +459,19 @@ export default function BookingPage() {
                 <span className="font-latin font-medium sm:text-end">{formatEGP(extra.price_egp)}</span>
               </div>
             ))}
+            {coupon ? (
+              <div className="flex items-center justify-between gap-3 text-sm text-success">
+                <span>{i18n.language === 'ar' ? 'الخصم' : 'Discount'}</span>
+                <span className="font-latin">− {formatEGP(coupon.discount)}</span>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-3 border-t border-default pt-4">
               <span className="text-ink">{t('booking.price')}</span>
               <span className="text-lg font-bold text-espresso font-latin">{formatEGP(orderTotal)}</span>
             </div>
           </div>
           {extrasPicker}
+          <CouponBox price={orderSubtotal} applied={coupon} onApply={setCoupon} onClear={() => setCoupon(null)} />
           <div className="mt-4">
             <label className="mb-1 block text-sm text-ink" htmlFor="booking-notes">
               {t('booking.notes')}
