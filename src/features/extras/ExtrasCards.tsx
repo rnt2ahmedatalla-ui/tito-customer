@@ -3,54 +3,75 @@ import { Link } from 'react-router-dom';
 import { Star, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { formatInTimeZone } from 'date-fns-tz';
-import { getCairoNow } from '@/lib/time';
-import { useWorkingHours } from '@/features/home/useHomeData';
-import { useFeatureFlags, useMyPackages, useBarbersNow, useRateableBooking, useVisitStatus } from './useExtras';
+import { useFeatureFlags, useMyPackages, useBarbersNow, type BarberNow, useRateableBooking, useVisitStatus } from './useExtras';
 
-/** حالة كل حلاق دلوقتي (بتظهر بس وقت ما المحل مفتوح) */
+/** حالة كل حلاق دلوقتي: لو دست على حلاق بتروح تحجز معاه (بتختفي لو المحل مقفول أو فيه حلاق واحد بس) */
 export function WaitEstimateCard() {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
+  const L = (ar: string, en: string) => (isAr ? ar : en);
   const flags = useFeatureFlags();
-  const hours = useWorkingHours();
   const on = !!flags.data?.waitEstimate;
   const list = useBarbersNow(on);
-  if (!on || !list.data || list.data.length === 0 || !hours.data) return null;
-  const now = getCairoNow();
-  const wh = hours.data.find((h) => h.day_of_week === now.getDay());
-  if (!wh || wh.is_closed || !wh.open_time || !wh.close_time) return null;
-  const cur = now.getHours() * 60 + now.getMinutes();
-  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
-  if (cur < toMin(wh.open_time) || cur >= toMin(wh.close_time)) return null;
+  if (!on || !list.data || list.data.length < 2) return null;
   const fmt = (iso: string) => {
     const f = formatInTimeZone(iso, 'Africa/Cairo', 'h:mm a');
     return isAr ? f.replace('AM', 'ص').replace('PM', 'م') : f;
   };
+  const text = (b: BarberNow): string => {
+    const n = b.next_start ? fmt(b.next_start) : null;
+    switch (b.state) {
+      case 'free':
+        return n ? L(`فاضي دلوقتي · لحد ${n}`, `Free now · until ${n}`) : L('فاضي دلوقتي · لحد آخر اليوم', 'Free now · rest of the day');
+      case 'busy':
+        return (b.until ? L(`مشغول لحد ${fmt(b.until)}`, `Busy until ${fmt(b.until)}`) : L('مشغول', 'Busy')) +
+          (n ? L(` · وبعدها فاضي لحد ${n}`, ` · then free until ${n}`) : L(' · وبعدها فاضي', ' · then free'));
+      case 'break':
+        return (b.until ? L(`في استراحة لحد ${fmt(b.until)}`, `On break until ${fmt(b.until)}`) : L('في استراحة', 'On break'));
+      case 'not_started':
+        return b.until ? L(`بيبدأ شغله الساعة ${fmt(b.until)}`, `Starts at ${fmt(b.until)}`) : L('لسه مبدأش', 'Not started yet');
+      case 'finished':
+        return L('خلّص شغل النهاردة', 'Done for today');
+      default:
+        return L('إجازة النهاردة', 'Off today');
+    }
+  };
   return (
     <div className="w-full max-w-md rounded-card border border-cream/20 bg-cream/10 p-3 text-cream backdrop-blur-sm">
       <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-gold-soft">
-        {isAr ? 'الحلاقين دلوقتي' : 'Barbers right now'}
+        {L('الحلاقين دلوقتي — دوس على حلاق واحجز معاه', 'Barbers right now — tap one to book')}
       </p>
       <ul className="space-y-1.5">
-        {list.data.map((b) => (
-          <li key={b.id} className="flex min-w-0 items-start gap-2.5 rounded-btn bg-black/15 px-3 py-2 text-sm">
-            <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${b.busy ? 'bg-gold' : 'bg-emerald-400'}`} aria-hidden />
-            <div className="min-w-0">
-              <p className="truncate font-semibold">{b.name}</p>
-              <p className="text-cream/80">
-                {b.busy
-                  ? isAr ? `مشغول لحد ${fmt(b.free_at)}` : `Busy until ${fmt(b.free_at)}`
-                  : isAr ? 'فاضي دلوقتي' : 'Free now'}
-                {b.next_start
-                  ? isAr ? ` · الحجز الجاي ${fmt(b.next_start)}` : ` · next booking ${fmt(b.next_start)}`
-                  : b.busy
-                    ? isAr ? ' · فاضي بعدها' : ' · free after'
-                    : isAr ? ' · ومفيش حجوزات جاية' : ' · no bookings after'}
-              </p>
-            </div>
-          </li>
-        ))}
+        {list.data.map((b) => {
+          const bookable = b.state !== 'off' && b.state !== 'finished';
+          const inner = (
+            <>
+              <span
+                className={`mt-1.5 size-2.5 shrink-0 rounded-full ${b.state === 'free' ? 'bg-emerald-400' : bookable ? 'bg-gold' : 'bg-cream/40'}`}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">{b.name}</p>
+                <p className="text-cream/80">{text(b)}</p>
+              </div>
+            </>
+          );
+          return (
+            <li key={b.id}>
+              {bookable ? (
+                <Link to={`/book?staff=${b.id}`} className="flex min-w-0 items-start gap-2.5 rounded-btn bg-black/15 px-3 py-2 text-sm transition hover:bg-black/25">
+                  {inner}
+                </Link>
+              ) : (
+                <div className="flex min-w-0 items-start gap-2.5 rounded-btn bg-black/10 px-3 py-2 text-sm opacity-70">{inner}</div>
+              )}
+            </li>
+          );
+        })}
       </ul>
+      <p className="mt-2 px-1 text-xs text-cream/60">
+        {L('مفيش معاد يناسبك؟ كمّل الحجز وسجّل في قايمة الانتظار.', 'No suitable time? Continue booking and join the waiting list.')}
+      </p>
     </div>
   );
 }

@@ -22,16 +22,23 @@ export function useFeatureFlags() {
   });
 }
 
-export type BarberNow = { id: string; name: string; busy: boolean; free_at: string; next_start: string | null };
+export type BarberNow = {
+  id: string;
+  name: string;
+  state: 'free' | 'busy' | 'break' | 'off' | 'not_started' | 'finished';
+  until: string | null;
+  next_start: string | null;
+  next_kind: string | null;
+};
 
-/** حالة كل حلاق دلوقتي: فاضي / مشغول لحد امتى / حجزه الجاي */
+/** حالة كل حلاق دلوقتي (الاستراحات والإجازات والجدول محسوبين). فاضية لو المحل مقفول أو فيه حلاق واحد */
 export function useBarbersNow(enabled: boolean) {
   return useQuery({
     queryKey: ['barbers-now'],
     enabled,
     queryFn: async (): Promise<BarberNow[] | null> => {
       const { data, error } = await db.rpc('barbers_now');
-      if (error || !data || !data.enabled) return null;
+      if (error || !data || !data.enabled || !data.open) return null;
       return (data.barbers ?? []) as BarberNow[];
     },
     refetchInterval: 60_000,
