@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
+import { MyPackagesCard } from '@/features/extras/ExtrasCards';
 import { PageShell } from '@/components/layout/PageShell';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -122,6 +123,8 @@ export default function ProfilePage() {
           {t('profile.save')}
         </Button>
       </div>
+
+      <MyPackagesCard />
 
       <div className="mt-8">
         <p className="mb-2 text-sm font-medium text-espresso">{t('profile.language')}</p>

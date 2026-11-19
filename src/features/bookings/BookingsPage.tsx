@@ -366,10 +366,15 @@ export default function BookingsPage() {
                   </Link>
                 ) : null}
 
-                {isRejected && booking.payment?.rejection_reason ? (
-                  <p className="mt-2 text-sm text-danger" role="alert">
-                    {t('bookings.rejectionReason', { reason: booking.payment.rejection_reason })}
-                  </p>
+                {isRejected ? (
+                  <div className="mt-3 rounded-btn border border-danger/30 bg-danger/5 p-3 text-sm" role="alert">
+                    <p className="font-semibold text-danger">
+                      {isAr ? 'الدفع اترفض، ابعت إيصال تاني' : 'Payment was rejected, please send a new receipt'}
+                    </p>
+                    {booking.payment?.rejection_reason ? (
+                      <p className="mt-1 text-ink">{t('bookings.rejectionReason', { reason: booking.payment.rejection_reason })}</p>
+                    ) : null}
+                  </div>
                 ) : null}
 
                 <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
