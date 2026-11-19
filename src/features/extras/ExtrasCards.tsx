@@ -2,38 +2,56 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Star, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { formatInTimeZone } from 'date-fns-tz';
 import { getCairoNow } from '@/lib/time';
 import { useWorkingHours } from '@/features/home/useHomeData';
-import { useFeatureFlags, useMyPackages, useQueueEstimate, useRateableBooking, useVisitStatus } from './useExtras';
+import { useFeatureFlags, useMyPackages, useBarbersNow, useRateableBooking, useVisitStatus } from './useExtras';
 
-/** شريحة صغيرة في أول الصفحة: الانتظار الحالي (بتظهر بس وقت ما المحل مفتوح) */
+/** حالة كل حلاق دلوقتي (بتظهر بس وقت ما المحل مفتوح) */
 export function WaitEstimateCard() {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
   const flags = useFeatureFlags();
   const hours = useWorkingHours();
-  const est = useQueueEstimate(!!flags.data?.waitEstimate);
-  if (!flags.data?.waitEstimate || est.data == null || !hours.data) return null;
+  const on = !!flags.data?.waitEstimate;
+  const list = useBarbersNow(on);
+  if (!on || !list.data || list.data.length === 0 || !hours.data) return null;
   const now = getCairoNow();
   const wh = hours.data.find((h) => h.day_of_week === now.getDay());
   if (!wh || wh.is_closed || !wh.open_time || !wh.close_time) return null;
   const cur = now.getHours() * 60 + now.getMinutes();
   const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
   if (cur < toMin(wh.open_time) || cur >= toMin(wh.close_time)) return null;
-  const m = est.data;
-  const free = m <= 5;
+  const fmt = (iso: string) => {
+    const f = formatInTimeZone(iso, 'Africa/Cairo', 'h:mm a');
+    return isAr ? f.replace('AM', 'ص').replace('PM', 'م') : f;
+  };
   return (
-    <Link
-      to="/book"
-      className="inline-flex max-w-full items-center gap-2 rounded-full border border-cream/25 bg-cream/10 px-4 py-2 text-sm text-cream backdrop-blur-sm transition hover:bg-cream/15"
-    >
-      <span className={`size-2.5 shrink-0 rounded-full ${free ? 'bg-emerald-400' : 'bg-gold'}`} aria-hidden />
-      <span className="min-w-0 truncate">
-        {free
-          ? isAr ? 'فاضيين دلوقتي — احجز وتعالى' : 'Free right now — book and come in'
-          : isAr ? `الانتظار حالياً حوالي ${m} دقيقة` : `Current wait about ${m} min`}
-      </span>
-    </Link>
+    <div className="w-full max-w-md rounded-card border border-cream/20 bg-cream/10 p-3 text-cream backdrop-blur-sm">
+      <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-gold-soft">
+        {isAr ? 'الحلاقين دلوقتي' : 'Barbers right now'}
+      </p>
+      <ul className="space-y-1.5">
+        {list.data.map((b) => (
+          <li key={b.id} className="flex min-w-0 items-start gap-2.5 rounded-btn bg-black/15 px-3 py-2 text-sm">
+            <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${b.busy ? 'bg-gold' : 'bg-emerald-400'}`} aria-hidden />
+            <div className="min-w-0">
+              <p className="truncate font-semibold">{b.name}</p>
+              <p className="text-cream/80">
+                {b.busy
+                  ? isAr ? `مشغول لحد ${fmt(b.free_at)}` : `Busy until ${fmt(b.free_at)}`
+                  : isAr ? 'فاضي دلوقتي' : 'Free now'}
+                {b.next_start
+                  ? isAr ? ` · الحجز الجاي ${fmt(b.next_start)}` : ` · next booking ${fmt(b.next_start)}`
+                  : b.busy
+                    ? isAr ? ' · فاضي بعدها' : ' · free after'
+                    : isAr ? ' · ومفيش حجوزات جاية' : ' · no bookings after'}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
