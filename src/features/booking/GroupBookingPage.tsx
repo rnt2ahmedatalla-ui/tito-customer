@@ -309,8 +309,21 @@ export default function GroupBookingPage() {
       // مش كل المتصفحات بتسمح بفتح واتساب تلقائي بعد عملية async، فالزرار في صفحة النجاح هو الأساس
       if (url) window.open(url, '_blank', 'noopener,noreferrer');
     } catch (e) {
+      let cancelFailed = 0;
       for (const id of created) {
-        await rpcAny('customer_cancel_booking', { p_booking_id: id }).catch(() => undefined);
+        const r = await rpcAny('customer_cancel_booking', { p_booking_id: id }).catch(() => ({ error: { message: 'x' } }));
+        if (r.error) cancelFailed += 1;
+      }
+      // المواعيد المعروضة ممكن تكون قديمة، فنحدّثها
+      void queryClient.invalidateQueries({ queryKey: ['group-slots'] });
+      void queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      if (cancelFailed > 0) {
+        setError(
+          isAr
+            ? 'الحجز ماكملش، ومعاد اتسجّل ومتلغاش تلقائي. افتح حجوزاتي وألغيه بإيدك.'
+            : 'Booking did not complete and one slot stayed booked. Open My bookings and cancel it.',
+        );
+        return;
       }
       const base = friendlyError(e);
       setError(
