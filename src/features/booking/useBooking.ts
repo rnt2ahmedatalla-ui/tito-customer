@@ -48,6 +48,30 @@ export function useActiveStaff() {
   });
 }
 
+export interface StaffServiceRow {
+  staff_id: string;
+  service_id: string;
+  is_offered: boolean;
+  price_egp: number | string | null;
+}
+
+/** الاستثناءات: خدمات الحلاق مش بيقدمها أو بسعر مختلف */
+export function useStaffServices() {
+  return useQuery({
+    queryKey: ['staff-services'],
+    queryFn: async (): Promise<StaffServiceRow[]> => {
+      const db = supabase as unknown as {
+        from: (t: string) => { select: (c: string) => Promise<{ data: unknown; error: unknown }> };
+      };
+      const { data, error } = await db.from('staff_services').select('staff_id, service_id, is_offered, price_egp');
+      if (error) return [];
+      return (data ?? []) as StaffServiceRow[];
+    },
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
 export function useAvailableSlots(
   serviceId: string | null,
   date: string | null,
@@ -60,11 +84,12 @@ export function useAvailableSlots(
       if (!serviceId || !date) return [];
       if (staffId) {
         const rpcUntyped = supabase.rpc.bind(supabase) as unknown as RpcUntyped;
-        const { data, error } = await rpcUntyped('get_available_slots_staff', {
-          p_service_id: serviceId,
-          p_date: date,
-          p_staff_id: staffId,
-        });
+        const { data, error } = await rpcUntyped(
+          staffId === 'any' ? 'get_available_slots_any' : 'get_available_slots_staff',
+          staffId === 'any'
+            ? { p_service_id: serviceId, p_date: date }
+            : { p_service_id: serviceId, p_date: date, p_staff_id: staffId },
+        );
         if (error) throw error;
         return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
       }
@@ -117,7 +142,7 @@ export function useCreateBooking() {
           p_pay_at_shop: payAtShop,
           p_extra_ids: extraIds,
           p_notes: notes?.trim() || null,
-          p_staff_id: staffId,
+          p_staff_id: staffId === 'any' ? null : staffId,
           p_coupon: coupon,
         });
         if (error) throw error;
