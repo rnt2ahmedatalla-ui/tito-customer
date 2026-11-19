@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import { buildWhatsAppUrl, isSafeUrl } from '@/lib/urls';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/cn';
-import { WaitEstimateCard } from '@/features/extras/ExtrasCards';
+import { WaitEstimateCard, InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 
 const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -287,7 +287,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-5 pt-6">
+      <section className="mx-auto max-w-5xl space-y-3 px-5 pt-6 empty:hidden">
+        <InactiveBanner />
+        <RatePrompt />
         <WaitEstimateCard />
       </section>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Star } from 'lucide-react';
@@ -21,7 +21,11 @@ type RateView = {
 export default function RatePage() {
   const { token = '' } = useParams();
   const { t, i18n } = useTranslation();
-  const [rating, setRating] = useState(0);
+  const [search] = useSearchParams();
+  const [rating, setRating] = useState(() => {
+    const r = Number(search.get('r'));
+    return Number.isInteger(r) && r >= 1 && r <= 5 ? r : 0;
+  });
   const [comment, setComment] = useState('');
   const [done, setDone] = useState<RateView | null>(null);
 

@@ -180,7 +180,8 @@
     "UNKNOWN": "Something went wrong — please try again",
     "reference": "Reference: {{id}}",
     "offline": "You are offline",
-    "rateLimited": "Please wait before trying again"
+    "rateLimited": "Please wait before trying again",
+    "PREPAY_REQUIRED": "Prepayment is required for this booking"
   },
   "common": {
     "back": "Back",

@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import { Clock, Ticket } from 'lucide-react';
-import { useFeatureFlags, useMyPackages, useQueueEstimate } from './useExtras';
+import { Link } from 'react-router-dom';
+import { Clock, Star, Ticket } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { useFeatureFlags, useMyPackages, useQueueEstimate, useRateableBooking, useVisitStatus } from './useExtras';
 
 /** "لو جيت دلوقتي هتستنى تقريباً X دقيقة" (بيظهر لو الأدمن شغّل المميزة) */
 export function WaitEstimateCard() {
@@ -48,6 +50,53 @@ export function MyPackagesCard() {
               {p.sessions_left}/{p.sessions_total}
             </span>
           </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** بانر "وحشتنا": بيعد الأيام من آخر حلاقة ويختفي أول ما العميل يحجز */
+export function InactiveBanner() {
+  const { i18n } = useTranslation();
+  const isAr = i18n.language?.startsWith('ar');
+  const st = useVisitStatus();
+  const d = st.data;
+  if (!d || !d.enabled || d.has_upcoming || d.days_since == null || d.days_since < (d.after_days ?? 28)) return null;
+  const q = new URLSearchParams({ step: 'datetime' });
+  if (d.last_service_id) q.set('service', d.last_service_id);
+  if (d.last_service_id && d.last_staff_id) q.set('staff', d.last_staff_id);
+  const to = d.last_service_id ? `/book?${q.toString()}` : '/book';
+  return (
+    <div className="flex min-w-0 flex-col gap-3 rounded-card border border-gold/50 bg-gold/15 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="font-semibold text-espresso">
+          {isAr ? `وحشتنا! عدّى ${d.days_since} يوم على آخر حلاقة ✂️` : `We miss you! It's been ${d.days_since} days since your last cut ✂️`}
+        </p>
+        <p className="mt-0.5 text-sm text-ink">{isAr ? 'احجز دلوقتي في ثواني.' : 'Book in seconds.'}</p>
+      </div>
+      <Link to={to} className="shrink-0">
+        <Button className="w-full sm:w-auto">{isAr ? 'احجز نفس الحلاقة' : 'Book the same again'}</Button>
+      </Link>
+    </div>
+  );
+}
+
+/** تقييم سريع: العميل يضغط على النجمة وبيروح لصفحة التقييم وهي متحددة */
+export function RatePrompt() {
+  const { i18n } = useTranslation();
+  const isAr = i18n.language?.startsWith('ar');
+  const r = useRateableBooking();
+  if (!r.data) return null;
+  const name = isAr ? r.data.service_name_ar : r.data.service_name_en;
+  return (
+    <div className="rounded-card border border-default bg-white p-4 shadow-warm">
+      <p className="text-sm font-semibold text-espresso">{isAr ? `إيه رأيك في ${name}؟` : `How was your ${name}?`}</p>
+      <div className="mt-2 flex gap-1" dir="ltr">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Link key={n} to={`/rate/${r.data!.rate_token}?r=${n}`} aria-label={`${n}`} className="p-1">
+            <Star className="size-8 text-gold hover:fill-gold" />
+          </Link>
         ))}
       </div>
     </div>
