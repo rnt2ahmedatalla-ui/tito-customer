@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
-import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking, useActiveStaff, type StaffMember } from './useBooking';
+import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking, useActiveStaff, useStaffServices, type StaffMember } from './useBooking';
 import { ProfileModal } from '@/components/layout/ProfileModal';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { GoogleIcon } from '@/components/auth/GoogleIcon';
@@ -78,14 +78,24 @@ export default function BookingPage() {
 
   const staffQuery = useActiveStaff();
   const activeStaff = staffQuery.data ?? [];
-  const staffNeeded = activeStaff.length >= 2;
+  const staffServices = useStaffServices().data ?? [];
+  const extraIdsEarly = (params.get('extras') ?? '').split(',').filter(Boolean);
+  const offers = (staffMemberId: string, ids: string[]) =>
+    !staffServices.some((r) => r.staff_id === staffMemberId && r.is_offered === false && ids.includes(r.service_id));
+  const wantedIds = serviceId ? [serviceId, ...extraIdsEarly] : extraIdsEarly;
+  // الحلاقين اللي بيقدموا الخدمة (والإضافات) اللي العميل اختارها
+  const eligibleStaff = activeStaff.filter((m) => offers(m.id, wantedIds));
+  const noneOffers = activeStaff.length > 0 && eligibleStaff.length === 0;
+  const staffNeeded = eligibleStaff.length >= 2;
   const staffParam = params.get('staff');
-  // لو فيه حلاق واحد شغال بنحجز عليه تلقائي (علشان جدوله واستراحاته تتطبّق)، ولو أكتر العميل بيختار
+  const anyStaff = staffNeeded && staffParam === 'any';
+  // لو فيه حلاق واحد بيقدم الخدمة بنحجز عليه تلقائي (علشان جدوله واستراحاته تتطبّق)، ولو أكتر العميل بيختار
   const staffId = staffNeeded
-    ? activeStaff.some((m) => m.id === staffParam) ? staffParam : null
-    : activeStaff.length === 1 ? (activeStaff[0]?.id ?? null) : null;
+    ? eligibleStaff.some((m) => m.id === staffParam) ? staffParam : null
+    : eligibleStaff.length === 1 ? (eligibleStaff[0]?.id ?? null) : null;
+  const staffSel = staffId ?? (anyStaff ? 'any' : null);
   const chosenStaff = activeStaff.find((m) => m.id === staffId) ?? null;
-  const slots = useAvailableSlots(serviceId, date, staffId, !staffNeeded || !!staffId);
+  const slots = useAvailableSlots(serviceId, date, staffSel, !noneOffers && (!staffNeeded || !!staffSel));
   const booking = useBooking(bookingId);
 
   const catalog = services.data ?? [];
@@ -93,13 +103,23 @@ export default function BookingPage() {
   const extraServices = catalog.filter((service) => service.is_extra);
   const extraIds = (params.get('extras') ?? '').split(',').filter(Boolean);
   const selectedExtras = extraServices.filter((service) => extraIds.includes(service.id));
-  const extrasTotal = selectedExtras.reduce((sum, service) => sum + Number(service.price_egp), 0);
+  const priceOf = (service: { id: string; price_egp: number | string }, forStaff: string | null) => {
+    const o = forStaff
+      ? staffServices.find((r) => r.staff_id === forStaff && r.service_id === service.id && r.price_egp != null)
+      : undefined;
+    return Number(o?.price_egp ?? service.price_egp);
+  };
+  const extrasTotal = selectedExtras.reduce((sum, service) => sum + priceOf(service, staffId), 0);
 
   const selectedService =
     mainServices.find((s) => s.id === serviceId) ??
     (booking.data?.service && !booking.data.service.is_extra ? booking.data.service : null) ??
     null;
-  const orderSubtotal = Number(selectedService?.price_egp ?? 0) + extrasTotal;
+  const orderSubtotal = (selectedService ? priceOf(selectedService, staffId) : 0) + extrasTotal;
+  // لو "أي حلاق" وفيه حلاق ليه سعر مختلف، السعر النهائي بيتحدد حسب الحلاق
+  const priceMayVary =
+    anyStaff &&
+    eligibleStaff.some((m) => staffServices.some((r) => r.staff_id === m.id && r.price_egp != null && wantedIds.includes(r.service_id)));
   const orderTotal = Math.max(0, orderSubtotal - (coupon?.discount ?? 0));
   // لو السعر اتغيّر (إضافات اتزادت/اتشالت) الخصم لازم يتحسب تاني
   useEffect(() => {
@@ -121,18 +141,19 @@ export default function BookingPage() {
     queries: dates.map((d) => {
       const key = formatDateKey(d);
       return {
-        queryKey: ['day-availability', serviceId, key, staffId],
+        queryKey: ['day-availability', serviceId, key, staffSel],
         queryFn: async (): Promise<number> => {
-          if (staffId) {
+          if (staffSel) {
             const rpcStaff = supabase.rpc.bind(supabase) as unknown as (
               fn: string,
               args: Record<string, unknown>,
             ) => Promise<{ data: unknown; error: { message: string } | null }>;
-            const r = await rpcStaff('get_available_slots_staff', {
-              p_service_id: serviceId as string,
-              p_date: key,
-              p_staff_id: staffId,
-            });
+            const r = await rpcStaff(
+              staffSel === 'any' ? 'get_available_slots_any' : 'get_available_slots_staff',
+              staffSel === 'any'
+                ? { p_service_id: serviceId as string, p_date: key }
+                : { p_service_id: serviceId as string, p_date: key, p_staff_id: staffSel },
+            );
             if (r.error) throw r.error;
             return ((r.data ?? []) as unknown[]).length;
           }
@@ -143,7 +164,7 @@ export default function BookingPage() {
           if (error) throw error;
           return (data ?? []).length;
         },
-        enabled: step === 'datetime' && !!serviceId && (!staffNeeded || !!staffId) && !closedDays.has(d.getDay()),
+        enabled: step === 'datetime' && !!serviceId && !noneOffers && (!staffNeeded || !!staffSel) && !closedDays.has(d.getDay()),
         staleTime: 60_000,
         retry: 0,
       };
@@ -179,11 +200,12 @@ export default function BookingPage() {
     updateParams({ extras: next.length ? next.join(',') : null });
   };
 
-  const extrasPicker = extraServices.length > 0 ? (
+  const extrasVisible = extraServices.filter((e) => !staffId || offers(staffId, [e.id]));
+  const extrasPicker = extrasVisible.length > 0 ? (
     <div className="mt-8">
       <h2 className="text-lg font-semibold text-espresso">{t('booking.extras')}</h2>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {extraServices.map((extra) => (
+        {extrasVisible.map((extra) => (
           <ExtraCard
             key={extra.id}
             extra={extra}
@@ -235,7 +257,7 @@ export default function BookingPage() {
         extraIds,
         notes: notes.trim() || null,
         coupon: coupon?.code ?? null,
-        staffId,
+        staffId: staffSel,
       });
       try {
         sessionStorage.removeItem('tito_pending_book');
@@ -436,11 +458,31 @@ export default function BookingPage() {
       {step === 'datetime' ? (
         <section>
           <h1 className="text-2xl font-bold text-espresso">{t('booking.selectDate')}</h1>
+          {noneOffers ? (
+            <p className="mt-4 rounded-card border border-default bg-white p-4 text-sm text-ink">
+              {i18n.language === 'ar' ? 'الخدمة دي مش متاحة حالياً مع الإضافات اللي اخترتها. جرّب تغيّر الاختيار.' : 'This service is not available with the selected add-ons. Try changing your selection.'}
+            </p>
+          ) : null}
           {staffNeeded ? (
             <div className="mt-4">
               <h2 className="mb-2 text-lg font-semibold text-espresso">{i18n.language === 'ar' ? 'اختار الحلاق' : 'Choose your barber'}</h2>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {activeStaff.map((m) => {
+                <button
+                  type="button"
+                  onClick={() => updateParams({ staff: 'any', slot: null })}
+                  aria-pressed={anyStaff}
+                  className={`flex min-w-0 items-center gap-3 rounded-card border-2 p-3 text-start transition-colors sm:col-span-2 ${anyStaff ? 'border-gold bg-gold/10' : 'border-default bg-white'}`}
+                >
+                  <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-espresso text-xl text-cream" aria-hidden>✂</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-espresso">{i18n.language === 'ar' ? 'أي حلاق متاح' : 'Any available barber'}</span>
+                    <span className="block text-xs text-ink">{i18n.language === 'ar' ? 'مش فارق معايا، اختارلي أقرب ميعاد' : 'No preference — show all available times'}</span>
+                  </span>
+                  <span className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${anyStaff ? 'border-gold bg-gold text-espresso' : 'border-default'}`} aria-hidden>
+                    {anyStaff ? '✓' : ''}
+                  </span>
+                </button>
+                {eligibleStaff.map((m) => {
                   const on = m.id === staffId;
                   const isAr = i18n.language === 'ar';
                   const bio = staffBio(m, isAr);
@@ -460,6 +502,9 @@ export default function BookingPage() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-semibold text-espresso">{m.name}</span>
                           {exp ? <span className="block text-xs text-ink">{exp}</span> : null}
+                          {selectedService && priceOf(selectedService, m.id) !== Number(selectedService.price_egp) ? (
+                            <span className="mt-0.5 block font-latin text-xs font-semibold text-gold-dark">{formatEGP(priceOf(selectedService, m.id))}</span>
+                          ) : null}
                         </span>
                         <span
                           className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${on ? 'border-gold bg-gold text-espresso' : 'border-default'}`}
@@ -481,12 +526,12 @@ export default function BookingPage() {
                   );
                 })}
               </div>
-              {!staffId ? (
+              {!staffSel ? (
                 <p className="mt-3 text-sm text-ink">{i18n.language === 'ar' ? 'اختار الحلاق الأول عشان تشوف المواعيد المتاحة.' : 'Pick a barber first to see available times.'}</p>
               ) : null}
             </div>
           ) : null}
-          <div className={`mt-4 ${staffNeeded && !staffId ? 'hidden' : ''}`}>
+          <div className={`mt-4 ${(staffNeeded && !staffSel) || noneOffers ? 'hidden' : ''}`}>
             <DateStrip
               dates={dates}
               selectedDate={date}
@@ -495,7 +540,7 @@ export default function BookingPage() {
               onSelect={(d) => updateParams({ date: d, slot: null })}
             />
           </div>
-          {date && (!staffNeeded || staffId) ? (
+          {date && !noneOffers && (!staffNeeded || staffSel) ? (
             <div className="mt-6">
               <h2 className="mb-3 text-lg font-semibold text-espresso">{t('booking.selectTime')}</h2>
               <SlotGrid
@@ -527,7 +572,7 @@ export default function BookingPage() {
                 [t('booking.service'), i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en],
                 [t('booking.date'), date && slot ? formatCairoDate(slot, i18n.language) : '—'],
                 [t('booking.time'), slot ? formatCairoTime(slot, i18n.language) : '—'],
-                ...(chosenStaff ? ([[i18n.language === 'ar' ? 'الحلاق' : 'Barber', chosenStaff.name]] as const) : []),
+                ...(chosenStaff ? ([[i18n.language === 'ar' ? 'الحلاق' : 'Barber', chosenStaff.name]] as const) : anyStaff ? ([[i18n.language === 'ar' ? 'الحلاق' : 'Barber', i18n.language === 'ar' ? 'أي حلاق متاح (بيتحدد تلقائي)' : 'Any available (assigned automatically)']] as const) : []),
               ] as const
             ).map(([label, value]) => (
               <div key={label} className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
@@ -551,6 +596,9 @@ export default function BookingPage() {
               <span className="text-ink">{t('booking.price')}</span>
               <span className="text-lg font-bold text-espresso font-latin">{formatEGP(orderTotal)}</span>
             </div>
+            {priceMayVary ? (
+              <p className="text-xs text-ink">{i18n.language === 'ar' ? 'السعر النهائي بيتحدد حسب الحلاق اللي هيتعيّن لك.' : 'The final price depends on the barber assigned to you.'}</p>
+            ) : null}
           </div>
           {extrasPicker}
           <CouponBox price={orderSubtotal} applied={coupon} onApply={setCoupon} onClear={() => setCoupon(null)} />
@@ -666,6 +714,9 @@ export default function BookingPage() {
                 ))}
                 <p>{formatCairoDate(booking.data.start_at, i18n.language)}</p>
                 <p>{formatCairoTime(booking.data.start_at, i18n.language)}</p>
+                {(booking.data as unknown as { staff_id?: string | null }).staff_id && activeStaff.length > 1 ? (
+                  <p>{(i18n.language === 'ar' ? 'الحلاق: ' : 'Barber: ') + (activeStaff.find((m) => m.id === (booking.data as unknown as { staff_id?: string }).staff_id)?.name ?? '')}</p>
+                ) : null}
                 <p className="text-gold-soft">{formatEGP(booking.data.price_egp)}</p>
               </div>
             ) : null}
