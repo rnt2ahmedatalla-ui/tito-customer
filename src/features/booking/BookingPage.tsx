@@ -17,6 +17,8 @@ import { ServiceCard } from '@/components/booking/ServiceCard';
 import { ExtraCard } from '@/components/booking/ExtraCard';
 import { DateStrip } from '@/components/booking/DateStrip';
 import { SlotGrid } from '@/components/booking/SlotGrid';
+import { WaitlistPrompt } from '@/features/extras/WaitlistPrompt';
+import { useFeatureFlags } from '@/features/extras/useExtras';
 import { HoldTimer } from '@/components/booking/HoldTimer';
 import { PaymentPanel } from '@/components/booking/PaymentPanel';
 import { LeatherPattern } from '@/components/brand/Pattern';
@@ -95,6 +97,7 @@ export default function BookingPage() {
     : eligibleStaff.length === 1 ? (eligibleStaff[0]?.id ?? null) : null;
   const staffSel = staffId ?? (anyStaff ? 'any' : null);
   const chosenStaff = activeStaff.find((m) => m.id === staffId) ?? null;
+  const featureFlags = useFeatureFlags();
   const slots = useAvailableSlots(serviceId, date, staffSel, !noneOffers && (!staffNeeded || !!staffSel));
   const booking = useBooking(bookingId);
 
@@ -551,6 +554,11 @@ export default function BookingPage() {
                 isError={slots.isError}
                 onRetry={() => slots.refetch()}
               />
+              {featureFlags.data?.waitlist && user && !slots.isLoading && !slots.isError && (slots.data ?? []).length === 0 ? (
+                <div className="mt-4">
+                  <WaitlistPrompt day={date} serviceId={serviceId ?? null} />
+                </div>
+              ) : null}
             </div>
           ) : null}
         </section>
