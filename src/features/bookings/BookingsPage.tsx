@@ -13,6 +13,8 @@ import { useBookings, useCancelBooking } from './useBookings';
 import { useSettings } from '@/features/home/useHomeData';
 import { useAuth, useSignIn } from '@/features/profile/useAuth';
 import { useActiveStaff } from '@/features/booking/useBooking';
+import { useLoyaltyLedger, useLoyaltySettings } from '@/features/loyalty/useLoyalty';
+import { toast } from 'sonner';
 import { formatCairoDate, formatCairoTime, isWithinCancelWindow } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
 import { cn } from '@/lib/cn';
@@ -165,6 +167,27 @@ export default function BookingsPage() {
   const signIn = useSignIn();
   const bookings = useBookings();
   const staffList = useActiveStaff().data ?? [];
+  const loyalty = useLoyaltySettings().data;
+  const ledger = useLoyaltyLedger().data ?? [];
+  const queryClientMain = useQueryClient();
+  const balance = ledger.reduce((sum, r) => sum + r.points, 0);
+  const redeemedIds = new Set(ledger.filter((r) => r.kind === 'redeem' && r.booking_id).map((r) => r.booking_id as string));
+  const redeem = useMutation({
+    mutationFn: async ({ id, points }: { id: string; points: number }) => {
+      const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
+        fn: string,
+        a: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data, error: e } = await rpcUntyped('loyalty_redeem', { p_booking_id: id, p_points: points });
+      if (e) throw e;
+      return data as { points: number; discount: number };
+    },
+    onSuccess: (r) => {
+      toast.success(i18n.language === 'ar' ? `اتخصم ${r.discount} جنيه من حجزك بـ ${r.points} نقطة` : `${r.discount} EGP off for ${r.points} points`);
+      void queryClientMain.invalidateQueries();
+    },
+    onError: () => toast.error(i18n.language === 'ar' ? 'مقدرناش نستخدم النقاط، حاول تاني' : 'Could not use points, try again'),
+  });
   const settings = useSettings();
   const cancelBooking = useCancelBooking();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
@@ -223,6 +246,35 @@ export default function BookingsPage() {
   return (
     <PageShell>
       <h1 className="text-2xl font-bold text-espresso">{t('bookings.title')}</h1>
+      {loyalty?.enabled ? (
+        <div className="mt-3 rounded-card border border-gold/40 bg-gold/10 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-espresso">{i18n.language === 'ar' ? '⭐ نقاطك' : '⭐ Your points'}</p>
+            <p className="font-latin text-lg font-bold text-espresso">{balance}</p>
+          </div>
+          <p className="mt-1 text-xs text-ink">
+            {i18n.language === 'ar'
+              ? `بتكسب ${loyalty.points_per_100_egp} نقطة على كل 100 جنيه بعد ما الحجز يكتمل. كل نقطة بـ ${loyalty.egp_per_point} جنيه خصم (أقل استبدال ${loyalty.min_redeem_points} نقطة).`
+              : `Earn ${loyalty.points_per_100_egp} points per 100 EGP once a booking completes. Each point is worth ${loyalty.egp_per_point} EGP (min ${loyalty.min_redeem_points} points).`}
+          </p>
+          {ledger.length > 0 ? (
+            <details className="mt-2 text-xs text-ink">
+              <summary className="cursor-pointer font-medium text-espresso">{i18n.language === 'ar' ? 'سجل النقاط' : 'Points history'}</summary>
+              <ul className="mt-1 space-y-1">
+                {ledger.slice(0, 15).map((r) => (
+                  <li key={r.id} className="flex justify-between gap-2">
+                    <span>
+                      {r.kind === 'earn' ? (i18n.language === 'ar' ? 'كسبت' : 'Earned') : r.kind === 'redeem' ? (i18n.language === 'ar' ? 'استخدمت' : 'Used') : r.kind === 'refund' ? (i18n.language === 'ar' ? 'رجعت (حجز اتلغى)' : 'Refunded') : (i18n.language === 'ar' ? 'تعديل من المحل' : 'Shop adjustment')}
+                      {r.note ? ` · ${r.note}` : ''}
+                    </span>
+                    <span className="font-latin font-semibold">{r.points > 0 ? `+${r.points}` : r.points}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-4 flex gap-2" role="tablist">
         {(['upcoming', 'past'] as const).map((key) => (
@@ -367,6 +419,25 @@ export default function BookingsPage() {
                     </Button>
                   ) : null}
                 </div>
+                {(() => {
+                  if (!loyalty?.enabled || !(booking.status === 'confirmed' || booking.status === 'pending_payment')) return null;
+                  if (redeemedIds.has(booking.id)) {
+                    return <p className="mt-2 text-xs text-ink">{isAr ? '⭐ اتستخدمت نقاط على الحجز ده' : '⭐ Points were used on this booking'}</p>;
+                  }
+                  const capPts = Math.floor((Number(booking.price_egp) * loyalty.max_redeem_percent) / 100 / loyalty.egp_per_point);
+                  const pts = Math.min(balance, capPts);
+                  if (pts < loyalty.min_redeem_points || pts <= 0) return null;
+                  return (
+                    <Button
+                      variant="secondary"
+                      className="mt-3 w-full"
+                      loading={redeem.isPending}
+                      onClick={() => redeem.mutate({ id: booking.id, points: pts })}
+                    >
+                      {isAr ? `⭐ استخدم ${pts} نقطة (خصم ${pts * loyalty.egp_per_point} جنيه)` : `⭐ Use ${pts} points (${pts * loyalty.egp_per_point} EGP off)`}
+                    </Button>
+                  );
+                })()}
                 {rescheduleId === booking.id && canCancel ? (
                   <RescheduleBox
                     booking={booking}
