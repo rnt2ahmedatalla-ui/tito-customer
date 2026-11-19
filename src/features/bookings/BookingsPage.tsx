@@ -12,11 +12,15 @@ import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { useBookings, useCancelBooking } from './useBookings';
 import { useSettings } from '@/features/home/useHomeData';
 import { useAuth, useSignIn } from '@/features/profile/useAuth';
+import { useActiveStaff } from '@/features/booking/useBooking';
 import { formatCairoDate, formatCairoTime, isWithinCancelWindow } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
 import { cn } from '@/lib/cn';
 import type { BookingWithDetails } from '@/types/database';
 
+
+const bookingStaff = (b: BookingWithDetails): string | null =>
+  (b as unknown as { staff_id?: string | null }).staff_id ?? null;
 
 function rescheduleMessage(code: string, isAr: boolean): string {
   if (code.includes('SLOT_TAKEN')) return isAr ? 'المعاد ده اتحجز قبل كده، اختار معاد تاني' : 'That time was just booked, pick another';
@@ -30,10 +34,12 @@ function rescheduleMessage(code: string, isAr: boolean): string {
 function RescheduleBox({
   booking,
   serviceId,
+  staffId,
   onClose,
 }: {
   booking: BookingWithDetails;
   serviceId: string;
+  staffId: string | null;
   onClose: () => void;
 }) {
   const { i18n } = useTranslation();
@@ -45,13 +51,17 @@ function RescheduleBox({
   const [error, setError] = useState<string | null>(null);
 
   const slotsQuery = useQuery({
-    queryKey: ['reschedule-slots', serviceId, date],
+    queryKey: ['reschedule-slots', serviceId, date, staffId],
     enabled: !!date && !!serviceId,
     queryFn: async () => {
-      const { data, error: rpcErr } = await supabase.rpc('get_available_slots', {
-        p_service_id: serviceId,
-        p_date: date,
-      });
+      // لو الحجز على حلاق معين، المواعيد البديلة بتبقى بتاعته هو (جدوله واستراحاته)
+      const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
+        fn: string,
+        a: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data, error: rpcErr } = staffId
+        ? await rpcUntyped('get_available_slots_staff', { p_service_id: serviceId, p_date: date, p_staff_id: staffId })
+        : await rpcUntyped('get_available_slots', { p_service_id: serviceId, p_date: date });
       if (rpcErr) throw rpcErr;
       return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
     },
@@ -154,6 +164,7 @@ export default function BookingsPage() {
   const { user, loading: authLoading } = useAuth();
   const signIn = useSignIn();
   const bookings = useBookings();
+  const staffList = useActiveStaff().data ?? [];
   const settings = useSettings();
   const cancelBooking = useCancelBooking();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
@@ -280,6 +291,9 @@ export default function BookingsPage() {
                   />
                 </div>
                 <p className="mt-2 font-medium text-espresso">{serviceName}</p>
+                {bookingStaff(booking) ? (
+                  <p className="text-sm text-ink">✂ {staffList.find((m) => m.id === bookingStaff(booking))?.name ?? (isAr ? 'حلاقك' : 'Your barber')}</p>
+                ) : null}
                 {booking.extras.length > 0 ? (
                   <p className="text-sm text-ink">
                     {booking.extras
@@ -357,6 +371,7 @@ export default function BookingsPage() {
                   <RescheduleBox
                     booking={booking}
                     serviceId={(booking as unknown as { service_id: string }).service_id}
+                    staffId={bookingStaff(booking)}
                     onClose={() => setRescheduleId(null)}
                   />
                 ) : null}

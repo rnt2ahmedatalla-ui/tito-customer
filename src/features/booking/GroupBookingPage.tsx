@@ -264,9 +264,12 @@ export default function GroupBookingPage() {
     setError(null);
     setErrorDetail(null);
     const created: string[] = [];
+    let failedIdx = -1;
     try {
       const payAtShop = activeMethod === 'shop';
-      for (const p of picks) {
+      for (let pi = 0; pi < picks.length; pi++) {
+        failedIdx = pi;
+        const p = picks[pi] as Pick;
         const st = resolveStaff(p);
         const { data, error: e } = st
           ? await rpcAny('create_booking_staff', {
@@ -309,7 +312,12 @@ export default function GroupBookingPage() {
       for (const id of created) {
         await rpcAny('customer_cancel_booking', { p_booking_id: id }).catch(() => undefined);
       }
-      setError(friendlyError(e));
+      const base = friendlyError(e);
+      setError(
+        failedIdx >= 0 && extractErrorCode(e) === 'SLOT_TAKEN'
+          ? `${base} (${isAr ? `الشخص ${failedIdx + 1}` : `Person ${failedIdx + 1}`})`
+          : base,
+      );
       // السبب الحقيقي من قاعدة البيانات، عشان لو حصلت مشكلة نعرف نصلحها بسرعة
       const raw = (e as { message?: string } | null)?.message;
       setErrorDetail(raw && extractErrorCode(e) === 'UNKNOWN' ? String(raw).slice(0, 200) : null);
