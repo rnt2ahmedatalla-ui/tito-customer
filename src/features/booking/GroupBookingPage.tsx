@@ -18,6 +18,8 @@ import { extractErrorCode } from '@/lib/errors';
 import { ProfileModal } from '@/components/layout/ProfileModal';
 import { ServiceCard } from '@/components/booking/ServiceCard';
 import { ExtraCard } from '@/components/booking/ExtraCard';
+import { StaffAvatar } from '@/components/staff/StaffParts';
+import { useActiveStaff, useStaffServices, type StaffMember } from './useBooking';
 import { cn } from '@/lib/cn';
 
 type Service = {
@@ -30,7 +32,7 @@ type Service = {
   description_en?: string | null;
 };
 type PayChoice = 'shop' | 'instapay' | 'vodafone_cash';
-type Pick = { serviceId: string; date: string; slot: string | null; extras: string[] };
+type Pick = { serviceId: string; date: string; slot: string | null; extras: string[]; staff: string | null };
 
 // دوال الحجز الجديدة مش في أنواع المشروع، فبنعدّي النوع يدوياً
 const rpcAny = (name: string, args: Record<string, unknown>) =>
@@ -96,11 +98,46 @@ export default function GroupBookingPage() {
 
   const nameOf = (s: Service) => (isAr ? s.name_ar : s.name_en);
   // سعر الشخص = الخدمة + إضافاته (كان بيتعرض الأساسي بس وده سبب إن الإجمالي مش بيطابق السطور)
-  const priceOfPick = (p: Pick) =>
-    Number(byId.get(p.serviceId)?.price_egp ?? 0) +
-    p.extras.reduce((s, id) => s + Number(extrasById.get(id)?.price_egp ?? 0), 0);
+  const activeStaff = useActiveStaff().data ?? [];
+  const staffServices = useStaffServices().data ?? [];
+  const offers = (staffId: string, ids: string[]) =>
+    !staffServices.some((r) => r.staff_id === staffId && r.is_offered === false && ids.includes(r.service_id));
+  // الحلاقين اللي بيقدموا خدمة الشخص وإضافاته
+  const eligibleFor = (p: Pick, extraIds: string[] = p.extras) =>
+    activeStaff.filter((m) => offers(m.id, [p.serviceId, ...extraIds]));
+  // الحلاق الفعلي: null = مفيش طاقم (النظام القديم)، 'any' = أي حلاق، أو id
+  const resolveStaff = (p: Pick): string | null => {
+    if (activeStaff.length === 0) return null;
+    const el = eligibleFor(p);
+    if (el.length === 0) return null;
+    if (el.length === 1) return el[0]?.id ?? null;
+    return p.staff && el.some((m) => m.id === p.staff) ? p.staff : 'any';
+  };
+  const noneOffers = (p: Pick) => activeStaff.length > 0 && eligibleFor(p).length === 0;
+  const unitPrice = (serviceId: string, base: number, staffId: string | null) => {
+    const o = staffId && staffId !== 'any'
+      ? staffServices.find((r) => r.staff_id === staffId && r.service_id === serviceId && r.price_egp != null)
+      : undefined;
+    return Number(o?.price_egp ?? base);
+  };
+  const priceOfPick = (p: Pick) => {
+    const st = resolveStaff(p);
+    return (
+      unitPrice(p.serviceId, Number(byId.get(p.serviceId)?.price_egp ?? 0), st) +
+      p.extras.reduce((sum, id) => sum + unitPrice(id, Number(extrasById.get(id)?.price_egp ?? 0), st), 0)
+    );
+  };
+  const priceMayVary = (p: Pick) =>
+    resolveStaff(p) === 'any' &&
+    eligibleFor(p).some((m) => staffServices.some((r) => r.staff_id === m.id && r.price_egp != null && [p.serviceId, ...p.extras].includes(r.service_id)));
   const total = picks.reduce((sum, p) => sum + priceOfPick(p), 0);
-
+  const staffLabel = (p: Pick): string | null => {
+    const st = resolveStaff(p);
+    if (!st) return null;
+    if (st === 'any') return isAr ? 'أي حلاق متاح' : 'Any available barber';
+    return activeStaff.find((m) => m.id === st)?.name ?? null;
+  };
+  
   const allowShop = !!settings.data?.allow_pay_at_shop;
   const hasInstapay = !!settings.data?.instapay_number?.trim();
   const hasVodafone = !!settings.data?.vodafone_cash_number?.trim();
@@ -117,7 +154,7 @@ export default function GroupBookingPage() {
     setPicks((prev) => {
       if (prev.some((p) => p.serviceId === id)) return prev.filter((p) => p.serviceId !== id);
       if (prev.length >= 3) return prev;
-      return [...prev, { serviceId: id, date: prev[0]?.date ?? todayStr(), slot: null, extras: [] }];
+      return [...prev, { serviceId: id, date: prev[0]?.date ?? todayStr(), slot: null, extras: [], staff: null }];
     });
   };
 
@@ -125,7 +162,15 @@ export default function GroupBookingPage() {
   const endOf = (p: Pick): number | null =>
     p.slot ? new Date(p.slot).getTime() + durationOf(p.serviceId) * 60000 : null;
 
-  // كل شخص بعد اللي قبله: لو معاد حد اتغيّر، أي معاد بعده لازم يتمسح لو بقى قبل نهايته
+  // شخصين ممكن يتعارضوا لو على نفس الحلاق أو لو أي واحد فيهم "أي حلاق" — غير كده (حلاقين مختلفين) ممكن في نفس الوقت
+  const conflicts = (a: Pick, b: Pick) => {
+    const sa = resolveStaff(a);
+    const sb = resolveStaff(b);
+    if (!sa || !sb) return true;
+    if (sa === 'any' || sb === 'any') return true;
+    return sa === sb;
+  };
+
   const updatePick = (idx: number, patch: Partial<Pick>) =>
     setPicks((prev) => {
       let next = prev.map((p, i) => (i === idx ? { ...p, ...patch } : p));
@@ -133,21 +178,32 @@ export default function GroupBookingPage() {
         const d = patch.date;
         next = next.map((p) => ({ ...p, date: d, slot: null }));
       }
-      let prevEnd = endOf(next[idx]);
-      for (let j = idx + 1; j < next.length; j++) {
-        if (prevEnd !== null && next[j].slot && new Date(next[j].slot as string).getTime() < prevEnd) {
-          next[j] = { ...next[j], slot: null };
+      // أي معاد بقى قبل نهاية شخص متعارض معاه بيتمسح
+      for (let j = 0; j < next.length; j++) {
+        const cur = next[j] as Pick;
+        if (!cur.slot) continue;
+        for (let i = 0; i < j; i++) {
+          const pr = next[i] as Pick;
+          const end = endOf(pr);
+          if (end !== null && conflicts(pr, cur) && new Date(cur.slot).getTime() < end) {
+            next[j] = { ...cur, slot: null };
+            break;
+          }
         }
-        prevEnd = endOf(next[j]);
       }
       return next;
     });
 
   const minStartFor = (idx: number): { waitForPrev: boolean; minMs: number | null } => {
-    if (idx === 0) return { waitForPrev: false, minMs: null };
-    const prev = picks[idx - 1];
-    if (!prev.slot) return { waitForPrev: true, minMs: null };
-    return { waitForPrev: false, minMs: endOf(prev) };
+    let minMs: number | null = null;
+    for (let i = 0; i < idx; i++) {
+      const pr = picks[i] as Pick;
+      if (!conflicts(pr, picks[idx] as Pick)) continue;
+      const end = endOf(pr);
+      if (end === null) return { waitForPrev: true, minMs: null };
+      minMs = minMs === null ? end : Math.max(minMs, end);
+    }
+    return { waitForPrev: false, minMs };
   };
 
   const friendlyError = (e: unknown) => {
@@ -178,7 +234,8 @@ export default function GroupBookingPage() {
         .map((id) => (isAr ? extrasById.get(id)?.name_ar : extrasById.get(id)?.name_en))
         .filter(Boolean)
         .join(' + ');
-      return `• ${s ? nameOf(s) : ''}${ex ? ` + ${ex}` : ''} — ${p.slot ? formatCairoTime(p.slot, i18n.language) : ''}`;
+      const sl = staffLabel(p);
+      return `• ${s ? nameOf(s) : ''}${ex ? ` + ${ex}` : ''}${sl && sl !== 'أي حلاق متاح' && sl !== 'Any available barber' ? ` (${sl})` : ''} — ${p.slot ? formatCairoTime(p.slot, i18n.language) : ''}`;
     });
     const methodLabel =
       choice === 'shop'
@@ -210,13 +267,24 @@ export default function GroupBookingPage() {
     try {
       const payAtShop = activeMethod === 'shop';
       for (const p of picks) {
-        const { data, error: e } = await rpcAny('create_booking', {
-          p_service_id: p.serviceId,
-          p_start_at: p.slot,
-          p_pay_at_shop: payAtShop,
-          p_extra_ids: p.extras,
-          p_notes: null,
-        });
+        const st = resolveStaff(p);
+        const { data, error: e } = st
+          ? await rpcAny('create_booking_staff', {
+              p_service_id: p.serviceId,
+              p_start_at: p.slot,
+              p_pay_at_shop: payAtShop,
+              p_extra_ids: p.extras,
+              p_notes: null,
+              p_staff_id: st === 'any' ? null : st,
+              p_coupon: null,
+            })
+          : await rpcAny('create_booking', {
+              p_service_id: p.serviceId,
+              p_start_at: p.slot,
+              p_pay_at_shop: payAtShop,
+              p_extra_ids: p.extras,
+              p_notes: null,
+            });
         if (e) throw e;
         created.push(String(data));
       }
@@ -346,7 +414,16 @@ export default function GroupBookingPage() {
                 date={p.date}
                 slot={p.slot}
                 rules={minStartFor(idx)}
-                extrasOptions={extras}
+                staffOptions={eligibleFor(p)}
+                staffValue={resolveStaff(p)}
+                onStaff={(id) => updatePick(idx, { staff: id, slot: null })}
+                noneOffers={noneOffers(p)}
+                extrasOptions={extras.filter((x) => {
+                  const st = resolveStaff(p);
+                  if (activeStaff.length === 0) return true;
+                  if (st && st !== 'any') return offers(st, [x.id]);
+                  return eligibleFor(p, [...p.extras.filter((i) => i !== x.id), x.id]).length > 0;
+                })}
                 selectedExtras={p.extras}
                 onExtras={(ids) => updatePick(idx, { extras: ids })}
                 onDate={(d) => updatePick(idx, { date: d, slot: null })}
@@ -355,7 +432,7 @@ export default function GroupBookingPage() {
             ))}
             <div className="flex gap-2">
               <Button variant="secondary" className="w-full" onClick={() => setStep('services')}>{isAr ? 'رجوع' : 'Back'}</Button>
-              <Button className="w-full" disabled={picks.some((p) => !p.slot)} onClick={() => setStep('review')}>
+              <Button className="w-full" disabled={picks.some((p) => !p.slot || noneOffers(p))} onClick={() => setStep('review')}>
                 {isAr ? 'كمّل' : 'Continue'}
               </Button>
             </div>
@@ -372,6 +449,7 @@ export default function GroupBookingPage() {
                     <span className="min-w-0 break-words">
                       <span className="block text-xs text-ink-70">{isAr ? `الشخص ${idx + 1}` : `Person ${idx + 1}`}</span>
                       <span className="font-medium text-espresso">{s ? nameOf(s) : ''}</span>
+                      {staffLabel(p) ? <span className="block text-xs text-ink-70">✂ {staffLabel(p)}</span> : null}
                       <span className="block text-xs text-ink-70 font-latin">{p.slot ? formatCairoTime(p.slot, i18n.language) : ''}</span>
                       {p.extras.length > 0 ? (
                         <span className="block text-xs text-ink-70">
@@ -379,7 +457,7 @@ export default function GroupBookingPage() {
                         </span>
                       ) : null}
                     </span>
-                    <span className="font-latin shrink-0">{formatEGP(priceOfPick(p))}</span>
+                    <span className="font-latin shrink-0">{priceMayVary(p) ? '~' : ''}{formatEGP(priceOfPick(p))}</span>
                   </li>
                 );
               })}
@@ -388,6 +466,11 @@ export default function GroupBookingPage() {
                 <span className="font-latin">{formatEGP(total)}</span>
               </li>
             </ul>
+            {picks.some(priceMayVary) ? (
+              <p className="text-xs text-ink-70">
+                {isAr ? '~ السعر النهائي بيتحدد حسب الحلاق اللي هيتعيّن لك، وبيظهر في حجوزاتي.' : '~ The final price depends on the barber assigned to you and shows in My bookings.'}
+              </p>
+            ) : null}
             <p className="text-xs text-ink-70">
               {isAr ? 'لسه محجوزش حاجة. الحجز بيتسجل لما تختار طريقة الدفع وتأكد في الخطوة الجاية.' : 'Nothing is booked yet. Your booking is saved once you choose a payment method and confirm on the next step.'}
             </p>
@@ -502,7 +585,7 @@ export default function GroupBookingPage() {
                 const s = byId.get(p.serviceId);
                 return (
                   <li key={p.serviceId} className="flex items-center justify-between gap-3 p-3">
-                    <span>{isAr ? `الشخص ${idx + 1}` : `Person ${idx + 1}`} · {s ? nameOf(s) : ''}</span>
+                    <span>{isAr ? `الشخص ${idx + 1}` : `Person ${idx + 1}`} · {s ? nameOf(s) : ''}{staffLabel(p) ? ` · ${staffLabel(p)}` : ''}</span>
                     <span className="font-latin text-xs text-ink-70">{p.slot ? formatCairoTime(p.slot, i18n.language) : ''}</span>
                   </li>
                 );
@@ -543,6 +626,10 @@ function SlotPicker({
   date,
   slot,
   rules,
+  staffOptions,
+  staffValue,
+  onStaff,
+  noneOffers,
   extrasOptions,
   selectedExtras,
   onExtras,
@@ -555,6 +642,10 @@ function SlotPicker({
   date: string;
   slot: string | null;
   rules: { waitForPrev: boolean; minMs: number | null };
+  staffOptions: StaffMember[];
+  staffValue: string | null;
+  onStaff: (id: string) => void;
+  noneOffers: boolean;
   extrasOptions: Service[];
   selectedExtras: string[];
   onExtras: (ids: string[]) => void;
@@ -564,10 +655,14 @@ function SlotPicker({
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
   const slotsQuery = useQuery({
-    queryKey: ['group-slots', serviceId, date],
-    enabled: !!date && !!serviceId,
+    queryKey: ['group-slots', serviceId, date, staffValue],
+    enabled: !!date && !!serviceId && !noneOffers,
     queryFn: async () => {
-      const { data, error } = await rpcAny('get_available_slots', { p_service_id: serviceId, p_date: date });
+      const { data, error } = !staffValue
+        ? await rpcAny('get_available_slots', { p_service_id: serviceId, p_date: date })
+        : staffValue === 'any'
+          ? await rpcAny('get_available_slots_any', { p_service_id: serviceId, p_date: date })
+          : await rpcAny('get_available_slots_staff', { p_service_id: serviceId, p_date: date, p_staff_id: staffValue });
       if (error) throw error;
       return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
     },
@@ -582,6 +677,41 @@ function SlotPicker({
         {isAr ? `الشخص ${index + 1}: ` : `Person ${index + 1}: `}
         <span className="font-normal">{label}</span>
       </p>
+      {noneOffers ? (
+        <p className="rounded-btn bg-sand/50 p-2 text-xs text-ink">
+          {isAr ? 'مفيش حلاق بيقدم الخدمة والإضافات دي مع بعض. غيّر الإضافات.' : 'No barber offers this service with these add-ons. Change the add-ons.'}
+        </p>
+      ) : null}
+      {staffOptions.length >= 2 ? (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => onStaff('any')}
+            aria-pressed={staffValue === 'any'}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors',
+              staffValue === 'any' ? 'border-gold bg-gold/20 font-semibold' : 'border-default bg-white',
+            )}
+          >
+            ✂ {isAr ? 'أي حلاق' : 'Any barber'}
+          </button>
+          {staffOptions.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onStaff(m.id)}
+              aria-pressed={staffValue === m.id}
+              className={cn(
+                'flex min-w-0 max-w-full items-center gap-1.5 rounded-full border py-1 pe-3 ps-1 text-xs transition-colors',
+                staffValue === m.id ? 'border-gold bg-gold/20 font-semibold' : 'border-default bg-white',
+              )}
+            >
+              <StaffAvatar member={m} className="size-6 text-[10px]" />
+              <span className="truncate">{m.name}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       <input
         type="date"
         value={date}
