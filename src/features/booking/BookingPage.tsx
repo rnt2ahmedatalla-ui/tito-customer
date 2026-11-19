@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
-import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking, useActiveStaff } from './useBooking';
+import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking, useActiveStaff, type StaffMember } from './useBooking';
 import { ProfileModal } from '@/components/layout/ProfileModal';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { GoogleIcon } from '@/components/auth/GoogleIcon';
@@ -27,6 +27,7 @@ import { useSignIn } from '@/features/profile/useAuth';
 import { getDateRange, formatCairoDate, formatCairoTime, formatDateKey, isExpired } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
 import { CouponBox, type AppliedCoupon } from '@/components/booking/CouponBox';
+import { StaffAvatar, StaffDetailsSheet, staffBio, expLabel, socialLinks } from '@/components/staff/StaffParts';
 import { buildWhatsAppUrl } from '@/lib/urls';
 import { extractErrorCode } from '@/lib/errors';
 import type { PaymentMethod } from '@/types/database';
@@ -66,6 +67,7 @@ export default function BookingPage() {
   const [pendingAction, setPendingAction] = useState<'book' | 'pay_at_shop' | null>(null);
   const [notes, setNotes] = useState('');
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+  const [staffInfo, setStaffInfo] = useState<StaffMember | null>(null);
   const [payAtShopChosen, setPayAtShopChosen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return (
@@ -440,33 +442,42 @@ export default function BookingPage() {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {activeStaff.map((m) => {
                   const on = m.id === staffId;
+                  const isAr = i18n.language === 'ar';
+                  const bio = staffBio(m, isAr);
+                  const exp = expLabel(m, isAr);
                   return (
-                    <button
+                    <div
                       key={m.id}
-                      type="button"
-                      onClick={() => updateParams({ staff: m.id, slot: null })}
-                      aria-pressed={on}
-                      className={`flex items-center gap-3 rounded-card border-2 p-3 text-start transition-colors ${
-                        on ? 'border-gold bg-gold/10' : 'border-default bg-white hover:bg-sand/40'
-                      }`}
+                      className={`min-w-0 rounded-card border-2 p-3 transition-colors ${on ? 'border-gold bg-gold/10' : 'border-default bg-white'}`}
                     >
-                      {m.photo ? (
-                        <img src={m.photo} alt={m.name} className="size-14 shrink-0 rounded-full object-cover" />
-                      ) : (
-                        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gold/25 text-xl font-bold text-espresso" aria-hidden>
-                          {m.name.trim().charAt(0).toUpperCase()}
+                      <button
+                        type="button"
+                        onClick={() => updateParams({ staff: m.id, slot: null })}
+                        aria-pressed={on}
+                        className="flex w-full items-center gap-3 text-start"
+                      >
+                        <StaffAvatar member={m} className="size-14 text-xl" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold text-espresso">{m.name}</span>
+                          {exp ? <span className="block text-xs text-ink">{exp}</span> : null}
                         </span>
-                      )}
-                      <span className="min-w-0">
-                        <span className="block truncate font-semibold text-espresso">{m.name}</span>
-                        {m.experience_years != null ? (
-                          <span className="block text-xs text-ink">
-                            {i18n.language === 'ar' ? `${m.experience_years} سنة خبرة` : `${m.experience_years} yrs experience`}
-                          </span>
-                        ) : null}
-                        {m.bio ? <span className="block truncate text-xs text-ink/80">{m.bio}</span> : null}
-                      </span>
-                    </button>
+                        <span
+                          className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 ${on ? 'border-gold bg-gold text-espresso' : 'border-default'}`}
+                          aria-hidden
+                        >
+                          {on ? '✓' : ''}
+                        </span>
+                      </button>
+                      {bio || socialLinks(m).length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setStaffInfo(m)}
+                          className="mt-2 text-sm font-semibold text-gold-dark underline underline-offset-4"
+                        >
+                          {isAr ? 'اعرف عنه أكتر' : 'Learn more about him'}
+                        </button>
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>
@@ -499,6 +510,12 @@ export default function BookingPage() {
           ) : null}
         </section>
       ) : null}
+
+      <StaffDetailsSheet
+        member={staffInfo}
+        onClose={() => setStaffInfo(null)}
+        onPick={(m) => updateParams({ staff: m.id, slot: null })}
+      />
 
       {/* Step 3: Review */}
       {step === 'review' && selectedService ? (
