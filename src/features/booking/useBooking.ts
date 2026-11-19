@@ -8,11 +8,64 @@ import type { Booking, PaymentMethod, Service } from '@/types/database';
 
 export type BookingDetail = Booking & { service: Service | null };
 
-export function useAvailableSlots(serviceId: string | null, date: string | null) {
+type RpcUntyped = (
+  fn: string,
+  args: Record<string, unknown>,
+) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  bio: string | null;
+  experience_years: number | null;
+  photo: string | null;
+}
+
+/** الحلاقين الشغالين (فاضية لو الجدول لسه مش موجود أو مفيش طاقم) */
+export function useActiveStaff() {
   return useQuery({
-    queryKey: ['slots', serviceId, date],
+    queryKey: ['staff-active'],
+    queryFn: async (): Promise<StaffMember[]> => {
+      const db = supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            eq: (k: string, v: boolean) => { order: (c: string) => Promise<{ data: unknown; error: unknown }> };
+          };
+        };
+      };
+      const { data, error } = await db
+        .from('staff')
+        .select('id, name, bio, experience_years, photo')
+        .eq('is_active', true)
+        .order('sort');
+      if (error) return [];
+      return (data ?? []) as StaffMember[];
+    },
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
+export function useAvailableSlots(
+  serviceId: string | null,
+  date: string | null,
+  staffId: string | null = null,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: ['slots', serviceId, date, staffId],
     queryFn: async (): Promise<string[]> => {
       if (!serviceId || !date) return [];
+      if (staffId) {
+        const rpcUntyped = supabase.rpc.bind(supabase) as unknown as RpcUntyped;
+        const { data, error } = await rpcUntyped('get_available_slots_staff', {
+          p_service_id: serviceId,
+          p_date: date,
+          p_staff_id: staffId,
+        });
+        if (error) throw error;
+        return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
+      }
       const { data, error } = await supabase.rpc('get_available_slots', {
         p_service_id: serviceId,
         p_date: date,
@@ -20,7 +73,7 @@ export function useAvailableSlots(serviceId: string | null, date: string | null)
       if (error) throw error;
       return (data ?? []).map((s) => s.start_at);
     },
-    enabled: !!serviceId && !!date,
+    enabled: enabled && !!serviceId && !!date,
     staleTime: 0,
     gcTime: 5 * 60_000,
     retry: 1,
@@ -41,6 +94,7 @@ export function useCreateBooking() {
       extraIds = [],
       notes,
       coupon = null,
+      staffId = null,
     }: {
       serviceId: string;
       startAt: string;
@@ -48,10 +102,25 @@ export function useCreateBooking() {
       extraIds?: string[];
       notes?: string | null;
       coupon?: string | null;
+      staffId?: string | null;
     }): Promise<string> => {
       if (!canAttempt('create_booking')) throw new Error('RATE_LIMITED');
       recordAttempt('create_booking');
 
+      if (staffId) {
+        const rpcUntyped = supabase.rpc.bind(supabase) as unknown as RpcUntyped;
+        const { data, error } = await rpcUntyped('create_booking_staff', {
+          p_service_id: serviceId,
+          p_start_at: startAt,
+          p_pay_at_shop: payAtShop,
+          p_extra_ids: extraIds,
+          p_notes: notes?.trim() || null,
+          p_staff_id: staffId,
+          p_coupon: coupon,
+        });
+        if (error) throw error;
+        return data as string;
+      }
       if (coupon) {
         // الدالة الجديدة مش في أنواع المشروع، فبنعدّي النوع يدوياً
         const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
