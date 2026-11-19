@@ -22,6 +22,23 @@ export function useFeatureFlags() {
   });
 }
 
+export type BarberNow = { id: string; name: string; busy: boolean; free_at: string; next_start: string | null };
+
+/** حالة كل حلاق دلوقتي: فاضي / مشغول لحد امتى / حجزه الجاي */
+export function useBarbersNow(enabled: boolean) {
+  return useQuery({
+    queryKey: ['barbers-now'],
+    enabled,
+    queryFn: async (): Promise<BarberNow[] | null> => {
+      const { data, error } = await db.rpc('barbers_now');
+      if (error || !data || !data.enabled) return null;
+      return (data.barbers ?? []) as BarberNow[];
+    },
+    refetchInterval: 60_000,
+    retry: false,
+  });
+}
+
 /** لو جيت دلوقتي هتستنى كام دقيقة (null لو المميزة مقفولة) */
 export function useQueueEstimate(enabled: boolean) {
   return useQuery({
