@@ -26,8 +26,14 @@ export function WaitEstimateCard() {
       case 'busy':
         return (b.until ? L(`مشغول لحد ${fmt(b.until)}`, `Busy until ${fmt(b.until)}`) : L('مشغول', 'Busy')) +
           (n ? L(` · وبعدها فاضي لحد ${n}`, ` · then free until ${n}`) : L(' · وبعدها فاضي', ' · then free'));
-      case 'break':
-        return (b.until ? L(`في استراحة لحد ${fmt(b.until)}`, `On break until ${fmt(b.until)}`) : L('في استراحة', 'On break'));
+      case 'break': {
+        const brk = b.reason_until ?? b.until;
+        const head = brk ? L(`في استراحة لحد ${fmt(brk)}`, `On break until ${fmt(brk)}`) : L('في استراحة', 'On break');
+        // لو بعد الاستراحة على طول فيه حجز، نقول الوقت اللي هيفضى فيه فعلاً
+        return b.until && brk && new Date(b.until).getTime() - new Date(brk).getTime() > 60_000
+          ? head + L(` · وبعدها عنده حجوزات لحد ${fmt(b.until)}`, ` · then booked until ${fmt(b.until)}`)
+          : head;
+      }
       case 'not_started':
         return b.until ? L(`بيبدأ شغله الساعة ${fmt(b.until)}`, `Starts at ${fmt(b.until)}`) : L('لسه مبدأش', 'Not started yet');
       case 'finished':

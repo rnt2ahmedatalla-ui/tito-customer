@@ -27,6 +27,7 @@ export type BarberNow = {
   name: string;
   state: 'free' | 'busy' | 'break' | 'off' | 'not_started' | 'finished';
   until: string | null;
+  reason_until?: string | null;
   next_start: string | null;
   next_kind: string | null;
 };
