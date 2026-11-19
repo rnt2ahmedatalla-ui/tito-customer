@@ -18,7 +18,8 @@ import { ExtraCard } from '@/components/booking/ExtraCard';
 import { DateStrip } from '@/components/booking/DateStrip';
 import { SlotGrid } from '@/components/booking/SlotGrid';
 import { WaitlistPrompt } from '@/features/extras/WaitlistPrompt';
-import { useFeatureFlags } from '@/features/extras/useExtras';
+import { useFeatureFlags, usePrepayRequired } from '@/features/extras/useExtras';
+import { AddToCalendar } from '@/components/booking/AddToCalendar';
 import { HoldTimer } from '@/components/booking/HoldTimer';
 import { PaymentPanel } from '@/components/booking/PaymentPanel';
 import { LeatherPattern } from '@/components/brand/Pattern';
@@ -98,6 +99,7 @@ export default function BookingPage() {
   const staffSel = staffId ?? (anyStaff ? 'any' : null);
   const chosenStaff = activeStaff.find((m) => m.id === staffId) ?? null;
   const featureFlags = useFeatureFlags();
+  const prepayRequired = usePrepayRequired().data === true;
   const slots = useAvailableSlots(serviceId, date, staffSel, !noneOffers && (!staffNeeded || !!staffSel));
   const booking = useBooking(bookingId);
 
@@ -729,6 +731,17 @@ export default function BookingPage() {
               </div>
             ) : null}
             <div className="mt-8 flex flex-col gap-3">
+              {booking.data && selectedService ? (
+                <div className="rounded-btn bg-white/10 p-3 text-start">
+                  <AddToCalendar
+                    id={booking.data.id}
+                    startAt={booking.data.start_at}
+                    endAt={booking.data.end_at}
+                    serviceName={i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en}
+                    tone="gold"
+                  />
+                </div>
+              ) : null}
               {whatsappUrl ? (
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                   <Button variant="secondary" fullWidth>
@@ -788,7 +801,12 @@ export default function BookingPage() {
                     >
                       {t('booking.payNow')}
                     </Button>
-                    {settings.data?.allow_pay_at_shop ? (
+                    {prepayRequired ? (
+                      <p className="rounded-btn bg-warning/10 p-2.5 text-center text-xs text-espresso">
+                        {i18n.language === 'ar' ? 'بسبب غياب سابق، الحجز ده محتاج دفع مقدّم أونلاين.' : 'Because of a previous no-show, this booking needs online prepayment.'}
+                      </p>
+                    ) : null}
+                    {settings.data?.allow_pay_at_shop && !prepayRequired ? (
                       <Button
                         variant="secondary"
                         fullWidth

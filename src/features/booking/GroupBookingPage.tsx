@@ -1,3 +1,4 @@
+import { usePrepayRequired } from '@/features/extras/useExtras';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Copy, Check, Store, Smartphone, Landmark } from 'lucide-react';
@@ -138,7 +139,8 @@ export default function GroupBookingPage() {
     return activeStaff.find((m) => m.id === st)?.name ?? null;
   };
   
-  const allowShop = !!settings.data?.allow_pay_at_shop;
+  const prepayRequired = usePrepayRequired().data === true;
+  const allowShop = !!settings.data?.allow_pay_at_shop && !prepayRequired;
   const hasInstapay = !!settings.data?.instapay_number?.trim();
   const hasVodafone = !!settings.data?.vodafone_cash_number?.trim();
   const availableMethods: PayChoice[] = [

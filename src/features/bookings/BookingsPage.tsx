@@ -18,6 +18,8 @@ import { toast } from 'sonner';
 import { formatCairoDate, formatCairoTime, isWithinCancelWindow } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
 import { cn } from '@/lib/cn';
+import { AddToCalendar } from '@/components/booking/AddToCalendar';
+import { InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 import type { BookingWithDetails } from '@/types/database';
 
 
@@ -276,6 +278,11 @@ export default function BookingsPage() {
         </div>
       ) : null}
 
+      <div className="mt-4 space-y-3">
+        <InactiveBanner />
+        <RatePrompt />
+      </div>
+
       <div className="mt-4 flex gap-2" role="tablist">
         {(['upcoming', 'past'] as const).map((key) => (
           <button
@@ -358,6 +365,19 @@ export default function BookingsPage() {
                 {booking.move_status === 'pending' && booking.move_token ? (
                   <Link to={`/move/${booking.move_token}`} className="mt-3 inline-flex text-sm font-medium text-espresso underline">
                     {t('bookings.moveOffer')}
+                  </Link>
+                ) : null}
+                {booking.status === 'confirmed' && new Date(booking.end_at) > new Date() ? (
+                  <div className="mt-3">
+                    <AddToCalendar id={booking.id} startAt={booking.start_at} endAt={booking.end_at} serviceName={serviceName} />
+                  </div>
+                ) : null}
+                {booking.status === 'completed' ? (
+                  <Link
+                    to={`/book?step=datetime&service=${booking.service_id}${(booking as unknown as { staff_id?: string | null }).staff_id ? `&staff=${(booking as unknown as { staff_id: string }).staff_id}` : ''}`}
+                    className="mt-3 inline-flex"
+                  >
+                    <Button size="sm" variant="secondary">{isAr ? 'احجز نفس الحلاقة تاني' : 'Book the same again'}</Button>
                   </Link>
                 ) : null}
                 {booking.status === 'completed' && booking.rate_token ? (

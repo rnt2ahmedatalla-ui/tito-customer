@@ -103,3 +103,74 @@ export function useWaitlistActions() {
   });
   return { join, cancel };
 }
+
+export type VisitStatus = {
+  enabled: boolean;
+  after_days?: number;
+  has_upcoming?: boolean;
+  days_since?: number | null;
+  last_service_id?: string | null;
+  last_staff_id?: string | null;
+};
+
+/** حالة العميل: بقاله كام يوم من آخر حلاقة (للبانر "وحشتنا") */
+export function useVisitStatus() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['visit-status', user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<VisitStatus> => {
+      const { data, error } = await db.rpc('my_visit_status');
+      if (error || !data) return { enabled: false };
+      return data as VisitStatus;
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+/** العميل غاب كذا مرة وبقى لازم يدفع مقدماً (من إعدادات الأدمن) */
+export function usePrepayRequired() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['prepay-required', user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<boolean> => {
+      const { data, error } = await db.rpc('my_prepay_required');
+      if (error) return false;
+      return data === true;
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+export type RateableBooking = { id: string; rate_token: string; service_name_ar: string; service_name_en: string; start_at: string };
+
+/** آخر حلاقة اكتملت ولسه العميل مقيّمهاش (خلال 14 يوم) */
+export function useRateableBooking() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['rateable-latest', user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<RateableBooking | null> => {
+      const since = new Date(Date.now() - 14 * 86400_000).toISOString();
+      const { data, error } = await db
+        .from('bookings')
+        .select('id, rate_token, service_name_ar, service_name_en, start_at')
+        .eq('user_id', user!.id)
+        .eq('status', 'completed')
+        .gte('start_at', since)
+        .not('rate_token', 'is', null)
+        .order('start_at', { ascending: false })
+        .limit(3);
+      if (error || !data || data.length === 0) return null;
+      const rows = data as RateableBooking[];
+      const { data: used } = await db.from('reviews').select('rate_token').in('rate_token', rows.map((r) => r.rate_token));
+      const usedSet = new Set(((used ?? []) as Array<{ rate_token: string }>).map((r) => r.rate_token));
+      return rows.find((r) => !usedSet.has(r.rate_token)) ?? null;
+    },
+    staleTime: 60_000,
+    retry: false,
+  });
+}

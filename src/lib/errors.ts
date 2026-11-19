@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'PROFILE_INCOMPLETE'
   | 'TOO_MANY_PENDING'
   | 'BOOKING_CLOSED'
+  | 'PREPAY_REQUIRED'
   | 'UNKNOWN';
 
 const CODE_PATTERNS: { pattern: RegExp; code: ErrorCode }[] = [
@@ -18,6 +19,7 @@ const CODE_PATTERNS: { pattern: RegExp; code: ErrorCode }[] = [
   { pattern: /PROFILE_INCOMPLETE/i, code: 'PROFILE_INCOMPLETE' },
   { pattern: /TOO_MANY_PENDING/i, code: 'TOO_MANY_PENDING' },
   { pattern: /BOOKING_CLOSED/i, code: 'BOOKING_CLOSED' },
+  { pattern: /PREPAY_REQUIRED/i, code: 'PREPAY_REQUIRED' },
 ];
 
 export function extractErrorCode(error: unknown): ErrorCode {

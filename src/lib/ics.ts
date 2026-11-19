@@ -1,24 +1,34 @@
 import { formatInTimeZone } from 'date-fns-tz';
 import { parseISO } from 'date-fns';
-import { CAIRO_TZ } from './time';
 
-interface IcsEvent {
+export interface IcsEvent {
+  uid?: string;
   title: string;
   description: string;
   location: string;
   startAtUtc: string;
   endAtUtc: string;
+  /** تنبيهات قبل الميعاد بالدقايق (التليفون هو اللي بيبعتها، ببلاش) */
+  alarmsMinutes?: number[];
 }
 
-function formatIcsDate(utcIso: string): string {
-  return formatInTimeZone(parseISO(utcIso), CAIRO_TZ, "yyyyMMdd'T'HHmmss");
+// بنستخدم توقيت UTC عشان كل التطبيقات (آيفون/أندرويد/جوجل) تفهمه من غير تعريف منطقة زمنية
+function utcStamp(iso: string): string {
+  return formatInTimeZone(parseISO(iso), 'UTC', "yyyyMMdd'T'HHmmss'Z'");
 }
 
 function escapeIcs(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 }
 
 export function generateIcs(event: IcsEvent): string {
+  const alarms = (event.alarmsMinutes ?? [120, 1440]).flatMap((m) => [
+    'BEGIN:VALARM',
+    `TRIGGER:-PT${m}M`,
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${escapeIcs(event.title)}`,
+    'END:VALARM',
+  ]);
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -26,13 +36,14 @@ export function generateIcs(event: IcsEvent): string {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:${Date.now()}@tito.app`,
-    `DTSTAMP:${formatIcsDate(new Date().toISOString())}`,
-    `DTSTART;TZID=${CAIRO_TZ}:${formatIcsDate(event.startAtUtc)}`,
-    `DTEND;TZID=${CAIRO_TZ}:${formatIcsDate(event.endAtUtc)}`,
+    `UID:${event.uid ?? Date.now()}@tito.app`,
+    `DTSTAMP:${utcStamp(new Date().toISOString())}`,
+    `DTSTART:${utcStamp(event.startAtUtc)}`,
+    `DTEND:${utcStamp(event.endAtUtc)}`,
     `SUMMARY:${escapeIcs(event.title)}`,
     `DESCRIPTION:${escapeIcs(event.description)}`,
     `LOCATION:${escapeIcs(event.location)}`,
+    ...alarms,
     'END:VEVENT',
     'END:VCALENDAR',
   ];
@@ -46,6 +57,19 @@ export function downloadIcs(event: IcsEvent, filename = 'tito-booking.ics'): voi
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+export function googleCalendarUrl(event: IcsEvent): string {
+  const q = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${utcStamp(event.startAtUtc)}/${utcStamp(event.endAtUtc)}`,
+    details: event.description,
+    location: event.location,
+  });
+  return `https://calendar.google.com/calendar/render?${q.toString()}`;
 }
