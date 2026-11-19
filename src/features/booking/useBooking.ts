@@ -17,6 +17,8 @@ export interface StaffMember {
   id: string;
   name: string;
   bio: string | null;
+  bio_en: string | null;
+  socials: Record<string, string> | null;
   experience_years: number | null;
   photo: string | null;
 }
@@ -35,7 +37,7 @@ export function useActiveStaff() {
       };
       const { data, error } = await db
         .from('staff')
-        .select('id, name, bio, experience_years, photo')
+        .select('id, name, bio, bio_en, socials, experience_years, photo')
         .eq('is_active', true)
         .order('sort');
       if (error) return [];

@@ -9,6 +9,7 @@ import { LeatherPattern } from '@/components/brand/Pattern';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ShareAndQr } from '@/components/share/ShareAndQr';
 import { usePolicyText } from '@/lib/policy';
+import { TeamSection } from '@/components/staff/StaffParts';
 import { useSettings, useWorkingHours, useNextSlot } from './useHomeData';
 import { formatCairoTime, formatCairoDate, getCairoNow } from '@/lib/time';
 import { format } from 'date-fns';
@@ -296,6 +297,8 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      <TeamSection />
 
       <section id="about" className="mx-auto max-w-5xl px-5 py-12 sm:py-16">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold font-latin">
