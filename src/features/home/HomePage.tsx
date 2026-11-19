@@ -235,8 +235,12 @@ export default function HomePage() {
             </Link>
           </div>
 
+          <div className="mt-6 empty:hidden">
+            <WaitEstimateCard />
+          </div>
+
           {!nextSlot.isLoading ? (
-            <p className="mt-8 flex items-center gap-2 text-sm text-gold-soft font-latin animate-fade">
+            <p className="mt-6 flex items-center gap-2 text-sm text-gold-soft font-latin animate-fade">
               <Clock className="size-4 shrink-0" aria-hidden />
               <span>
                 {t('home.nextSlot')}: {nextSlotLabel}
@@ -290,7 +294,6 @@ export default function HomePage() {
       <section className="mx-auto max-w-5xl space-y-3 px-5 pt-6 empty:hidden">
         <InactiveBanner />
         <RatePrompt />
-        <WaitEstimateCard />
       </section>
 
       {/* سياسة الحجز */}

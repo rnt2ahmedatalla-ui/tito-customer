@@ -1,26 +1,39 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Clock, Star, Ticket } from 'lucide-react';
+import { Star, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { getCairoNow } from '@/lib/time';
+import { useWorkingHours } from '@/features/home/useHomeData';
 import { useFeatureFlags, useMyPackages, useQueueEstimate, useRateableBooking, useVisitStatus } from './useExtras';
 
-/** "لو جيت دلوقتي هتستنى تقريباً X دقيقة" (بيظهر لو الأدمن شغّل المميزة) */
+/** شريحة صغيرة في أول الصفحة: الانتظار الحالي (بتظهر بس وقت ما المحل مفتوح) */
 export function WaitEstimateCard() {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
   const flags = useFeatureFlags();
+  const hours = useWorkingHours();
   const est = useQueueEstimate(!!flags.data?.waitEstimate);
-  if (!flags.data?.waitEstimate || est.data == null) return null;
+  if (!flags.data?.waitEstimate || est.data == null || !hours.data) return null;
+  const now = getCairoNow();
+  const wh = hours.data.find((h) => h.day_of_week === now.getDay());
+  if (!wh || wh.is_closed || !wh.open_time || !wh.close_time) return null;
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  if (cur < toMin(wh.open_time) || cur >= toMin(wh.close_time)) return null;
   const m = est.data;
+  const free = m <= 5;
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-card border border-gold/40 bg-gold/10 p-4">
-      <Clock className="size-6 shrink-0 text-gold" aria-hidden />
-      <p className="min-w-0 text-sm font-medium text-espresso">
-        {m <= 0
-          ? isAr ? 'الحلاق فاضي دلوقتي، تقدر تيجي على طول 💈' : 'The barber is free right now, come on in 💈'
-          : isAr ? `لو جيت دلوقتي هتستنى تقريباً ${m} دقيقة` : `If you come now, expect about ${m} min wait`}
-      </p>
-    </div>
+    <Link
+      to="/book"
+      className="inline-flex max-w-full items-center gap-2 rounded-full border border-cream/25 bg-cream/10 px-4 py-2 text-sm text-cream backdrop-blur-sm transition hover:bg-cream/15"
+    >
+      <span className={`size-2.5 shrink-0 rounded-full ${free ? 'bg-emerald-400' : 'bg-gold'}`} aria-hidden />
+      <span className="min-w-0 truncate">
+        {free
+          ? isAr ? 'فاضيين دلوقتي — احجز وتعالى' : 'Free right now — book and come in'
+          : isAr ? `الانتظار حالياً حوالي ${m} دقيقة` : `Current wait about ${m} min`}
+      </span>
+    </Link>
   );
 }
 

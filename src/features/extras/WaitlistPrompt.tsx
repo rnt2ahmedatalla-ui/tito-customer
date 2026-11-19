@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/Button';
 import { useMyWaitlist, useWaitlistActions } from './useExtras';
 
 /** بيظهر لما اليوم مفيهوش معاد فاضي: العميل يسجّل في الانتظار */
-export function WaitlistPrompt({ day, serviceId }: { day: string; serviceId: string | null }) {
+export function WaitlistPrompt({ day, serviceId, defaultOpen = false }: { day: string; serviceId: string | null; defaultOpen?: boolean }) {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const [note, setNote] = useState('');
+  const [open, setOpen] = useState(defaultOpen);
   const mine = useMyWaitlist(day, true);
   const { join, cancel } = useWaitlistActions();
 
@@ -25,9 +26,21 @@ export function WaitlistPrompt({ day, serviceId }: { day: string; serviceId: str
     );
   }
 
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="min-h-11 w-full rounded-card border border-dashed border-gold/60 bg-gold/10 px-4 py-3 text-start text-sm font-medium text-espresso"
+      >
+        {L('مفيش معاد يناسبك؟ سجّل في قايمة الانتظار وهنبلّغك لو فضي معاد 🔔', 'No time that suits you? Join the waiting list and we will notify you 🔔')}
+      </button>
+    );
+  }
+
   return (
     <div className="rounded-card border border-default bg-sand/50 p-4">
-      <p className="font-semibold text-espresso">{L('اليوم ده مزدحم؟ سجّل في قايمة الانتظار', 'Day is full? Join the waiting list')}</p>
+      <p className="font-semibold text-espresso">{L('سجّل في قايمة الانتظار', 'Join the waiting list')}</p>
       <p className="mt-1 text-sm text-ink">{L('لو حد لغى هنبلّغك على واتساب.', 'If someone cancels, we will message you on WhatsApp.')}</p>
       <input
         value={note}

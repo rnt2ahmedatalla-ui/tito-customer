@@ -556,9 +556,9 @@ export default function BookingPage() {
                 isError={slots.isError}
                 onRetry={() => slots.refetch()}
               />
-              {featureFlags.data?.waitlist && user && !slots.isLoading && !slots.isError && (slots.data ?? []).length === 0 ? (
+              {featureFlags.data?.waitlist && user && !slots.isLoading && !slots.isError ? (
                 <div className="mt-4">
-                  <WaitlistPrompt day={date} serviceId={serviceId ?? null} />
+                  <WaitlistPrompt day={date} serviceId={serviceId ?? null} defaultOpen={(slots.data ?? []).length === 0} />
                 </div>
               ) : null}
             </div>
