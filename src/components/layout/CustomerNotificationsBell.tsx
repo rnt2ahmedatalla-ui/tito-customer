@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCircle2, XCircle, CalendarClock, BellRing, AlertTriangle } from 'lucide-react';
+import { Bell, CheckCircle2, XCircle, CalendarClock, BellRing, AlertTriangle, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
 import { cn } from '@/lib/cn';
@@ -62,16 +63,38 @@ export function useCustomerNotifications() {
   return { data, unread, markAll, markOne, isLoading: query.isLoading };
 }
 
-function kindStyle(kind: string) {
+type Tone = 'reject' | 'cancel' | 'ok' | 'move' | 'info';
+
+function toneOf(kind: string): Tone {
   const k = kind.toLowerCase();
-  if (k.includes('reject') || k.includes('fail'))
-    return { Icon: AlertTriangle, tone: 'bg-danger/15 text-danger' };
-  if (k.includes('cancel')) return { Icon: XCircle, tone: 'bg-ink-70/15 text-ink-70' };
-  if (k.includes('confirm') || k.includes('approved') || k.includes('paid'))
-    return { Icon: CheckCircle2, tone: 'bg-success/15 text-success' };
-  if (k.includes('move') || k.includes('resched'))
-    return { Icon: CalendarClock, tone: 'bg-gold/20 text-espresso' };
-  return { Icon: BellRing, tone: 'bg-gold/20 text-espresso' };
+  if (k.includes('reject') || k.includes('fail')) return 'reject';
+  if (k.includes('cancel')) return 'cancel';
+  if (k.includes('confirm') || k.includes('approved') || k.includes('paid')) return 'ok';
+  if (k.includes('move') || k.includes('resched')) return 'move';
+  return 'info';
+}
+
+const TONES: Record<Tone, { Icon: typeof Bell; badge: string }> = {
+  reject: { Icon: AlertTriangle, badge: 'bg-danger/15 text-danger' },
+  cancel: { Icon: XCircle, badge: 'bg-bark/10 text-bark' },
+  ok: { Icon: CheckCircle2, badge: 'bg-success/15 text-success' },
+  move: { Icon: CalendarClock, badge: 'bg-gold/25 text-espresso' },
+  info: { Icon: BellRing, badge: 'bg-gold/25 text-espresso' },
+};
+
+// بعض النصوص بتيجي من قاعدة البيانات بالإنجليزي، فبنترجمها هنا
+function localize(text: string, isAr: boolean): string {
+  if (!text) return text;
+  if (isAr) {
+    return text
+      .replace(/سبب الإلغاء:\s*cancelled by admin/gi, 'الحجز اتلغى من المحل')
+      .replace(/سبب الإلغاء:\s*cancelled by customer/gi, 'إنت لغيت الحجز')
+      .replace(/cancelled by admin/gi, 'اتلغى من المحل')
+      .replace(/cancelled by customer/gi, 'إنت لغيت الحجز');
+  }
+  return text
+    .replace(/cancelled by admin/gi, 'cancelled by the shop')
+    .replace(/cancelled by customer/gi, 'cancelled by you');
 }
 
 function timeAgo(iso: string, isAr: boolean): string {
@@ -84,15 +107,47 @@ function timeAgo(iso: string, isAr: boolean): string {
   return isAr ? `من ${d} يوم` : `${d}d ago`;
 }
 
+const DESKTOP_BREAKPOINT = 640;
+const PANEL_WIDTH = 380;
+
 export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data, unread, markAll, markOne } = useCustomerNotifications();
   const [open, setOpen] = useState(false);
-  const locale = i18n.language?.startsWith('ar') ? 'ar' : 'en';
+  const [pos, setPos] = useState<{ top: number; left: number | null }>({ top: 64, left: null });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const isAr = !!i18n.language?.startsWith('ar');
+
+  // يقفل لما الصفحة تتغير أو تدوس Escape
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
 
   if (!user) return null;
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const desktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+      setPos({
+        top: rect.bottom + 8,
+        // الموبايل: في نص الشاشة. اللابتوب: تحت الجرس وجوه الشاشة
+        left: desktop ? Math.max(8, Math.min(rect.left + rect.width / 2 - PANEL_WIDTH / 2, window.innerWidth - PANEL_WIDTH - 8)) : null,
+      });
+    }
+    setOpen((v) => !v);
+  };
 
   const openItem = (n: CustomerNotification) => {
     setOpen(false);
@@ -100,19 +155,93 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
     navigate('/bookings');
   };
 
+  const panel = (
+    <>
+      <div className="fixed inset-0 z-[90] bg-espresso/30 sm:bg-transparent" onClick={() => setOpen(false)} aria-hidden />
+      <div
+        role="dialog"
+        aria-label={t('notifications.title')}
+        style={pos.left !== null ? { top: pos.top, left: pos.left, width: PANEL_WIDTH } : { top: pos.top }}
+        className={cn(
+          'fixed z-[95] overflow-hidden rounded-card border border-default bg-white shadow-warm-raised',
+          pos.left === null && 'inset-x-3 mx-auto max-w-md',
+        )}
+      >
+        <div className="flex items-center justify-between gap-2 border-b border-default bg-cream px-4 py-3">
+          <div className="flex items-center gap-2">
+            <p className="text-base font-bold text-espresso">{t('notifications.title')}</p>
+            {unread > 0 ? (
+              <span className="rounded-full bg-gold px-2 py-0.5 font-latin text-xs font-bold text-espresso">
+                {unread} {isAr ? 'جديد' : 'new'}
+              </span>
+            ) : null}
+          </div>
+          {unread > 0 ? (
+            <button type="button" className="text-sm font-medium text-bark underline" onClick={() => void markAll.mutate()}>
+              {t('notifications.markAll')}
+            </button>
+          ) : null}
+        </div>
+
+        <ul className="max-h-[min(65dvh,26rem)] divide-y divide-default overflow-y-auto overscroll-contain">
+          {data.length === 0 ? (
+            <li className="px-4 py-8 text-center text-sm text-ink">{t('notifications.empty')}</li>
+          ) : (
+            data.map((n) => {
+              const tone = toneOf(n.kind ?? '');
+              const { Icon, badge } = TONES[tone];
+              const title = isAr ? n.title_ar : n.title_en;
+              const body = localize((isAr ? n.body_ar : n.body_en) ?? '', isAr);
+              const rejected = tone === 'reject';
+              return (
+                <li key={n.id}>
+                  <button
+                    type="button"
+                    onClick={() => openItem(n)}
+                    className={cn(
+                      'flex w-full items-start gap-3 px-4 py-3.5 text-start transition-colors hover:bg-sand/50',
+                      rejected ? 'border-s-4 border-danger bg-danger/5' : !n.is_read && 'bg-gold/10',
+                    )}
+                  >
+                    <span className={cn('mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full', badge)}>
+                      <Icon className="size-[18px]" aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-start justify-between gap-2">
+                        <span className={cn('text-sm font-bold', rejected ? 'text-danger' : 'text-espresso')}>{title}</span>
+                        {!n.is_read ? <span className="mt-1.5 size-2 shrink-0 rounded-full bg-gold" aria-hidden /> : null}
+                      </span>
+                      {body ? <span className="mt-1 block break-words text-sm leading-relaxed text-ink">{body}</span> : null}
+                      {rejected ? (
+                        <span className="mt-2 inline-flex items-center gap-1 rounded-btn bg-danger px-3 py-1.5 text-xs font-semibold text-white">
+                          {isAr ? 'ابعت الإيصال تاني' : 'Send the receipt again'}
+                          <ChevronRight className="size-3.5 rtl:-scale-x-100" aria-hidden />
+                        </span>
+                      ) : null}
+                      <span className="mt-1.5 block text-xs text-ink">{timeAgo(n.created_at, isAr)}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      </div>
+    </>
+  );
+
   return (
     <div className="relative">
       <button
+        ref={btnRef}
         type="button"
         className={cn(
           'relative inline-flex min-h-10 min-w-10 items-center justify-center rounded-btn p-2',
-          dark
-            ? 'border border-cream/20 text-cream hover:bg-cream/10'
-            : 'border border-default text-ink hover:bg-sand',
+          dark ? 'border border-cream/20 text-cream hover:bg-cream/10' : 'border border-default text-ink hover:bg-sand',
         )}
         aria-label={t('notifications.title')}
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
       >
         <Bell className="size-5" />
         {unread > 0 ? (
@@ -122,61 +251,7 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
         ) : null}
       </button>
 
-      {open ? (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute end-0 top-12 z-50 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-card border border-default bg-white shadow-lg">
-            <div className="flex items-center justify-between gap-2 border-b border-default px-3 py-2.5">
-              <p className="text-sm font-semibold text-espresso">{t('notifications.title')}</p>
-              {unread > 0 ? (
-                <button
-                  type="button"
-                  className="text-xs font-medium text-gold"
-                  onClick={() => void markAll.mutate()}
-                >
-                  {t('notifications.markAll')}
-                </button>
-              ) : null}
-            </div>
-            <ul className="max-h-96 divide-y divide-default overflow-y-auto">
-              {data.length === 0 ? (
-                <li className="px-3 py-5 text-sm text-ink">{t('notifications.empty')}</li>
-              ) : (
-                data.map((n) => {
-                  const { Icon, tone } = kindStyle(n.kind ?? '');
-                  const body = locale === 'ar' ? n.body_ar : n.body_en;
-                  return (
-                    <li key={n.id}>
-                      <button
-                        type="button"
-                        className={cn(
-                          'flex w-full items-start gap-3 px-3 py-3 text-start hover:bg-sand/50',
-                          !n.is_read && 'bg-gold/10',
-                        )}
-                        onClick={() => openItem(n)}
-                      >
-                        <span className={cn('mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full', tone)}>
-                          <Icon className="size-4" aria-hidden />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-start justify-between gap-2">
-                            <span className="text-sm font-semibold text-espresso">
-                              {locale === 'ar' ? n.title_ar : n.title_en}
-                            </span>
-                            {!n.is_read ? <span className="mt-1.5 size-2 shrink-0 rounded-full bg-gold" /> : null}
-                          </span>
-                          {body ? <span className="mt-0.5 block text-xs leading-relaxed text-ink">{body}</span> : null}
-                          <span className="mt-1 block text-[11px] text-ink-70">{timeAgo(n.created_at, locale === 'ar')}</span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })
-              )}
-            </ul>
-          </div>
-        </>
-      ) : null}
+      {open ? createPortal(panel, document.body) : null}
     </div>
   );
 }
