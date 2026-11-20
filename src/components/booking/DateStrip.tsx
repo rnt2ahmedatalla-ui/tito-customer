@@ -2,16 +2,18 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { cn } from '@/lib/cn';
 import { formatDateKey } from '@/lib/time';
+import { seasonFor, seasonLocked, type SeasonPeriod } from '@/features/booking/useSeasons';
 
 interface DateStripProps {
   dates: Date[];
   selectedDate: string | null;
   closedDays: Set<number>;
   fullyBookedDays?: Set<string>;
+  seasons?: SeasonPeriod[];
   onSelect: (dateKey: string) => void;
 }
 
-export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, onSelect }: DateStripProps) {
+export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, seasons, onSelect }: DateStripProps) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -22,9 +24,11 @@ export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, on
     >
       {dates.map((date) => {
         const key = formatDateKey(date);
-        const isFull = fullyBookedDays?.has(key) ?? false;
-        // اليوم بيتقفل لو إجازة أو مواعيده خلصت
-        const isClosed = closedDays.has(date.getDay()) || isFull;
+        const season = seasonFor(seasons, key);
+        const locked = seasonLocked(season);
+        const isFull = !locked && (fullyBookedDays?.has(key) ?? false);
+        // اليوم بيتقفل لو إجازة أو مواعيده خلصت (أيام الموسم المفتوحة بتتجاهل الإجازة الأسبوعية)
+        const isClosed = locked || (season ? false : closedDays.has(date.getDay())) || isFull;
         const isSelected = selectedDate === key;
         const isToday = key === formatDateKey(new Date());
         const weekday = new Intl.DateTimeFormat(i18n.language === 'ar' ? 'ar-EG' : 'en', {
@@ -43,13 +47,16 @@ export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, on
               'flex w-[4.5rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-btn border px-1 py-2.5 transition-all duration-brand',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
               isSelected && 'border-gold bg-gold text-espresso',
+              locked && 'cursor-not-allowed border-gold/40 bg-gold/10 text-ink/60',
               !isSelected && !isClosed && 'border-default bg-cream text-espresso hover:border-gold',
-              isClosed && 'cursor-not-allowed border-default bg-sand/50 text-ink/40',
+              isClosed && !locked && 'cursor-not-allowed border-default bg-sand/50 text-ink/40',
             )}
           >
             <span className="max-w-full truncate text-[11px] font-medium leading-tight">{weekday}</span>
             <span className="text-lg font-semibold font-latin">{format(date, 'd')}</span>
-            {isFull ? (
+            {locked ? (
+              <span className="text-[10px] font-medium text-gold">{i18n.language === 'ar' ? 'قريباً' : 'Soon'}</span>
+            ) : isFull ? (
               <span className="text-[10px] font-medium">{i18n.language === 'ar' ? 'مكتمل' : 'Full'}</span>
             ) : isToday ? (
               <span className={cn('text-[10px] font-medium', isSelected ? 'text-espresso' : 'text-gold')}>

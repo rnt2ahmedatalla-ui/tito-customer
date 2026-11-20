@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { buildWhatsAppUrl, isSafeUrl } from '@/lib/urls';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/cn';
+import { QuickRebook } from '@/features/home/QuickActions';
 import { WaitEstimateCard, InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 
 const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -293,6 +294,7 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-5xl space-y-3 px-5 pt-6 empty:hidden">
         <InactiveBanner />
+        <QuickRebook />
         <RatePrompt />
       </section>
 

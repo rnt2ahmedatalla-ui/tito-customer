@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { OfflineBanner } from './OfflineBanner';
 import { PolicyGate } from './PolicyGate';
+import { PendingHoldCard } from '@/features/home/QuickActions';
 import { cn } from '@/lib/cn';
 
 interface PageShellProps {
@@ -50,6 +51,7 @@ export function PageShell({
       >
         {children}
       </main>
+      <PendingHoldCard />
       <BottomNav />
       <PolicyGate />
     </div>
