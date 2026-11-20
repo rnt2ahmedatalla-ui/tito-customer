@@ -476,6 +476,10 @@ export default function GroupBookingPage() {
                 key={p.uid}
                 index={idx}
                 serviceId={p.serviceId}
+                durationMin={(() => {
+                  const extra = extras.filter((e) => p.extras.includes(e.id)).reduce((n, e) => n + Number(e.duration_minutes ?? 0), 0);
+                  return extra > 0 ? Number(byId.get(p.serviceId)?.duration_minutes ?? 0) + extra : null;
+                })()}
                 label={nameOf(byId.get(p.serviceId) ?? { id: '', name_ar: '', name_en: '', price_egp: 0, duration_minutes: 0 })}
                 date={p.date}
                 slot={p.slot}
@@ -688,6 +692,7 @@ export default function GroupBookingPage() {
 function SlotPicker({
   index,
   serviceId,
+  durationMin,
   label,
   date,
   slot,
@@ -704,6 +709,7 @@ function SlotPicker({
 }: {
   index: number;
   serviceId: string;
+  durationMin: number | null;
   label: string;
   date: string;
   slot: string | null;
@@ -720,15 +726,16 @@ function SlotPicker({
 }) {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
+  const durArg: Record<string, unknown> = durationMin ? { p_duration_min: durationMin } : {};
   const slotsQuery = useQuery({
-    queryKey: ['group-slots', serviceId, date, staffValue],
+    queryKey: ['group-slots', serviceId, date, staffValue, durationMin],
     enabled: !!date && !!serviceId && !noneOffers,
     queryFn: async () => {
       const { data, error } = !staffValue
-        ? await rpcAny('get_available_slots', { p_service_id: serviceId, p_date: date })
+        ? await rpcAny('get_available_slots', { p_service_id: serviceId, p_date: date, ...durArg })
         : staffValue === 'any'
-          ? await rpcAny('get_available_slots_any', { p_service_id: serviceId, p_date: date })
-          : await rpcAny('get_available_slots_staff', { p_service_id: serviceId, p_date: date, p_staff_id: staffValue });
+          ? await rpcAny('get_available_slots_any', { p_service_id: serviceId, p_date: date, ...durArg })
+          : await rpcAny('get_available_slots_staff', { p_service_id: serviceId, p_date: date, p_staff_id: staffValue, ...durArg });
       if (error) throw error;
       return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
     },

@@ -8,6 +8,7 @@ export interface ExtraCardData {
   name_ar: string;
   name_en: string;
   price_egp: number | string;
+  duration_minutes?: number | string | null;
 }
 
 interface ExtraCardProps {
@@ -44,6 +45,11 @@ export function ExtraCard({ extra, selected, onToggle, compact = false }: ExtraC
       </span>
       <span className="min-w-0 flex-1 break-words text-sm font-medium text-espresso">
         {isAr ? extra.name_ar : extra.name_en}
+        {Number(extra.duration_minutes) > 0 ? (
+          <span className="mt-0.5 block font-latin text-xs font-normal text-ink-70">
+            {isAr ? `+${Number(extra.duration_minutes)} دقيقة` : `+${Number(extra.duration_minutes)} min`}
+          </span>
+        ) : null}
       </span>
       <span className="shrink-0 font-latin text-xs font-semibold text-bark">+{formatEGP(Number(extra.price_egp))}</span>
     </button>

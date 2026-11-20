@@ -77,28 +77,29 @@ export function useAvailableSlots(
   date: string | null,
   staffId: string | null = null,
   enabled = true,
+  durationMin: number | null = null,
 ) {
   return useQuery({
-    queryKey: ['slots', serviceId, date, staffId],
+    queryKey: ['slots', serviceId, date, staffId, durationMin],
     queryFn: async (): Promise<string[]> => {
       if (!serviceId || !date) return [];
+      // الوقت الكلي (حلاقة + إضافات ليها وقت) بنبعته بس لو فيه إضافة بوقت، غير كده الطلب زي ما كان
+      const dur: Record<string, unknown> = durationMin ? { p_duration_min: durationMin } : {};
       if (staffId) {
         const rpcUntyped = supabase.rpc.bind(supabase) as unknown as RpcUntyped;
         const { data, error } = await rpcUntyped(
           staffId === 'any' ? 'get_available_slots_any' : 'get_available_slots_staff',
           staffId === 'any'
-            ? { p_service_id: serviceId, p_date: date }
-            : { p_service_id: serviceId, p_date: date, p_staff_id: staffId },
+            ? { p_service_id: serviceId, p_date: date, ...dur }
+            : { p_service_id: serviceId, p_date: date, p_staff_id: staffId, ...dur },
         );
         if (error) throw error;
         return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
       }
-      const { data, error } = await supabase.rpc('get_available_slots', {
-        p_service_id: serviceId,
-        p_date: date,
-      });
+      const rpcPlain = supabase.rpc.bind(supabase) as unknown as RpcUntyped;
+      const { data, error } = await rpcPlain('get_available_slots', { p_service_id: serviceId, p_date: date, ...dur });
       if (error) throw error;
-      return (data ?? []).map((s) => s.start_at);
+      return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
     },
     enabled: enabled && !!serviceId && !!date,
     staleTime: 0,
