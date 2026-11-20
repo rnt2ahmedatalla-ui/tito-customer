@@ -166,7 +166,7 @@
     "confirmed": "مؤكد",
     "completed": "مكتمل",
     "cancelled": "ملغي",
-    "expired": "منتهي",
+    "expired": "انتهت مهلة الدفع",
     "no_show": "لم يحضر"
   },
   "errors": {
