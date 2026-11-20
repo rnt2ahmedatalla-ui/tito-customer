@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
+import { useCancelBooking } from '../bookings/useBookings';
 import { useAvailableSlots, useCreateBooking, useSubmitPayment, useBooking, useActiveStaff, useStaffServices, type StaffMember } from './useBooking';
 import { ProfileModal } from '@/components/layout/ProfileModal';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
@@ -236,6 +237,43 @@ export default function BookingPage() {
     }
   }, [booking.data?.hold_expires_at]);
 
+  const cancelHold = useCancelBooking();
+  const releaseUnpaidHolds = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from('bookings')
+        .select('id, pay_at_shop, payment:payments(status)')
+        .eq('user_id', user.id)
+        .eq('status', 'pending_payment');
+      const rows = (data ?? []) as unknown as Array<{ id: string; pay_at_shop: boolean | null; payment: { status?: string | null } | Array<{ status?: string | null }> | null }>;
+      for (const r of rows) {
+        const pays = Array.isArray(r.payment) ? r.payment : r.payment ? [r.payment] : [];
+        const sent = pays.some((p) => p.status === 'submitted' || p.status === 'rejected' || p.status === 'confirmed');
+        if (!r.pay_at_shop && !sent) {
+          await supabase.rpc('customer_cancel_booking', { p_booking_id: r.id });
+        }
+      }
+    } catch {
+      /* مش مشكلة لو معرفناش نلغي، الحجز بينتهي لوحده */
+    }
+  };
+
+  // الزبون في صفحة الدفع وعايز يرجع/يغيّر طريقة الدفع: بنفك حجز المعاد الأول
+  const backFromPayment = async (thenPayAtShop: boolean) => {
+    if (!booking.data) return;
+    try {
+      await cancelHold.mutateAsync(booking.data.id);
+    } catch {
+      return;
+    }
+    if (thenPayAtShop) {
+      await handleConfirmBooking(true);
+    } else {
+      updateParams({ step: 'review', booking: null, pay_at_shop: null });
+    }
+  };
+
   const handleConfirmBooking = async (payAtShop = false) => {
     setPayAtShopChosen(payAtShop);
     try {
@@ -261,6 +299,9 @@ export default function BookingPage() {
       return;
     }
     if (!serviceId || !slot) return;
+
+    // أي حجز قديم متعلّق مستني دفع (والزبون مدفعش) بنلغيه الأول عشان مايفضلش حاجز المعاد
+    await releaseUnpaidHolds();
 
     try {
       const id = await createBooking.mutateAsync({
@@ -683,6 +724,21 @@ export default function BookingPage() {
                   onExpired={() => setHoldExpired(true)}
                 />
               ) : null}
+              <div className="flex flex-col gap-2 rounded-card border border-default bg-sand/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-ink-70">
+                  {i18n.language?.startsWith('ar') ? 'مش عايز تدفع أونلاين؟' : 'Prefer not to pay online?'}
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  {settings.data.allow_pay_at_shop && !prepayRequired ? (
+                    <Button size="sm" variant="secondary" loading={cancelHold.isPending} onClick={() => void backFromPayment(true)}>
+                      {i18n.language?.startsWith('ar') ? 'ادفع في المحل بدل كده' : 'Pay at the shop instead'}
+                    </Button>
+                  ) : null}
+                  <Button size="sm" variant="ghost" loading={cancelHold.isPending} onClick={() => void backFromPayment(false)}>
+                    {i18n.language?.startsWith('ar') ? 'رجوع للتعديل' : 'Go back'}
+                  </Button>
+                </div>
+              </div>
               <PaymentPanel
                 amount={booking.data.price_egp}
                 settings={settings.data}

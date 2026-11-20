@@ -203,7 +203,12 @@ export default function BookingsPage() {
   const now = new Date();
 
   const { upcoming, past } = useMemo(() => {
-    const all = bookings.data ?? [];
+    // الحجز اللي مستني دفع والزبون مدفعش (أو ماتدفعش وانتهى) مبنعرضوش، يظهر بس لما الدفع يتبعت أو يتأكد
+    const all = (bookings.data ?? []).filter((b) => {
+      if (b.status === 'expired') return false;
+      if (b.status === 'pending_payment' && !b.pay_at_shop && !(b.payment && ['submitted', 'rejected', 'confirmed'].includes(String(b.payment.status)))) return false;
+      return true;
+    });
     const up: BookingWithDetails[] = [];
     const pa: BookingWithDetails[] = [];
     all.forEach((b) => {
