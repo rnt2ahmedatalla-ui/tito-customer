@@ -1,83 +1,102 @@
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Star, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { formatInTimeZone } from 'date-fns-tz';
-import { useFeatureFlags, useMyPackages, useBarbersNow, type BarberNow, useRateableBooking, useVisitStatus } from './useExtras';
+import { useAuth } from '@/features/profile/useAuth';
+import { useFeatureFlags, useMyPackages, useBarbersNow, useMyWaitlist, useWaitlistActions, type BarberNow, useRateableBooking, useVisitStatus } from './useExtras';
 
-/** حالة كل حلاق دلوقتي: لو دست على حلاق بتروح تحجز معاه (بتختفي لو المحل مقفول أو فيه حلاق واحد بس) */
+/** الحلاقين الفاضيين دلوقتي أو اللي هيفضوا خلال كام ساعة (الأدمن بيحددها). بتختفي لو المحل مقفول أو فيه حلاق واحد بس */
 export function WaitEstimateCard() {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
   const L = (ar: string, en: string) => (isAr ? ar : en);
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const flags = useFeatureFlags();
   const on = !!flags.data?.waitEstimate;
   const list = useBarbersNow(on);
+  const today = formatInTimeZone(new Date(), 'Africa/Cairo', 'yyyy-MM-dd');
+  const mine = useMyWaitlist(today, !!flags.data?.waitlist);
+  const { join, cancel } = useWaitlistActions();
   if (!on || !list.data || list.data.length < 2) return null;
+
+  const hours = flags.data?.waitWindowHours ?? 3;
+  const limit = Date.now() + hours * 3600_000;
   const fmt = (iso: string) => {
     const f = formatInTimeZone(iso, 'Africa/Cairo', 'h:mm a');
     return isAr ? f.replace('AM', 'ص').replace('PM', 'م') : f;
   };
-  const text = (b: BarberNow): string => {
-    const n = b.next_start ? fmt(b.next_start) : null;
-    switch (b.state) {
-      case 'free':
-        return n ? L(`فاضي دلوقتي · لحد ${n}`, `Free now · until ${n}`) : L('فاضي دلوقتي · لحد آخر اليوم', 'Free now · rest of the day');
-      case 'busy':
-        return (b.until ? L(`مشغول لحد ${fmt(b.until)}`, `Busy until ${fmt(b.until)}`) : L('مشغول', 'Busy')) +
-          (n ? L(` · وبعدها فاضي لحد ${n}`, ` · then free until ${n}`) : L(' · وبعدها فاضي', ' · then free'));
-      case 'break': {
-        const brk = b.reason_until ?? b.until;
-        const head = brk ? L(`في استراحة لحد ${fmt(brk)}`, `On break until ${fmt(brk)}`) : L('في استراحة', 'On break');
-        // لو بعد الاستراحة على طول فيه حجز، نقول الوقت اللي هيفضى فيه فعلاً
-        return b.until && brk && new Date(b.until).getTime() - new Date(brk).getTime() > 60_000
-          ? head + L(` · وبعدها عنده حجوزات لحد ${fmt(b.until)}`, ` · then booked until ${fmt(b.until)}`)
-          : head;
+  // فاضي دلوقتي، أو هيفضى (أو هيبدأ شغله) خلال الساعات المحددة
+  const rows = list.data
+    .map((b) => {
+      if (b.state === 'free') return { b, at: null as string | null };
+      if ((b.state === 'busy' || b.state === 'break' || b.state === 'not_started') && b.until && new Date(b.until).getTime() <= limit) {
+        return { b, at: b.until };
       }
-      case 'not_started':
-        return b.until ? L(`بيبدأ شغله الساعة ${fmt(b.until)}`, `Starts at ${fmt(b.until)}`) : L('لسه مبدأش', 'Not started yet');
-      case 'finished':
-        return L('خلّص شغل النهاردة', 'Done for today');
-      default:
-        return L('إجازة النهاردة', 'Off today');
-    }
-  };
+      return null;
+    })
+    .filter((x): x is { b: BarberNow; at: string | null } => x !== null)
+    .sort((x, y) => (x.at ? new Date(x.at).getTime() : 0) - (y.at ? new Date(y.at).getTime() : 0));
+
   return (
     <div className="w-full max-w-md rounded-card border border-cream/20 bg-cream/10 p-3 text-cream backdrop-blur-sm">
       <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-gold-soft">
-        {L('الحلاقين دلوقتي — دوس على حلاق واحجز معاه', 'Barbers right now — tap one to book')}
+        {L('متاح دلوقتي', 'Available now')}
       </p>
-      <ul className="space-y-1.5">
-        {list.data.map((b) => {
-          const bookable = b.state !== 'off' && b.state !== 'finished';
-          const inner = (
-            <>
-              <span
-                className={`mt-1.5 size-2.5 shrink-0 rounded-full ${b.state === 'free' ? 'bg-emerald-400' : bookable ? 'bg-gold' : 'bg-cream/40'}`}
-                aria-hidden
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{b.name}</p>
-                <p className="text-cream/80">{text(b)}</p>
-              </div>
-            </>
-          );
-          return (
+      {rows.length > 0 ? (
+        <ul className="space-y-1.5">
+          {rows.map(({ b, at }) => (
             <li key={b.id}>
-              {bookable ? (
-                <Link to={`/book?staff=${b.id}`} className="flex min-w-0 items-start gap-2.5 rounded-btn bg-black/15 px-3 py-2 text-sm transition hover:bg-black/25">
-                  {inner}
-                </Link>
-              ) : (
-                <div className="flex min-w-0 items-start gap-2.5 rounded-btn bg-black/10 px-3 py-2 text-sm opacity-70">{inner}</div>
-              )}
+              <Link to={`/book?staff=${b.id}`} className="flex min-w-0 items-center gap-2.5 rounded-btn bg-black/15 px-3 py-2.5 text-sm transition hover:bg-black/25">
+                <span className={`size-2.5 shrink-0 rounded-full ${at ? 'bg-gold' : 'bg-emerald-400'}`} aria-hidden />
+                <span className="min-w-0 flex-1 truncate font-semibold">{b.name}</span>
+                <span className="shrink-0 text-cream/80">
+                  {at ? L(`هيفضى ${fmt(at)}`, `Free at ${fmt(at)}`) : L('فاضي دلوقتي', 'Free now')}
+                </span>
+              </Link>
             </li>
-          );
-        })}
-      </ul>
-      <p className="mt-2 px-1 text-xs text-cream/60">
-        {L('مفيش معاد يناسبك؟ كمّل الحجز وسجّل في قايمة الانتظار.', 'No suitable time? Continue booking and join the waiting list.')}
-      </p>
+          ))}
+        </ul>
+      ) : (
+        <p className="rounded-btn bg-black/15 px-3 py-2.5 text-sm text-cream/85">
+          {L(`مفيش حلاق فاضي خلال ${hours} ساعات الجاية.`, `No barber is free within the next ${hours} hours.`)}
+        </p>
+      )}
+      {flags.data?.waitlist ? (
+        <div className="mt-2 px-1">
+          {mine.data ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <span className="text-gold-soft">{L('إنت في قايمة الانتظار النهاردة ✅', 'You are on today’s waiting list ✅')}</span>
+              <button type="button" className="min-h-9 text-xs text-cream/70 underline" onClick={() => cancel.mutate(mine.data!.id)}>
+                {L('إلغاء', 'Leave')}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={join.isPending}
+              className="min-h-11 w-full rounded-btn border border-gold/60 px-3 text-sm font-medium text-gold-soft transition hover:bg-gold/10 disabled:opacity-60"
+              onClick={() => {
+                if (!user) {
+                  navigate('/book');
+                  return;
+                }
+                join.mutate(
+                  { service: null, day: today, note: '' },
+                  {
+                    onSuccess: () => toast.success(L('اتسجّلت في قايمة الانتظار، هنبلّغك لو فضي معاد', 'Added to the waiting list')),
+                    onError: () => toast.error(L('مقدرناش نسجّلك، جرّب تاني', 'Could not add you, try again')),
+                  },
+                );
+              }}
+            >
+              {L('سجّلني في قايمة الانتظار', 'Join the waiting list')}
+            </button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
