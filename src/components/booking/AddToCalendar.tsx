@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { CalendarPlus } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { downloadIcs, googleCalendarUrl, isAndroid, isIOS, addToPhoneCalendar, type IcsEvent } from '@/lib/ics';
 import { useSettings } from '@/features/home/useHomeData';
 
@@ -15,7 +14,6 @@ export function AddToCalendar({
   startAt,
   endAt,
   serviceName,
-  tone = 'secondary',
 }: {
   id: string;
   startAt: string;
@@ -38,21 +36,28 @@ export function AddToCalendar({
   };
   const phone = isAndroid() || isIOS();
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-      <Button
-        size="sm"
-        variant={tone === 'gold' ? 'primary' : 'secondary'}
-        className="w-full sm:w-auto"
-        onClick={() => (phone ? void addToPhoneCalendar(event) : downloadIcs(event, 'tito-booking.ics'))}
-      >
-        <CalendarPlus className="size-4" aria-hidden />
-        {isAr ? 'ضيف للتقويم' : 'Add to calendar'}
-      </Button>
-      <a href={googleCalendarUrl(event)} target="_blank" rel="noopener noreferrer" className="sm:w-auto">
-        <Button size="sm" variant="ghost" className="w-full sm:w-auto">
-          {isAr ? 'جوجل كاليندر' : 'Google Calendar'}
-        </Button>
-      </a>
+    <div className="flex items-center justify-between gap-3 rounded-btn border border-gold/40 bg-gold/10 px-3 py-2.5">
+      <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-espresso">
+        <CalendarPlus className="size-5 shrink-0 text-gold" aria-hidden />
+        <span className="truncate">{isAr ? 'ضيف الميعاد لتقويمك' : 'Add to your calendar'}</span>
+      </span>
+      <span className="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => (phone ? void addToPhoneCalendar(event) : downloadIcs(event, 'tito-booking.ics'))}
+          className="min-h-9 rounded-full bg-espresso px-3.5 text-xs font-semibold text-cream transition hover:opacity-90"
+        >
+          {phone ? (isAr ? 'التقويم' : 'Calendar') : isAr ? 'تنزيل' : 'Download'}
+        </button>
+        <a
+          href={googleCalendarUrl(event)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-9 items-center rounded-full border border-espresso/30 bg-white px-3.5 text-xs font-semibold text-espresso transition hover:bg-sand"
+        >
+          Google
+        </a>
+      </span>
     </div>
   );
 }
