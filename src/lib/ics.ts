@@ -80,22 +80,19 @@ export const isIOS = (): boolean =>
   (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 /**
- * أندرويد: بيفتح تطبيق التقويم اللي في التليفون (أي تقويم: جوجل، سامسونج...) على شاشة "إضافة حدث" والبيانات جاهزة.
- * لو مفيش تطبيق تقويم بيفتح جوجل كاليندر على الويب.
+ * أندرويد/آيفون: بنفتح قايمة المشاركة بالملف (.ics) فتختار "التقويم" وبيفتح على شاشة الإضافة والبيانات جاهزة.
+ * (المتصفح مبيسمحش يفتح تطبيق التقويم على طول، دي أقرب طريقة ببلاش). لو الجهاز مش بيدعمها بننزّل الملف.
  */
-export function openAndroidCalendar(event: IcsEvent): void {
-  const begin = parseISO(event.startAtUtc).getTime();
-  const end = parseISO(event.endAtUtc).getTime();
-  const enc = encodeURIComponent;
-  const parts = [
-    'action=android.intent.action.INSERT',
-    'type=vnd.android.cursor.dir/event',
-    `S.title=${enc(event.title)}`,
-    `S.description=${enc(event.description)}`,
-    `S.eventLocation=${enc(event.location)}`,
-    `l.beginTime=${begin}`,
-    `l.endTime=${end}`,
-    `S.browser_fallback_url=${enc(googleCalendarUrl(event))}`,
-  ];
-  window.location.href = `intent:#Intent;${parts.join(';')};end`;
+export async function addToPhoneCalendar(event: IcsEvent, filename = 'tito-booking.ics'): Promise<void> {
+  try {
+    const file = new File([generateIcs(event)], filename, { type: 'text/calendar' });
+    const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
+    if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
+      await nav.share({ files: [file], title: event.title });
+      return;
+    }
+  } catch (e) {
+    if ((e as { name?: string })?.name === 'AbortError') return; // الزبون قفل القايمة
+  }
+  downloadIcs(event, filename);
 }
