@@ -608,6 +608,7 @@ export default function BookingPage() {
                 onSelect={(s) => updateParams({ slot: s })}
                 isLoading={slots.isLoading}
                 isError={slots.isError}
+                errorDetail={slots.error ? String((slots.error as { message?: string }).message ?? slots.error).slice(0, 220) : undefined}
                 onRetry={() => slots.refetch()}
               />
               {featureFlags.data?.waitlist && user && !slots.isLoading && !slots.isError ? (
