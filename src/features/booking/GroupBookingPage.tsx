@@ -33,7 +33,7 @@ type Service = {
   description_en?: string | null;
 };
 type PayChoice = 'shop' | 'instapay' | 'vodafone_cash';
-type Pick = { serviceId: string; date: string; slot: string | null; extras: string[]; staff: string | null };
+type Pick = { uid: string; serviceId: string; date: string; slot: string | null; extras: string[]; staff: string | null };
 
 // دوال الحجز الجديدة مش في أنواع المشروع، فبنعدّي النوع يدوياً
 const rpcAny = (name: string, args: Record<string, unknown>) =>
@@ -151,14 +151,26 @@ export default function GroupBookingPage() {
   // لو الأدمن قفل الدفع في المحل والعميل كان مختاره، بنشيله
   const activeMethod = method && availableMethods.includes(method) ? method : null;
 
-  const toggleService = (id: string) => {
+  const MAX_PEOPLE = 3;
+  const qtyOf = (id: string) => picks.filter((p) => p.serviceId === id).length;
+  // زيادة شخص بنفس الخدمة (أو بخدمة جديدة)
+  const addPerson = (id: string) => {
     setError(null);
     setPicks((prev) => {
-      if (prev.some((p) => p.serviceId === id)) return prev.filter((p) => p.serviceId !== id);
-      if (prev.length >= 3) return prev;
-      return [...prev, { serviceId: id, date: prev[0]?.date ?? todayStr(), slot: null, extras: [], staff: null }];
+      if (prev.length >= MAX_PEOPLE) return prev;
+      const uid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      return [...prev, { uid, serviceId: id, date: prev[0]?.date ?? todayStr(), slot: null, extras: [], staff: null }];
     });
   };
+  // نقص شخص من الخدمة دي (آخر واحد اتضاف)
+  const removePerson = (id: string) => {
+    setError(null);
+    setPicks((prev) => {
+      const i = prev.map((p) => p.serviceId).lastIndexOf(id);
+      return i < 0 ? prev : prev.filter((_, k) => k !== i);
+    });
+  };
+  const clearService = (id: string) => setPicks((prev) => prev.filter((p) => p.serviceId !== id));
 
   const durationOf = (serviceId: string) => Number(byId.get(serviceId)?.duration_minutes ?? 0);
   const endOf = (p: Pick): number | null =>
@@ -404,20 +416,51 @@ export default function GroupBookingPage() {
 
         {step === 'services' ? (
           <section className="space-y-3">
-            <p className="font-semibold text-espresso">{isAr ? 'اختار الخدمات (لحد 3، كل خدمة لشخص)' : 'Pick services (up to 3, one per person)'}</p>
+            <p className="font-semibold text-espresso">{isAr ? 'اختار الخدمة لكل شخص (لحد 3 أشخاص)' : 'Pick a service for each person (up to 3 people)'}</p>
             <p className="text-xs text-ink-70">
-              {isAr ? `اخترت ${picks.length} من 3` : `${picks.length} of 3 selected`}
+              {isAr
+                ? `عدد الأشخاص: ${picks.length} من 3. لو اتنين هيحلقوا نفس الخدمة دوس + تحت الخدمة.`
+                : `People: ${picks.length} of 3. If two people want the same service, tap + under it.`}
             </p>
             {servicesQuery.isLoading ? <Skeleton className="h-32" /> : (
               <div className="grid gap-2.5 sm:grid-cols-2">
-                {services.map((s) => (
-                  <ServiceCard
-                    key={s.id}
-                    service={s}
-                    selected={picks.some((p) => p.serviceId === s.id)}
-                    onSelect={() => toggleService(s.id)}
-                  />
-                ))}
+                {services.map((s) => {
+                  const q = qtyOf(s.id);
+                  return (
+                    <div key={s.id} className="space-y-1.5">
+                      <ServiceCard
+                        service={s}
+                        selected={q > 0}
+                        onSelect={() => (q > 0 ? clearService(s.id) : addPerson(s.id))}
+                      />
+                      {q > 0 ? (
+                        <div className="flex items-center justify-between gap-3 rounded-btn bg-gold/10 px-3 py-2">
+                          <span className="text-sm font-medium text-espresso">{isAr ? 'عدد الأشخاص بالخدمة دي' : 'People for this service'}</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              aria-label={isAr ? 'نقص' : 'Less'}
+                              className="flex size-10 items-center justify-center rounded-full border border-gold/60 bg-white text-xl font-semibold text-espresso"
+                              onClick={() => removePerson(s.id)}
+                            >
+                              −
+                            </button>
+                            <span className="w-8 text-center font-latin text-lg font-bold text-espresso">{q}</span>
+                            <button
+                              type="button"
+                              aria-label={isAr ? 'زوّد' : 'More'}
+                              disabled={picks.length >= MAX_PEOPLE}
+                              className="flex size-10 items-center justify-center rounded-full border border-gold/60 bg-white text-xl font-semibold text-espresso disabled:opacity-40"
+                              onClick={() => addPerson(s.id)}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             )}
             <Button className="w-full" disabled={picks.length === 0} onClick={() => setStep('times')}>
@@ -430,7 +473,7 @@ export default function GroupBookingPage() {
           <section className="space-y-5">
             {picks.map((p, idx) => (
               <SlotPicker
-                key={p.serviceId}
+                key={p.uid}
                 index={idx}
                 serviceId={p.serviceId}
                 label={nameOf(byId.get(p.serviceId) ?? { id: '', name_ar: '', name_en: '', price_egp: 0, duration_minutes: 0 })}
@@ -468,7 +511,7 @@ export default function GroupBookingPage() {
               {picks.map((p, idx) => {
                 const s = byId.get(p.serviceId);
                 return (
-                  <li key={p.serviceId} className="flex items-start justify-between gap-3 p-3 text-sm">
+                  <li key={p.uid} className="flex items-start justify-between gap-3 p-3 text-sm">
                     <span className="min-w-0 break-words">
                       <span className="block text-xs text-ink-70">{isAr ? `الشخص ${idx + 1}` : `Person ${idx + 1}`}</span>
                       <span className="font-medium text-espresso">{s ? nameOf(s) : ''}</span>
@@ -607,7 +650,7 @@ export default function GroupBookingPage() {
               {picks.map((p, idx) => {
                 const s = byId.get(p.serviceId);
                 return (
-                  <li key={p.serviceId} className="flex items-center justify-between gap-3 p-3">
+                  <li key={p.uid} className="flex items-center justify-between gap-3 p-3">
                     <span>{isAr ? `الشخص ${idx + 1}` : `Person ${idx + 1}`} · {s ? nameOf(s) : ''}{staffLabel(p) ? ` · ${staffLabel(p)}` : ''}</span>
                     <span className="font-latin text-xs text-ink-70">{p.slot ? formatCairoTime(p.slot, i18n.language) : ''}</span>
                   </li>

@@ -166,7 +166,7 @@
     "confirmed": "Confirmed",
     "completed": "Completed",
     "cancelled": "Cancelled",
-    "expired": "Expired",
+    "expired": "Payment time ran out",
     "no_show": "No show"
   },
   "errors": {
