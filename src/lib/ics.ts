@@ -73,3 +73,29 @@ export function googleCalendarUrl(event: IcsEvent): string {
   });
   return `https://calendar.google.com/calendar/render?${q.toString()}`;
 }
+
+export const isAndroid = (): boolean => typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+export const isIOS = (): boolean =>
+  typeof navigator !== 'undefined' &&
+  (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+/**
+ * أندرويد: بيفتح تطبيق التقويم اللي في التليفون (أي تقويم: جوجل، سامسونج...) على شاشة "إضافة حدث" والبيانات جاهزة.
+ * لو مفيش تطبيق تقويم بيفتح جوجل كاليندر على الويب.
+ */
+export function openAndroidCalendar(event: IcsEvent): void {
+  const begin = parseISO(event.startAtUtc).getTime();
+  const end = parseISO(event.endAtUtc).getTime();
+  const enc = encodeURIComponent;
+  const parts = [
+    'action=android.intent.action.INSERT',
+    'type=vnd.android.cursor.dir/event',
+    `S.title=${enc(event.title)}`,
+    `S.description=${enc(event.description)}`,
+    `S.eventLocation=${enc(event.location)}`,
+    `l.beginTime=${begin}`,
+    `l.endTime=${end}`,
+    `S.browser_fallback_url=${enc(googleCalendarUrl(event))}`,
+  ];
+  window.location.href = `intent:#Intent;${parts.join(';')};end`;
+}

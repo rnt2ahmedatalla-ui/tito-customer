@@ -1,10 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { downloadIcs, googleCalendarUrl, type IcsEvent } from '@/lib/ics';
+import { downloadIcs, googleCalendarUrl, isAndroid, isIOS, openAndroidCalendar, type IcsEvent } from '@/lib/ics';
 import { useSettings } from '@/features/home/useHomeData';
 
-/** إضافة المعاد لتقويم التليفون مع تنبيه قبله بيوم وبساعتين (من التليفون نفسه، ببلاش) */
+/**
+ * إضافة المعاد لتقويم التليفون:
+ * - أندرويد: بيفتح تطبيق التقويم اللي عندك على طول والبيانات مكتوبة (من غير ما ينزّل ملف)
+ * - آيفون: بيفتح التقويم بتاع آيفون بشاشة "إضافة" (فيها تنبيه قبل الميعاد بيوم وبساعتين)
+ * - الكمبيوتر: ملف تقويم أو جوجل كاليندر
+ */
 export function AddToCalendar({
   id,
   startAt,
@@ -31,17 +36,26 @@ export function AddToCalendar({
     endAtUtc: endAt,
     alarmsMinutes: [120, 1440],
   };
+  const android = isAndroid();
+  const desktop = !android && !isIOS();
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-      <Button size="sm" variant={tone === 'gold' ? 'primary' : 'secondary'} className="w-full sm:w-auto" onClick={() => downloadIcs(event, 'tito-booking.ics')}>
+      <Button
+        size="sm"
+        variant={tone === 'gold' ? 'primary' : 'secondary'}
+        className="w-full sm:w-auto"
+        onClick={() => (android ? openAndroidCalendar(event) : downloadIcs(event, 'tito-booking.ics'))}
+      >
         <CalendarPlus className="size-4" aria-hidden />
-        {isAr ? 'ضيف للتقويم (مع تذكير)' : 'Add to calendar (with reminder)'}
+        {isAr ? 'ضيف للتقويم' : 'Add to calendar'}
       </Button>
-      <a href={googleCalendarUrl(event)} target="_blank" rel="noopener noreferrer" className="sm:w-auto">
-        <Button size="sm" variant="ghost" className="w-full sm:w-auto">
-          {isAr ? 'جوجل كاليندر' : 'Google Calendar'}
-        </Button>
-      </a>
+      {desktop ? (
+        <a href={googleCalendarUrl(event)} target="_blank" rel="noopener noreferrer" className="sm:w-auto">
+          <Button size="sm" variant="ghost" className="w-full sm:w-auto">
+            {isAr ? 'جوجل كاليندر' : 'Google Calendar'}
+          </Button>
+        </a>
+      ) : null}
     </div>
   );
 }
