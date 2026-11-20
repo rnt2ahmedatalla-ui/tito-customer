@@ -145,6 +145,7 @@ export function useVisitStatus() {
     queryKey: ['visit-status', user?.id],
     enabled: !!user,
     queryFn: async (): Promise<VisitStatus> => {
+      await db.rpc('auto_complete_bookings'); // لو الأدمن فعّلها: الحجز اللي عدّى وقته يتحسب "تم"
       const { data, error } = await db.rpc('my_visit_status');
       if (error || !data) return { enabled: false };
       return data as VisitStatus;
@@ -179,6 +180,7 @@ export function useRateableBooking() {
     queryKey: ['rateable-latest', user?.id],
     enabled: !!user,
     queryFn: async (): Promise<RateableBooking | null> => {
+      await db.rpc('auto_complete_bookings');
       const since = new Date(Date.now() - 14 * 86400_000).toISOString();
       const { data, error } = await db
         .from('bookings')
