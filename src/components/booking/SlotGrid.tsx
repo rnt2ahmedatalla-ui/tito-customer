@@ -10,10 +10,11 @@ interface SlotGridProps {
   onSelect: (slot: string) => void;
   isLoading: boolean;
   isError: boolean;
+  errorDetail?: string;
   onRetry: () => void;
 }
 
-export function SlotGrid({ slots, selectedSlot, onSelect, isLoading, isError, onRetry }: SlotGridProps) {
+export function SlotGrid({ slots, selectedSlot, onSelect, isLoading, isError, errorDetail, onRetry }: SlotGridProps) {
   const { t, i18n } = useTranslation();
 
   if (isLoading) {
@@ -30,6 +31,7 @@ export function SlotGrid({ slots, selectedSlot, onSelect, isLoading, isError, on
     return (
       <div className="flex flex-col items-center gap-3 py-8 text-center" role="alert">
         <p className="text-ink">{t('errors.UNKNOWN')}</p>
+        {errorDetail ? <p className="max-w-full break-words px-4 text-[11px] text-ink/50" dir="ltr">{errorDetail}</p> : null}
         <Button variant="secondary" onClick={onRetry}>{t('booking.retry')}</Button>
       </div>
     );

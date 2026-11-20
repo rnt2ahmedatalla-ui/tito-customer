@@ -25,30 +25,47 @@ function useRows(): Row[] {
   return (q.data ?? []) as unknown as Row[];
 }
 
-/** كارت في الرئيسية: احجز نفس آخر حلاقة بضغطة (نفس الخدمة ونفس الحلاق) */
+/** كارت أعلى الرئيسية: احجز نفس آخر حلاقة بضغطة (نفس الخدمة ونفس الحلاق). ينفع تخفيه بـ ✕ */
 export function QuickRebook() {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
   const rows = useRows();
+  const [hidden, setHidden] = useState<string | null>(() => {
+    try { return localStorage.getItem('tito_rebook_hidden'); } catch { return null; }
+  });
   const hasUpcoming = rows.some((r) => r.status === 'confirmed' && new Date(r.start_at) > new Date());
   const last = rows.find((r) => r.status === 'completed' || (r.status === 'confirmed' && new Date(r.start_at) <= new Date()));
-  if (!last || !last.service_id || hasUpcoming) return null;
+  if (!last || !last.service_id || hasUpcoming || hidden === last.id) return null;
   const qs = new URLSearchParams({ step: 'datetime', service: last.service_id });
   if (last.staff_id) qs.set('staff', last.staff_id);
   const name = isAr ? last.service_name_ar : last.service_name_en || last.service_name_ar;
+  const hide = () => {
+    setHidden(last.id);
+    try { localStorage.setItem('tito_rebook_hidden', last.id); } catch { /* ignore */ }
+  };
   return (
-    <Link
-      to={`/book?${qs.toString()}`}
-      className="flex items-center gap-3 rounded-card border border-gold/50 bg-white p-4 shadow-warm transition-transform active:scale-[0.99]"
-    >
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold/20 text-espresso">
-        <RotateCcw className="size-5" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-semibold text-espresso">{isAr ? 'احجز نفس الحلاقة' : 'Book the same again'}</span>
-        <span className="block truncate text-sm text-ink">{name ? (isAr ? `${name} — اختار الميعاد بس` : `${name} — just pick a time`) : ''}</span>
-      </span>
-    </Link>
+    <div className="relative animate-rise">
+      <Link
+        to={`/book?${qs.toString()}`}
+        className="flex items-center gap-3 rounded-card border border-gold/50 bg-cream p-3.5 pe-12 shadow-warm-raised transition-transform active:scale-[0.99]"
+      >
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold/25 text-espresso">
+          <RotateCcw className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold text-espresso">{isAr ? 'احجز نفس الحلاقة' : 'Book the same again'}</span>
+          <span className="block truncate text-sm text-ink">{name ? (isAr ? `${name} — اختار الميعاد بس` : `${name} — just pick a time`) : ''}</span>
+        </span>
+      </Link>
+      <button
+        type="button"
+        onClick={hide}
+        aria-label={isAr ? 'إخفاء' : 'Dismiss'}
+        className="absolute end-2 top-2 flex size-8 items-center justify-center rounded-full text-ink/60 hover:bg-sand"
+      >
+        <X className="size-4" />
+      </button>
+    </div>
   );
 }
 

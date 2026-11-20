@@ -195,6 +195,7 @@ export default function HomePage() {
         />
 
         <div className="relative mx-auto w-full max-w-5xl px-4 pb-24 pt-16 sm:px-5 sm:pb-24 sm:pt-28">
+          <div className="mb-5 empty:hidden"><QuickRebook /></div>
           <Logo variant="dark" mark height={56} className="animate-rise sm:!h-[72px]" />
           {settings.isLoading ? (
             <div className="mt-4 space-y-3">
@@ -294,7 +295,6 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-5xl space-y-3 px-5 pt-6 empty:hidden">
         <InactiveBanner />
-        <QuickRebook />
         <RatePrompt />
       </section>
 
