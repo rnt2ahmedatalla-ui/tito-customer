@@ -100,7 +100,7 @@ export default function BookingPage() {
   const chosenStaff = activeStaff.find((m) => m.id === staffId) ?? null;
   const featureFlags = useFeatureFlags();
   const prepayRequired = usePrepayRequired().data === true;
-  const slots = useAvailableSlots(serviceId, date, staffSel, !noneOffers && (!staffNeeded || !!staffSel));
+  // (slots بتتحسب تحت بعد تعريف الخدمة والإضافات)
   const booking = useBooking(bookingId);
 
   const catalog = services.data ?? [];
@@ -120,6 +120,9 @@ export default function BookingPage() {
     mainServices.find((s) => s.id === serviceId) ??
     (booking.data?.service && !booking.data.service.is_extra ? booking.data.service : null) ??
     null;
+  const extraMinutes = selectedExtras.reduce((sum, e) => sum + Number((e as { duration_minutes?: number | string | null }).duration_minutes ?? 0), 0);
+  const durationMin = extraMinutes > 0 && selectedService ? Number(selectedService.duration_minutes) + extraMinutes : null;
+  const slots = useAvailableSlots(serviceId, date, staffSel, !noneOffers && (!staffNeeded || !!staffSel), durationMin);
   const orderSubtotal = (selectedService ? priceOf(selectedService, staffId) : 0) + extrasTotal;
   // لو "أي حلاق" وفيه حلاق ليه سعر مختلف، السعر النهائي بيتحدد حسب الحلاق
   const priceMayVary =
@@ -146,7 +149,7 @@ export default function BookingPage() {
     queries: dates.map((d) => {
       const key = formatDateKey(d);
       return {
-        queryKey: ['day-availability', serviceId, key, staffSel],
+        queryKey: ['day-availability', serviceId, key, staffSel, durationMin],
         queryFn: async (): Promise<number> => {
           if (staffSel) {
             const rpcStaff = supabase.rpc.bind(supabase) as unknown as (
@@ -156,18 +159,23 @@ export default function BookingPage() {
             const r = await rpcStaff(
               staffSel === 'any' ? 'get_available_slots_any' : 'get_available_slots_staff',
               staffSel === 'any'
-                ? { p_service_id: serviceId as string, p_date: key }
-                : { p_service_id: serviceId as string, p_date: key, p_staff_id: staffSel },
+                ? { p_service_id: serviceId as string, p_date: key, ...(durationMin ? { p_duration_min: durationMin } : {}) }
+                : { p_service_id: serviceId as string, p_date: key, p_staff_id: staffSel, ...(durationMin ? { p_duration_min: durationMin } : {}) },
             );
             if (r.error) throw r.error;
             return ((r.data ?? []) as unknown[]).length;
           }
-          const { data, error } = await supabase.rpc('get_available_slots', {
+          const rpcPlain = supabase.rpc.bind(supabase) as unknown as (
+            fn: string,
+            args: Record<string, unknown>,
+          ) => Promise<{ data: unknown; error: { message: string } | null }>;
+          const { data, error } = await rpcPlain('get_available_slots', {
             p_service_id: serviceId as string,
             p_date: key,
+            ...(durationMin ? { p_duration_min: durationMin } : {}),
           });
           if (error) throw error;
-          return (data ?? []).length;
+          return ((data ?? []) as unknown[]).length;
         },
         enabled: step === 'datetime' && !!serviceId && !noneOffers && (!staffNeeded || !!staffSel) && !closedDays.has(d.getDay()),
         staleTime: 60_000,

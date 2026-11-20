@@ -55,7 +55,7 @@ function RescheduleBox({
   const [error, setError] = useState<string | null>(null);
 
   const slotsQuery = useQuery({
-    queryKey: ['reschedule-slots', serviceId, date, staffId],
+    queryKey: ['reschedule-slots', serviceId, date, staffId, booking.duration_minutes],
     enabled: !!date && !!serviceId,
     queryFn: async () => {
       // لو الحجز على حلاق معين، المواعيد البديلة بتبقى بتاعته هو (جدوله واستراحاته)
@@ -63,9 +63,13 @@ function RescheduleBox({
         fn: string,
         a: Record<string, unknown>,
       ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      // لو الحجز فيه إضافات ليها وقت، المواعيد البديلة بتتحسب على مدته الكاملة
+      const bookingMin = Number(booking.duration_minutes ?? 0);
+      const svcMin = Number(booking.service?.duration_minutes ?? 0);
+      const dur: Record<string, unknown> = bookingMin > svcMin && svcMin > 0 ? { p_duration_min: bookingMin } : {};
       const { data, error: rpcErr } = staffId
-        ? await rpcUntyped('get_available_slots_staff', { p_service_id: serviceId, p_date: date, p_staff_id: staffId })
-        : await rpcUntyped('get_available_slots', { p_service_id: serviceId, p_date: date });
+        ? await rpcUntyped('get_available_slots_staff', { p_service_id: serviceId, p_date: date, p_staff_id: staffId, ...dur })
+        : await rpcUntyped('get_available_slots', { p_service_id: serviceId, p_date: date, ...dur });
       if (rpcErr) throw rpcErr;
       return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
     },

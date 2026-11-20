@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/layout/PageShell';
@@ -90,9 +90,16 @@ export default function MovePage() {
           </div>
         </div>
       ) : (
-        <p className="mt-6 text-lg text-espresso">
-          {t(`move.${status === 'accepted' || status === 'declined' || status === 'expired' || status === 'cancelled' || status === 'taken' ? status : 'missing'}`)}
-        </p>
+        <div className="mt-6 space-y-3">
+          <p className="text-lg text-espresso">
+            {t(`move.${status === 'accepted' || status === 'declined' || status === 'expired' || status === 'cancelled' || status === 'taken' ? status : 'missing'}`)}
+          </p>
+          {status === 'declined' || status === 'taken' || status === 'expired' ? (
+            <Link to="/book" className="inline-flex">
+              <Button variant="secondary">{i18n.language?.startsWith('ar') ? 'اختار معاد تاني' : 'Choose another time'}</Button>
+            </Link>
+          ) : null}
+        </div>
       )}
     </PageShell>
   );
