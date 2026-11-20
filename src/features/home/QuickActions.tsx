@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Clock, RotateCcw, X } from 'lucide-react';
+import { ArrowLeft, Clock, RotateCcw, X } from 'lucide-react';
 import { useAuth } from '@/features/profile/useAuth';
 import { useBookings, useCancelBooking } from '@/features/bookings/useBookings';
+import { useActiveStaff } from '@/features/booking/useBooking';
 
 type Row = {
   id: string;
@@ -30,6 +31,7 @@ export function QuickRebook() {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
   const rows = useRows();
+  const staff = useActiveStaff();
   const [hidden, setHidden] = useState<string | null>(() => {
     try { return localStorage.getItem('tito_rebook_hidden'); } catch { return null; }
   });
@@ -43,25 +45,42 @@ export function QuickRebook() {
     setHidden(last.id);
     try { localStorage.setItem('tito_rebook_hidden', last.id); } catch { /* ignore */ }
   };
+  const barber = (staff.data ?? []).find((s) => s.id === last.staff_id);
+  const multi = (staff.data ?? []).length > 1;
   return (
     <div className="relative animate-rise">
       <Link
         to={`/book?${qs.toString()}`}
-        className="flex items-center gap-3 rounded-card border border-gold/50 bg-cream p-3.5 pe-12 shadow-warm-raised transition-transform active:scale-[0.99]"
+        className="group relative flex items-center gap-3.5 overflow-hidden rounded-2xl border border-gold/40 bg-gradient-to-br from-[#4a2a17] to-[#2b1409] p-3.5 pe-12 shadow-warm-raised transition-transform active:scale-[0.985]"
       >
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold/25 text-espresso">
-          <RotateCcw className="size-5" />
+        <span className="pointer-events-none absolute -start-6 -top-8 size-28 rounded-full bg-gold/10 blur-2xl" aria-hidden />
+        <span className="relative shrink-0">
+          {barber?.photo ? (
+            <img src={barber.photo} alt={barber.name} className="size-14 rounded-full object-cover ring-2 ring-gold ring-offset-2 ring-offset-[#341A0E]" />
+          ) : (
+            <span className="flex size-14 items-center justify-center rounded-full bg-gold/20 font-latin text-xl font-bold text-gold ring-2 ring-gold ring-offset-2 ring-offset-[#341A0E]">
+              {barber ? barber.name.slice(0, 1).toUpperCase() : <RotateCcw className="size-6" />}
+            </span>
+          )}
+          <span className="absolute -bottom-1 -end-1 flex size-6 items-center justify-center rounded-full bg-gold text-espresso shadow">
+            <RotateCcw className="size-3.5" />
+          </span>
         </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold text-espresso">{isAr ? 'احجز نفس الحلاقة' : 'Book the same again'}</span>
-          <span className="block truncate text-sm text-ink">{name ? (isAr ? `${name} — اختار الميعاد بس` : `${name} — just pick a time`) : ''}</span>
+        <span className="relative min-w-0 flex-1">
+          <span className="block text-[11px] font-medium tracking-wide text-gold">{isAr ? 'زي آخر مرة' : 'Like last time'}</span>
+          <span className="block truncate text-base font-bold text-cream">
+            {name}{barber && multi ? (isAr ? ` مع ${barber.name}` : ` with ${barber.name}`) : ''}
+          </span>
+          <span className="mt-0.5 inline-flex items-center gap-1 text-xs text-cream/70">
+            {isAr ? 'اختار الميعاد بس' : 'Just pick a time'} <ArrowLeft className="size-3.5 rtl:rotate-0 ltr:rotate-180" />
+          </span>
         </span>
       </Link>
       <button
         type="button"
         onClick={hide}
         aria-label={isAr ? 'إخفاء' : 'Dismiss'}
-        className="absolute end-2 top-2 flex size-8 items-center justify-center rounded-full text-ink/60 hover:bg-sand"
+        className="absolute end-2 top-2 flex size-8 items-center justify-center rounded-full text-cream/60 hover:bg-cream/10"
       >
         <X className="size-4" />
       </button>
