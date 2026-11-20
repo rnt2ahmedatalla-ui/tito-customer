@@ -7,15 +7,15 @@ import { useAuth } from '@/features/profile/useAuth';
 const db = supabase as unknown as { from: (t: string) => any; rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: { message: string } | null }> };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-export type FeatureFlags = { waitlist: boolean; packages: boolean; waitEstimate: boolean };
+export type FeatureFlags = { waitlist: boolean; packages: boolean; waitEstimate: boolean; waitWindowHours: number };
 
 export function useFeatureFlags() {
   return useQuery({
     queryKey: ['feature-settings'],
     queryFn: async (): Promise<FeatureFlags> => {
       const { data, error } = await db.from('feature_settings').select('*').eq('id', 1).maybeSingle();
-      if (error || !data) return { waitlist: false, packages: false, waitEstimate: false };
-      return { waitlist: !!data.waitlist_enabled, packages: !!data.packages_enabled, waitEstimate: !!data.wait_estimate_enabled };
+      if (error || !data) return { waitlist: false, packages: false, waitEstimate: false, waitWindowHours: 3 };
+      return { waitlist: !!data.waitlist_enabled, packages: !!data.packages_enabled, waitEstimate: !!data.wait_estimate_enabled, waitWindowHours: Number(data.wait_window_hours ?? 3) || 3 };
     },
     staleTime: 60_000,
     retry: false,
