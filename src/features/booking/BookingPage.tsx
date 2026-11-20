@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/Button';
 import { ServiceCard } from '@/components/booking/ServiceCard';
 import { ExtraCard } from '@/components/booking/ExtraCard';
 import { DateStrip } from '@/components/booking/DateStrip';
+import { SeasonNotice } from '@/components/booking/SeasonNotice';
+import { useSeasons } from '@/features/booking/useSeasons';
 import { SlotGrid } from '@/components/booking/SlotGrid';
 import { WaitlistPrompt } from '@/features/extras/WaitlistPrompt';
 import { useFeatureFlags, usePrepayRequired } from '@/features/extras/useExtras';
@@ -49,6 +51,7 @@ const STEP_LABELS: Record<string, string> = {
 
 export default function BookingPage() {
   const { t, i18n } = useTranslation();
+  const seasons = useSeasons();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -591,8 +594,10 @@ export default function BookingPage() {
               selectedDate={date}
               closedDays={closedDays}
               fullyBookedDays={fullyBookedDays}
+              seasons={seasons.data}
               onSelect={(d) => updateParams({ date: d, slot: null })}
             />
+            <SeasonNotice dates={dates} seasons={seasons.data} />
           </div>
           {date && !noneOffers && (!staffNeeded || staffSel) ? (
             <div className="mt-6">
