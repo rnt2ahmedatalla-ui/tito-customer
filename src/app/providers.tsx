@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { useEffect } from 'react';
 import { supabase, getSupabaseOrigin } from '@/lib/supabase';
 import { AuthProvider } from '@/features/profile/useAuth';
+import { reloadOnceForNewVersion } from './ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,6 +20,12 @@ export { queryClient };
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
+    // بعد أي تحديث للموقع: لو ملف قديم اتشال، نحدّث الصفحة تلقائي بدل ما العميل يتطرد
+    const onPreloadError = (e: Event) => {
+      e.preventDefault();
+      reloadOnceForNewVersion();
+    };
+    window.addEventListener('vite:preloadError', onPreloadError);
     const origin = getSupabaseOrigin();
     const link = document.createElement('link');
     link.rel = 'preconnect';
@@ -65,6 +72,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       .subscribe();
 
     return () => {
+      window.removeEventListener('vite:preloadError', onPreloadError);
       void supabase.removeChannel(channel);
     };
   }, []);
