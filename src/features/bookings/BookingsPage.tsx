@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { MySpecialRequests } from '@/features/extras/SpecialRequest';
+import { Star as StarIcon, X as XIcon } from 'lucide-react';
+import { SpecialRequestsButton } from '@/features/extras/SpecialRequest';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
@@ -178,6 +179,13 @@ export default function BookingsPage() {
   const ledger = useLoyaltyLedger().data ?? [];
   const queryClientMain = useQueryClient();
   const balance = ledger.reduce((sum, r) => sum + r.points, 0);
+  const [pointsOpen, setPointsOpen] = useState(false);
+  const [introSeen, setIntroSeen] = useState(() => { try { return localStorage.getItem('tito_points_intro') === '1'; } catch { return true; } });
+  const pointsText = !loyalty
+    ? ''
+    : i18n.language === 'ar'
+      ? `بتكسب ${loyalty.points_per_100_egp} نقطة على كل 100 جنيه بعد ما الحجز يكتمل. كل نقطة بـ ${loyalty.egp_per_point} جنيه خصم (أقل استبدال ${loyalty.min_redeem_points} نقطة).`
+      : `Earn ${loyalty.points_per_100_egp} points per 100 EGP once a booking completes. Each point is worth ${loyalty.egp_per_point} EGP (min ${loyalty.min_redeem_points} points).`;
   const redeemedIds = new Set(ledger.filter((r) => r.kind === 'redeem' && r.booking_id).map((r) => r.booking_id as string));
   const redeem = useMutation({
     mutationFn: async ({ id, points }: { id: string; points: number }) => {
@@ -257,24 +265,40 @@ export default function BookingsPage() {
 
   return (
     <PageShell>
-      <h1 className="text-2xl font-bold text-espresso">{t('bookings.title')}</h1>
-      <div className="mt-3"><MySpecialRequests /></div>
-      {loyalty?.enabled ? (
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-espresso">{t('bookings.title')}</h1>
+        <div className="flex items-center gap-2">
+          <SpecialRequestsButton />
+          {loyalty?.enabled ? (
+            <button type="button" onClick={() => setPointsOpen(true)} aria-label={i18n.language === 'ar' ? 'نقاطك' : 'Your points'}
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 text-espresso">
+              <StarIcon className="size-5 fill-gold text-gold" aria-hidden />
+              <span className="font-latin text-base font-bold">{balance}</span>
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {loyalty?.enabled && !introSeen ? (
         <div className="mt-3 rounded-card border border-gold/40 bg-gold/10 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-espresso">{i18n.language === 'ar' ? '⭐ نقاطك' : '⭐ Your points'}</p>
-            <p className="font-latin text-lg font-bold text-espresso">{balance}</p>
-          </div>
-          <p className="mt-1 text-xs text-ink">
-            {i18n.language === 'ar'
-              ? `بتكسب ${loyalty.points_per_100_egp} نقطة على كل 100 جنيه بعد ما الحجز يكتمل. كل نقطة بـ ${loyalty.egp_per_point} جنيه خصم (أقل استبدال ${loyalty.min_redeem_points} نقطة).`
-              : `Earn ${loyalty.points_per_100_egp} points per 100 EGP once a booking completes. Each point is worth ${loyalty.egp_per_point} EGP (min ${loyalty.min_redeem_points} points).`}
-          </p>
-          {ledger.length > 0 ? (
-            <details className="mt-2 text-xs text-ink">
-              <summary className="cursor-pointer font-medium text-espresso">{i18n.language === 'ar' ? 'سجل النقاط' : 'Points history'}</summary>
-              <ul className="mt-1 space-y-1">
-                {ledger.slice(0, 15).map((r) => (
+          <p className="text-sm font-semibold text-espresso">{i18n.language === 'ar' ? '⭐ نظام النقاط' : '⭐ Points'}</p>
+          <p className="mt-1 text-xs text-ink">{pointsText}</p>
+          <Button size="sm" className="mt-2" onClick={() => { try { localStorage.setItem('tito_points_intro', '1'); } catch { /* ignore */ } setIntroSeen(true); }}>
+            {i18n.language === 'ar' ? 'فهمت' : 'Got it'}
+          </Button>
+        </div>
+      ) : null}
+      {pointsOpen && loyalty?.enabled ? (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center p-3 sm:items-center" role="dialog" aria-modal>
+          <div className="absolute inset-0 bg-espresso/50" onClick={() => setPointsOpen(false)} aria-hidden />
+          <div className="relative max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-card bg-white p-4 shadow-warm-raised">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-espresso">{i18n.language === 'ar' ? '⭐ نقاطك' : '⭐ Your points'}: <span className="font-latin">{balance}</span></h2>
+              <button type="button" aria-label="close" onClick={() => setPointsOpen(false)} className="p-1 text-ink"><XIcon className="size-5" /></button>
+            </div>
+            <p className="text-xs text-ink">{pointsText}</p>
+            {ledger.length > 0 ? (
+              <ul className="mt-3 space-y-1 text-xs text-ink">
+                {ledger.slice(0, 30).map((r) => (
                   <li key={r.id} className="flex justify-between gap-2">
                     <span>
                       {r.kind === 'earn' ? (i18n.language === 'ar' ? 'كسبت' : 'Earned') : r.kind === 'redeem' ? (i18n.language === 'ar' ? 'استخدمت' : 'Used') : r.kind === 'refund' ? (i18n.language === 'ar' ? 'رجعت (حجز اتلغى)' : 'Refunded') : (i18n.language === 'ar' ? 'تعديل من المحل' : 'Shop adjustment')}
@@ -284,14 +308,13 @@ export default function BookingsPage() {
                   </li>
                 ))}
               </ul>
-            </details>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       ) : null}
 
       <div className="mt-4 space-y-3">
         <InactiveBanner />
-        <RatePrompt />
       </div>
 
       <div className="mt-4 flex gap-2" role="tablist">
@@ -492,6 +515,7 @@ export default function BookingsPage() {
           })}
         </div>
       )}
+      <div className="mt-6"><RatePrompt /></div>
     </PageShell>
   );
 }

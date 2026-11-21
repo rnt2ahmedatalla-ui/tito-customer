@@ -168,12 +168,12 @@ export function RatePrompt() {
   if (!r.data) return null;
   const name = isAr ? r.data.service_name_ar : r.data.service_name_en;
   return (
-    <div className="rounded-card border border-default bg-white p-4 shadow-warm">
-      <p className="text-sm font-semibold text-espresso">{isAr ? `إيه رأيك في ${name}؟` : `How was your ${name}?`}</p>
-      <div className="mt-2 flex gap-1" dir="ltr">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-btn border border-default bg-white px-3 py-2">
+      <p className="min-w-0 text-xs font-medium text-ink">{isAr ? `قيّم ${name}` : `Rate your ${name}`}</p>
+      <div className="flex" dir="ltr">
         {[1, 2, 3, 4, 5].map((n) => (
-          <Link key={n} to={`/rate/${r.data!.rate_token}?r=${n}`} aria-label={`${n}`} className="p-1">
-            <Star className="size-8 text-gold hover:fill-gold" />
+          <Link key={n} to={`/rate/${r.data!.rate_token}?r=${n}`} aria-label={`${n}`} className="p-0.5">
+            <Star className="size-5 text-gold hover:fill-gold" />
           </Link>
         ))}
       </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Clock, Star, X } from 'lucide-react';
+import { Clock, Sparkles, Star, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
@@ -81,7 +81,7 @@ export function SpecialRequestPrompt({ day, serviceId }: { day: string; serviceI
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold text-espresso"><Star className="size-5" aria-hidden /></span>
         <span className="min-w-0">
           <span className="block font-semibold text-espresso">{L('مفيش معاد يناسبني؟', 'No time suits you?')}</span>
-          <span className="block text-xs text-ink">{L('اطلب معاد في وقت مقفول (بسعر أعلى) والمحل يرد عليك.', 'Request a closed-hours time (higher price) and the shop will reply.')}</span>
+          <span className="block text-xs text-ink">{L('اطلب معاد برّه مواعيد الشغل والمحل يرد عليك.', 'Request a time outside opening hours and the shop will reply.')}</span>
         </span>
       </button>
     );
@@ -93,7 +93,7 @@ export function SpecialRequestPrompt({ day, serviceId }: { day: string; serviceI
         <h3 className="flex items-center gap-2 font-semibold text-espresso"><Star className="size-4 text-gold" aria-hidden />{L('طلب معاد خاص', 'Special time request')}</h3>
         <button type="button" aria-label={L('إغلاق', 'Close')} onClick={() => setOpen(false)} className="p-1 text-ink"><X className="size-5" /></button>
       </div>
-      <p className="mt-1 text-xs text-ink">{L(`المواعيد دي برّه ساعات الشغل العادية، بزيادة ${cfg.data.surcharge_pct}% على السعر. مش مؤكدة غير لما المحل يقبل.`, `These are outside normal hours at +${cfg.data.surcharge_pct}%. Not confirmed until the shop accepts.`)}</p>
+      <p className="mt-1 text-xs text-ink">{L('المواعيد دي برّه ساعات الشغل العادية. مش مؤكدة غير لما المحل يقبل.', 'These times are outside normal hours. Not confirmed until the shop accepts.')}</p>
       <label className="mt-3 block text-sm font-medium text-espresso">
         {L('اليوم', 'Day')}
         <input type="date" value={d} min={minDate} max={maxDate} onChange={(e) => { setD(e.target.value); setSlot(null); }} className="mt-1 block min-h-11 w-full rounded-btn border border-bark/20 bg-white px-3" />
@@ -106,19 +106,23 @@ export function SpecialRequestPrompt({ day, serviceId }: { day: string; serviceI
             <div className="grid grid-cols-2 gap-2 min-[380px]:grid-cols-3 sm:grid-cols-4">
               {(slots.data ?? []).map((s) => (
                 <button key={s.start_at} type="button" onClick={() => setSlot(s.start_at)}
-                  className={cn('min-h-11 rounded-btn border px-2 py-1.5 text-center text-sm transition', slot === s.start_at ? 'border-gold bg-gold text-espresso' : 'border-bark/20 bg-white text-espresso hover:bg-sand')}>
+                  className={cn('min-h-11 rounded-btn border px-2 py-2 text-center text-sm transition', slot === s.start_at ? 'border-gold bg-gold text-espresso' : 'border-bark/20 bg-white text-espresso hover:bg-sand')}>
                   <span className="flex items-center justify-center gap-1 font-latin font-semibold" dir="ltr"><Clock className="size-3" aria-hidden />{fmtTime(s.start_at, false)}</span>
-                  <span className="block text-[11px] opacity-80">{s.price_egp} {L('ج', 'EGP')}</span>
                 </button>
               ))}
             </div>
           )}
       </div>
       {slot ? (
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 space-y-3 rounded-btn border border-gold/50 bg-gold/10 p-3">
+          <p className="text-sm font-semibold text-espresso">{L('تأكيد الطلب', 'Confirm your request')}</p>
           <p className="text-sm text-espresso">{fmtDay(slot, isAr)} · <span className="font-latin" dir="ltr">{fmtTime(slot, isAr)}</span></p>
-          <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={2} placeholder={L('ملاحظة للمحل (اختياري)', 'Note for the shop (optional)')} className="w-full rounded-btn border border-bark/20 p-2 text-sm" />
-          <Button className="w-full" loading={send.isPending} onClick={() => send.mutate()}>{L('ابعت الطلب', 'Send request')}</Button>
+          <p className="text-sm text-espresso">
+            {L('السعر لهذا الوقت الخاص: ', 'Price for this special time: ')}
+            <span className="font-latin text-base font-bold" dir="ltr">{slots.data?.find((x) => x.start_at === slot)?.price_egp} {L('ج', 'EGP')}</span>
+          </p>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} rows={2} placeholder={L('ملاحظة للمحل (اختياري)', 'Note for the shop (optional)')} className="w-full rounded-btn border border-bark/20 bg-white p-2 text-sm" />
+          <Button className="w-full" loading={send.isPending} onClick={() => send.mutate()}>{L('أوافق وابعت الطلب', 'Agree & send request')}</Button>
         </div>
       ) : null}
     </div>
@@ -127,18 +131,19 @@ export function SpecialRequestPrompt({ day, serviceId }: { day: string; serviceI
 
 type MyReq = { id: string; start_at: string; price_egp: number; status: 'pending' | 'accepted' | 'rejected' | 'expired' | 'cancelled'; reject_reason: string | null; created_at: string };
 
-/** حالة طلباتي الخاصة (في حجوزاتي) */
-export function MySpecialRequests() {
+/** أيقونة طلباتي الخاصة: بتفتح التفاصيل والهيستوري */
+export function SpecialRequestsButton() {
   const { i18n } = useTranslation();
   const isAr = !!i18n.language?.startsWith('ar');
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
   const q = useQuery({
     queryKey: ['my-special-requests'],
     refetchInterval: 30_000,
     queryFn: async () => {
       const { data, error } = await (supabase as unknown as { from: (t: string) => { select: (c: string) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } } } })
-        .from('special_requests').select('id, start_at, price_egp, status, reject_reason, created_at').order('created_at', { ascending: false }).limit(10);
+        .from('special_requests').select('id, start_at, price_egp, status, reject_reason, created_at').order('created_at', { ascending: false }).limit(50);
       if (error) return [] as MyReq[];
       return (data ?? []) as MyReq[];
     },
@@ -147,29 +152,46 @@ export function MySpecialRequests() {
     mutationFn: async (id: string) => { const r = await rpc('cancel_special_request', { p_id: id }); if (r.error) throw new Error(r.error.message); },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['my-special-requests'] }),
   });
-  const weekAgo = Date.now() - 7 * 86400000;
-  const rows = (q.data ?? []).filter((r) => r.status === 'pending' || (['accepted', 'rejected'].includes(r.status) && new Date(r.created_at).getTime() > weekAgo));
+  const rows = q.data ?? [];
   if (rows.length === 0) return null;
+  const pending = rows.filter((r) => r.status === 'pending').length;
   const meta: Record<MyReq['status'], [string, string, string]> = {
     pending: ['بانتظار رد المحل', 'Waiting for the shop', 'bg-gold/20 text-espresso'],
-    accepted: ['اتقبل ✅ (اتأكد في حجوزاتك)', 'Accepted ✅ (confirmed in your bookings)', 'bg-emerald-100 text-emerald-800'],
+    accepted: ['اتقبل ✅', 'Accepted ✅', 'bg-emerald-100 text-emerald-800'],
     rejected: ['اترفض', 'Rejected', 'bg-red-100 text-red-800'],
     expired: ['انتهى', 'Expired', 'bg-black/10 text-ink'],
     cancelled: ['ملغي', 'Cancelled', 'bg-black/10 text-ink'],
   };
   return (
-    <section className="mb-4 space-y-2">
-      <h2 className="text-sm font-semibold text-espresso">{L('طلباتي الخاصة', 'My special requests')}</h2>
-      {rows.map((r) => (
-        <div key={r.id} className="rounded-card border border-default bg-white p-3">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm text-espresso">{fmtDay(r.start_at, isAr)} · <span className="font-latin" dir="ltr">{fmtTime(r.start_at, isAr)}</span> · {r.price_egp} {L('ج', 'EGP')}</p>
-            <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold', meta[r.status][2])}>{L(meta[r.status][0], meta[r.status][1])}</span>
+    <>
+      <button type="button" onClick={() => setOpen(true)} aria-label={L('طلباتي الخاصة', 'My special requests')} title={L('طلباتي الخاصة', 'My special requests')}
+        className="relative flex size-11 items-center justify-center rounded-full border border-gold/50 bg-gold/10 text-espresso">
+        <Sparkles className="size-5 text-gold" aria-hidden />
+        {pending > 0 ? <span className="absolute -top-1 -end-1 min-w-5 rounded-full bg-gold px-1 text-center font-latin text-[11px] font-bold leading-5 text-espresso">{pending}</span> : null}
+      </button>
+      {open ? (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center p-3 sm:items-center" role="dialog" aria-modal>
+          <div className="absolute inset-0 bg-espresso/50" onClick={() => setOpen(false)} aria-hidden />
+          <div className="relative max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-card bg-white p-4 shadow-warm-raised">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-espresso">{L('طلباتي الخاصة', 'My special requests')}</h2>
+              <button type="button" aria-label={L('إغلاق', 'Close')} onClick={() => setOpen(false)} className="p-1 text-ink"><X className="size-5" /></button>
+            </div>
+            <ul className="space-y-2">
+              {rows.map((r) => (
+                <li key={r.id} className="rounded-btn border border-default p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm text-espresso">{fmtDay(r.start_at, isAr)} · <span className="font-latin" dir="ltr">{fmtTime(r.start_at, isAr)}</span> · {r.price_egp} {L('ج', 'EGP')}</p>
+                    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold', meta[r.status][2])}>{L(meta[r.status][0], meta[r.status][1])}</span>
+                  </div>
+                  {r.status === 'rejected' && r.reject_reason ? <p className="mt-1 text-xs text-ink">{r.reject_reason}</p> : null}
+                  {r.status === 'pending' ? <Button size="sm" variant="secondary" className="mt-2" loading={cancel.isPending} onClick={() => cancel.mutate(r.id)}>{L('إلغاء الطلب', 'Cancel request')}</Button> : null}
+                </li>
+              ))}
+            </ul>
           </div>
-          {r.status === 'rejected' && r.reject_reason ? <p className="mt-1 text-xs text-ink">{r.reject_reason}</p> : null}
-          {r.status === 'pending' ? <Button size="sm" variant="secondary" className="mt-2" loading={cancel.isPending} onClick={() => cancel.mutate(r.id)}>{L('إلغاء الطلب', 'Cancel request')}</Button> : null}
         </div>
-      ))}
-    </section>
+      ) : null}
+    </>
   );
 }
