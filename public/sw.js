@@ -1,5 +1,5 @@
 const BASE = self.registration.scope;
-const CACHE_NAME = 'tito-static-v6';
+const CACHE_NAME = 'tito-static-v7';
 const STATIC_ASSETS = ['manifest.webmanifest', 'favicon.ico'].map(
   (p) => new URL(p, BASE).pathname,
 );
@@ -76,6 +76,36 @@ self.addEventListener('fetch', (event) => {
         return response;
       });
       return cached ?? fetchPromise;
+    }),
+  );
+});
+
+
+// إشعارات التذكير
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
+  const title = data.title || 'tito';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      icon: new URL('tito-icon-192.png', BASE).pathname,
+      badge: new URL('tito-icon-32.png', BASE).pathname,
+      dir: 'auto',
+      data: { url: data.url || '/' },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', BASE).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ('focus' in c) { c.navigate(target).catch(() => undefined); return c.focus(); }
+      }
+      return self.clients.openWindow(target);
     }),
   );
 });

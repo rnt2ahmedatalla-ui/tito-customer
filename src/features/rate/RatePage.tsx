@@ -44,7 +44,7 @@ export default function RatePage() {
       const { data, error } = await supabase.rpc('submit_review', {
         p_token: token,
         p_rating: rating,
-        p_comment: comment,
+        p_comment: comment.trim(),
       });
       if (error) throw error;
       return (data ?? {}) as RateView;
@@ -93,13 +93,14 @@ export default function RatePage() {
           />
           <Button
             fullWidth
-            disabled={rating < 1 || comment.trim().length < 3}
+            disabled={rating < 1}
             loading={submit.isPending}
             onClick={() => void submit.mutate()}
           >
             {t('rate.submit')}
           </Button>
           <p className="text-xs text-ink">{t('rate.commentRequired')}</p>
+          {submit.isError ? <p className="text-sm text-danger" role="alert">{t('errors.UNKNOWN')}</p> : null}
         </div>
       ) : (
         <div className="mt-6">

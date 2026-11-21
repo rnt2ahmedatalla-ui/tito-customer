@@ -31,14 +31,15 @@ export function WaitEstimateCard() {
   // فاضي دلوقتي، أو هيفضى (أو هيبدأ شغله) خلال الساعات المحددة
   const rows = list.data
     .map((b) => {
-      if (b.state === 'free') return { b, at: null as string | null };
+      if (b.state === 'free') return { b, at: null as string | null, done: false };
+      if (b.state === 'finished') return { b, at: null as string | null, done: true };
       if ((b.state === 'busy' || b.state === 'break' || b.state === 'not_started') && b.until && new Date(b.until).getTime() <= limit) {
-        return { b, at: b.until };
+        return { b, at: b.until, done: false };
       }
       return null;
     })
-    .filter((x): x is { b: BarberNow; at: string | null } => x !== null)
-    .sort((x, y) => (x.at ? new Date(x.at).getTime() : 0) - (y.at ? new Date(y.at).getTime() : 0));
+    .filter((x): x is { b: BarberNow; at: string | null; done: boolean } => x !== null)
+    .sort((x, y) => Number(x.done) - Number(y.done) || (x.at ? new Date(x.at).getTime() : 0) - (y.at ? new Date(y.at).getTime() : 0));
 
   return (
     <div className="w-full max-w-md rounded-card border border-cream/20 bg-cream/10 p-3 text-cream backdrop-blur-sm">
@@ -47,13 +48,13 @@ export function WaitEstimateCard() {
       </p>
       {rows.length > 0 ? (
         <ul className="space-y-1.5">
-          {rows.map(({ b, at }) => (
+          {rows.map(({ b, at, done }) => (
             <li key={b.id}>
               <Link to={`/book?staff=${b.id}`} className="flex min-w-0 items-center gap-2.5 rounded-btn bg-black/15 px-3 py-2.5 text-sm transition hover:bg-black/25">
-                <span className={`size-2.5 shrink-0 rounded-full ${at ? 'bg-gold' : 'bg-emerald-400'}`} aria-hidden />
+                <span className={`size-2.5 shrink-0 rounded-full ${done ? 'bg-cream/40' : at ? 'bg-gold' : 'bg-emerald-400'}`} aria-hidden />
                 <span className="min-w-0 flex-1 truncate font-semibold">{b.name}</span>
-                <span className="shrink-0 text-cream/80">
-                  {at ? L(`هيفضى ${fmt(at)}`, `Free at ${fmt(at)}`) : L('فاضي دلوقتي', 'Free now')}
+                <span className="shrink-0 text-end text-cream/80">
+                  {done ? L('للأسف مش فاضي النهارده — احجز معاه بعدين', 'Not available today — book another day') : at ? L(`هيفضى ${fmt(at)}`, `Free at ${fmt(at)}`) : L('فاضي دلوقتي', 'Free now')}
                 </span>
               </Link>
             </li>
