@@ -21,6 +21,7 @@ import { SeasonNotice } from '@/components/booking/SeasonNotice';
 import { useSeasons } from '@/features/booking/useSeasons';
 import { SlotGrid } from '@/components/booking/SlotGrid';
 import { WaitlistPrompt } from '@/features/extras/WaitlistPrompt';
+import { SpecialRequestPrompt } from '@/features/extras/SpecialRequest';
 import { useFeatureFlags, usePrepayRequired } from '@/features/extras/useExtras';
 import { AddToCalendar } from '@/components/booking/AddToCalendar';
 import { HoldTimer } from '@/components/booking/HoldTimer';
@@ -614,6 +615,11 @@ export default function BookingPage() {
               {featureFlags.data?.waitlist && user && !slots.isLoading && !slots.isError ? (
                 <div className="mt-4">
                   <WaitlistPrompt day={date} serviceId={serviceId ?? null} defaultOpen={(slots.data ?? []).length === 0} />
+                </div>
+              ) : null}
+              {user && !slots.isLoading && !slots.isError ? (
+                <div className="mt-4">
+                  <SpecialRequestPrompt day={date} serviceId={serviceId ?? null} />
                 </div>
               ) : null}
             </div>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { MySpecialRequests } from '@/features/extras/SpecialRequest';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Link } from 'react-router-dom';
@@ -257,6 +258,7 @@ export default function BookingsPage() {
   return (
     <PageShell>
       <h1 className="text-2xl font-bold text-espresso">{t('bookings.title')}</h1>
+      <div className="mt-3"><MySpecialRequests /></div>
       {loyalty?.enabled ? (
         <div className="mt-3 rounded-card border border-gold/40 bg-gold/10 p-3">
           <div className="flex items-center justify-between gap-2">
