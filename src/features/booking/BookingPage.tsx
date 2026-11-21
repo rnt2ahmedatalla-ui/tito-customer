@@ -21,6 +21,7 @@ import { SeasonNotice } from '@/components/booking/SeasonNotice';
 import { useSeasons } from '@/features/booking/useSeasons';
 import { SlotGrid } from '@/components/booking/SlotGrid';
 import { WaitlistPrompt } from '@/features/extras/WaitlistPrompt';
+import { PolicyNote } from './PolicyNote';
 import { SpecialRequestPrompt } from '@/features/extras/SpecialRequest';
 import { useFeatureFlags, usePrepayRequired } from '@/features/extras/useExtras';
 import { AddToCalendar } from '@/components/booking/AddToCalendar';
@@ -686,6 +687,7 @@ export default function BookingPage() {
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+          <PolicyNote />
           {!user && !authLoading ? (
             <div className="mt-6 rounded-card border-2 border-gold/70 bg-white p-5 text-center shadow-warm sm:p-6">
               <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-sand/60 shadow-2xs">

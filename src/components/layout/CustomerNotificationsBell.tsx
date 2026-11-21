@@ -25,6 +25,18 @@ export function useCustomerNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // لحظي: أول ما إشعار جديد يتسجل، الجرس يتحدّث (لو Realtime متفعّل)
+  useEffect(() => {
+    if (!user) return undefined;
+    const ch = supabase
+      .channel(`cn-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customer_notifications', filter: `user_id=eq.${user.id}` }, () => {
+        void queryClient.invalidateQueries({ queryKey: ['customer-notifications'] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [user, queryClient]);
+
   const query = useQuery({
     queryKey: ['customer-notifications', user?.id],
     enabled: !!user,
@@ -37,8 +49,9 @@ export function useCustomerNotifications() {
       if (error) throw error;
       return (data ?? []) as CustomerNotification[];
     },
-    staleTime: 15_000,
-    refetchInterval: user ? 45_000 : false,
+    staleTime: 10_000,
+    refetchInterval: user ? 20_000 : false,
+    refetchOnWindowFocus: true,
   });
 
   const markAll = useMutation({
@@ -59,6 +72,14 @@ export function useCustomerNotifications() {
 
   const data = query.data ?? [];
   const unread = data.filter((n) => !n.is_read).length;
+  // عدّاد على أيقونة التطبيق (لو المتصفح بيدعم)
+  useEffect(() => {
+    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+    try {
+      if (unread > 0) void nav.setAppBadge?.(unread);
+      else void nav.clearAppBadge?.();
+    } catch { /* ignore */ }
+  }, [unread]);
 
   return { data, unread, markAll, markOne, isLoading: query.isLoading };
 }
@@ -67,8 +88,9 @@ type Tone = 'reject' | 'cancel' | 'ok' | 'move' | 'info';
 
 function toneOf(kind: string): Tone {
   const k = kind.toLowerCase();
-  if (k.includes('reject') || k.includes('fail')) return 'reject';
-  if (k.includes('cancel')) return 'cancel';
+  if (k.includes('payment') && (k.includes('reject') || k.includes('fail'))) return 'reject';
+  if (k.includes('reject') || k.includes('fail')) return 'cancel';
+  if (k.includes('cancel') || k.includes('declined')) return 'cancel';
   if (k.includes('confirm') || k.includes('approved') || k.includes('paid')) return 'ok';
   if (k.includes('move') || k.includes('resched')) return 'move';
   return 'info';
@@ -104,7 +126,10 @@ function timeAgo(iso: string, isAr: boolean): string {
   const h = Math.round(mins / 60);
   if (h < 24) return isAr ? `من ${h} س` : `${h}h ago`;
   const d = Math.round(h / 24);
-  return isAr ? `من ${d} يوم` : `${d}d ago`;
+  if (!isAr) return `${d}d ago`;
+  if (d === 1) return 'من يوم';
+  if (d === 2) return 'من يومين';
+  return d <= 10 ? `من ${d} أيام` : `من ${d} يوم`;
 }
 
 const DESKTOP_BREAKPOINT = 640;
@@ -214,7 +239,7 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
                       {body ? <span className="mt-1 block break-words text-sm leading-relaxed text-ink">{body}</span> : null}
                       {rejected ? (
                         <span className="mt-2 inline-flex items-center gap-1 rounded-btn bg-danger px-3 py-1.5 text-xs font-semibold text-white">
-                          {isAr ? 'ابعت الإيصال تاني' : 'Send the receipt again'}
+                          {isAr ? 'افتح حجوزاتي' : 'Open my bookings'}
                           <ChevronRight className="size-3.5 rtl:-scale-x-100" aria-hidden />
                         </span>
                       ) : null}
@@ -237,15 +262,16 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
         type="button"
         className={cn(
           'relative inline-flex min-h-10 min-w-10 items-center justify-center rounded-btn p-2',
+          unread > 0 && 'ring-2 ring-gold/60',
           dark ? 'border border-cream/20 text-cream hover:bg-cream/10' : 'border border-default text-ink hover:bg-sand',
         )}
         aria-label={t('notifications.title')}
         aria-expanded={open}
         onClick={toggle}
       >
-        <Bell className="size-5" />
+        <Bell className={cn('size-5', unread > 0 && 'animate-[wiggle_1.2s_ease-in-out_infinite]')} />
         {unread > 0 ? (
-          <span className="absolute -end-1 -top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold text-espresso">
+          <span className="absolute -end-1.5 -top-1.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[11px] font-bold leading-none text-espresso shadow-sm">
             {unread > 9 ? '9+' : unread}
           </span>
         ) : null}

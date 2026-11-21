@@ -136,3 +136,15 @@
     transform: none !important;
   }
 }
+
+@keyframes wiggle {
+  0%, 60%, 100% { transform: rotate(0); }
+  10% { transform: rotate(14deg); }
+  20% { transform: rotate(-12deg); }
+  30% { transform: rotate(9deg); }
+  40% { transform: rotate(-6deg); }
+  50% { transform: rotate(3deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*='animate-[wiggle'] { animation: none !important; }
+}

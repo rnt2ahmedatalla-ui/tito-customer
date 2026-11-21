@@ -299,16 +299,15 @@ export default function HomePage() {
         <RatePrompt />
       </section>
 
-      {/* سياسة الحجز */}
-      <section className="mx-auto max-w-5xl px-5 pb-4 pt-2 sm:pb-8">
-        <div className="rounded-card border border-gold/40 bg-gold/10 p-6 sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold font-latin">
-            {ar ? 'سياسة الحجز' : 'Booking policy'}
-          </p>
-          <p className="mt-3 whitespace-pre-line leading-relaxed text-ink">
-            {policyText}
-          </p>
-        </div>
+      {/* سياسة الحجز (مطوية) */}
+      <section className="mx-auto max-w-5xl px-5 pb-2 pt-2">
+        <details className="group rounded-card border border-gold/40 bg-gold/10 p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold text-espresso [&::-webkit-details-marker]:hidden">
+            <span>{ar ? 'سياسة الحجز' : 'Booking policy'}</span>
+            <span className="text-xs font-normal text-ink group-open:hidden">{ar ? 'اقرأها' : 'Read'}</span>
+          </summary>
+          <p className="mt-3 whitespace-pre-line leading-relaxed text-ink">{policyText}</p>
+        </details>
       </section>
 
       <TeamSection />

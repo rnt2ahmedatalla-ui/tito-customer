@@ -2,7 +2,6 @@ import { type ReactNode } from 'react';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { OfflineBanner } from './OfflineBanner';
-import { PolicyGate } from './PolicyGate';
 import { PendingHoldCard } from '@/features/home/QuickActions';
 import { cn } from '@/lib/cn';
 
@@ -53,7 +52,6 @@ export function PageShell({
       </main>
       <PendingHoldCard />
       <BottomNav />
-      <PolicyGate />
     </div>
   );
 }
