@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Clock, Sparkles, Star, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
+import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
 
 type Rpc = (fn: string, a?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
@@ -169,14 +170,7 @@ export function SpecialRequestsButton() {
         <Sparkles className="size-5 text-gold" aria-hidden />
         {pending > 0 ? <span className="absolute -top-1 -end-1 min-w-5 rounded-full bg-gold px-1 text-center font-latin text-[11px] font-bold leading-5 text-espresso">{pending}</span> : null}
       </button>
-      {open ? (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center p-3 sm:items-center" role="dialog" aria-modal>
-          <div className="absolute inset-0 bg-espresso/50" onClick={() => setOpen(false)} aria-hidden />
-          <div className="relative max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-card bg-white p-4 shadow-warm-raised">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-espresso">{L('طلباتي الخاصة', 'My special requests')}</h2>
-              <button type="button" aria-label={L('إغلاق', 'Close')} onClick={() => setOpen(false)} className="p-1 text-ink"><X className="size-5" /></button>
-            </div>
+      <Sheet open={open} title={L('طلباتي الخاصة', 'My special requests')} onClose={() => setOpen(false)}>
             <ul className="space-y-2">
               {rows.map((r) => (
                 <li key={r.id} className="rounded-btn border border-default p-3">
@@ -189,9 +183,7 @@ export function SpecialRequestsButton() {
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
-      ) : null}
+      </Sheet>
     </>
   );
 }

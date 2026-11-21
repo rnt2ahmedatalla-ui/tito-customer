@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Star as StarIcon, X as XIcon } from 'lucide-react';
+import { Star as StarIcon } from 'lucide-react';
 import { SpecialRequestsButton } from '@/features/extras/SpecialRequest';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
+import { Sheet } from '@/components/ui/Sheet';
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
@@ -20,6 +21,7 @@ import { toast } from 'sonner';
 import { formatCairoDate, formatCairoTime, isWithinCancelWindow } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
 import { cn } from '@/lib/cn';
+import { AttendanceAsk } from './AttendanceAsk';
 import { AddToCalendar } from '@/components/booking/AddToCalendar';
 import { InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 import type { BookingWithDetails } from '@/types/database';
@@ -287,14 +289,7 @@ export default function BookingsPage() {
           </Button>
         </div>
       ) : null}
-      {pointsOpen && loyalty?.enabled ? (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center p-3 sm:items-center" role="dialog" aria-modal>
-          <div className="absolute inset-0 bg-espresso/50" onClick={() => setPointsOpen(false)} aria-hidden />
-          <div className="relative max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-card bg-white p-4 shadow-warm-raised">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-espresso">{i18n.language === 'ar' ? '⭐ نقاطك' : '⭐ Your points'}: <span className="font-latin">{balance}</span></h2>
-              <button type="button" aria-label="close" onClick={() => setPointsOpen(false)} className="p-1 text-ink"><XIcon className="size-5" /></button>
-            </div>
+      <Sheet open={pointsOpen && !!loyalty?.enabled} title={<>{i18n.language === 'ar' ? '⭐ نقاطك' : '⭐ Your points'}: <span className="font-latin">{balance}</span></>} onClose={() => setPointsOpen(false)}>
             <p className="text-xs text-ink">{pointsText}</p>
             {ledger.length > 0 ? (
               <ul className="mt-3 space-y-1 text-xs text-ink">
@@ -309,9 +304,7 @@ export default function BookingsPage() {
                 ))}
               </ul>
             ) : null}
-          </div>
-        </div>
-      ) : null}
+      </Sheet>
 
       <div className="mt-4 space-y-3">
         <InactiveBanner />
@@ -400,6 +393,13 @@ export default function BookingsPage() {
                   <Link to={`/move/${booking.move_token}`} className="mt-3 inline-flex text-sm font-medium text-espresso underline">
                     {t('bookings.moveOffer')}
                   </Link>
+                ) : null}
+                {booking.status === 'confirmed' && new Date(booking.start_at) > new Date() ? (
+                  <AttendanceAsk
+                    bookingId={booking.id}
+                    asked={!!(booking as unknown as { attendance_asked_at?: string | null }).attendance_asked_at}
+                    attendance={(booking as unknown as { attendance?: string | null }).attendance ?? null}
+                  />
                 ) : null}
                 {booking.status === 'confirmed' && new Date(booking.end_at) > new Date() ? (
                   <div className="mt-3">
