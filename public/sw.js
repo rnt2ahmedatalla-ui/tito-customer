@@ -1,5 +1,5 @@
 const BASE = self.registration.scope;
-const CACHE_NAME = 'tito-static-v7';
+const CACHE_NAME = 'tito-static-v8';
 const STATIC_ASSETS = ['manifest.webmanifest', 'favicon.ico'].map(
   (p) => new URL(p, BASE).pathname,
 );
@@ -90,8 +90,12 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(title, {
       body: data.body || '',
       icon: new URL('tito-icon-192.png', BASE).pathname,
-      badge: new URL('tito-icon-32.png', BASE).pathname,
-      dir: 'auto',
+      badge: new URL('tito-badge-96.png', BASE).pathname,
+      dir: data.dir || 'auto',
+      lang: data.lang || undefined,
+      tag: data.tag || undefined,
+      renotify: false,
+      vibrate: [120, 60, 120],
       data: { url: data.url || '/' },
     }),
   );
