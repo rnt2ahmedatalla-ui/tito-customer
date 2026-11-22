@@ -7,6 +7,7 @@ const BookingPage = lazy(() => import('@/features/booking/BookingPage'));
 const GroupBookingPage = lazy(() => import('@/features/booking/GroupBookingPage'));
 const BookingsPage = lazy(() => import('@/features/bookings/BookingsPage'));
 const MovePage = lazy(() => import('@/features/move/MovePage'));
+const AttendPage = lazy(() => import('@/features/attend/AttendPage'));
 const RatePage = lazy(() => import('@/features/rate/RatePage'));
 const ReviewPage = lazy(() => import('@/features/rate/ReviewPage'));
 const ProductsPage = lazy(() => import('@/features/products/ProductsPage'));
@@ -41,6 +42,7 @@ const router = createBrowserRouter(
     { path: '/book/group', element: withSuspense(GroupBookingPage) },
     { path: '/bookings', element: withSuspense(BookingsPage) },
     { path: '/move/:token', element: withSuspense(MovePage) },
+    { path: '/attend/:token', element: withSuspense(AttendPage) },
     { path: '/rate/:token', element: withSuspense(RatePage) },
     { path: '/review', element: withSuspense(ReviewPage) },
     { path: '/products', element: withSuspense(ProductsPage) },

@@ -20,6 +20,7 @@ import { PushOptIn } from '@/features/home/PushOptIn';
 import { HomeGallery } from '@/features/gallery/HomeGallery';
 import { HomeProducts } from '@/features/products/HomeProducts';
 import { QuickRebook } from '@/features/home/QuickActions';
+import { VisitProgressCard } from '@/features/home/GrowthCards';
 import { WaitEstimateCard, InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 
 const DAY_NAMES_AR = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -297,6 +298,7 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto max-w-5xl space-y-3 px-5 pt-6 empty:hidden">
+        <VisitProgressCard />
         <InactiveBanner />
         <RatePrompt />
       </section>

@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      visit_reward_config: {
+        Row: {
+          id: number
+          is_active: boolean
+          every_n: number
+          percent_off: number | null
+          amount_off_egp: number | null
+          valid_days: number
+          reward_ar: string
+          reward_en: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          is_active?: boolean
+          every_n?: number
+          percent_off?: number | null
+          amount_off_egp?: number | null
+          valid_days?: number
+          reward_ar?: string
+          reward_en?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          is_active?: boolean
+          every_n?: number
+          percent_off?: number | null
+          amount_off_egp?: number | null
+          valid_days?: number
+          reward_ar?: string
+          reward_en?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rebook_reminders: {
+        Row: {
+          id: string
+          user_id: string
+          booking_id: string | null
+          weeks: number
+          remind_at: string
+          sent_at: string | null
+          wa_sent_at: string | null
+          skipped: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          booking_id?: string | null
+          weeks: number
+          remind_at: string
+          sent_at?: string | null
+          wa_sent_at?: string | null
+          skipped?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          booking_id?: string | null
+          weeks?: number
+          remind_at?: string
+          sent_at?: string | null
+          wa_sent_at?: string | null
+          skipped?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -461,6 +533,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          attend_token: string | null
           admin_override: boolean
           attendance: string | null
           attendance_asked_at: string | null
@@ -502,6 +575,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attend_token?: string | null
           admin_override?: boolean
           attendance?: string | null
           attendance_asked_at?: string | null
@@ -543,6 +617,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attend_token?: string | null
           admin_override?: boolean
           attendance?: string | null
           attendance_asked_at?: string | null
@@ -2835,6 +2910,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      attendance_by_token: {
+        Args: { p_coming: boolean; p_token: string }
+        Returns: string
+      }
+      attendance_info: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      my_visit_progress: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      set_rebook_reminder: {
+        Args: { p_booking: string; p_weeks: number | null }
+        Returns: Json
+      }
       admin_photo_published: {
         Args: { p_gallery: string; p_photo: string }
         Returns: undefined

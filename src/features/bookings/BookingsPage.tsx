@@ -1,3 +1,4 @@
+import { RebookReminderPicker, VisitProgressCard } from '@/features/home/GrowthCards';
 import { useEffect, useMemo, useState } from 'react';
 import { Star as StarIcon } from 'lucide-react';
 import { SpecialRequestsButton } from '@/features/extras/SpecialRequest';
@@ -228,6 +229,12 @@ export default function BookingsPage() {
   }, [bookings.data, now]);
 
   const list = tab === 'upcoming' ? upcoming : past;
+  // آخر حلاقة خلصت: عليها «فكّرني بالحلاقة الجاية» (لو مفيش حجز جاي)
+  const latestCompletedId = useMemo(() => {
+    if (upcoming.some((b) => b.status === 'confirmed' || b.status === 'pending_payment')) return null;
+    const done = past.filter((b) => b.status === 'completed').sort((a, b) => +new Date(b.start_at) - +new Date(a.start_at));
+    return done[0]?.id ?? null;
+  }, [upcoming, past]);
 
   // جاي من إشعار: نفتح التاب اللي فيه الحجز ونوصله وننوّره
   const [focusParams, setFocusParams] = useSearchParams();
@@ -295,6 +302,7 @@ export default function BookingsPage() {
           ) : null}
         </div>
       </div>
+      <div className="mt-4 empty:hidden"><VisitProgressCard compact /></div>
       {loyalty?.enabled && !introSeen ? (
         <div className="mt-3 rounded-card border border-gold/40 bg-gold/10 p-3">
           <p className="text-sm font-semibold text-espresso">{i18n.language === 'ar' ? '⭐ نظام النقاط' : '⭐ Points'}</p>
@@ -432,6 +440,7 @@ export default function BookingsPage() {
                     <Button size="sm" variant="secondary">{isAr ? 'احجز نفس الحلاقة تاني' : 'Book the same again'}</Button>
                   </Link>
                 ) : null}
+                {booking.id === latestCompletedId ? <RebookReminderPicker bookingId={booking.id} /> : null}
                 {booking.status === 'completed' && booking.rate_token ? (
                   <Link to={`/rate/${booking.rate_token}`} className="mt-3 inline-flex text-sm font-medium text-espresso underline">
                     {t('bookings.rateOffer')}

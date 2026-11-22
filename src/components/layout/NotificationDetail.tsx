@@ -113,7 +113,7 @@ export function NotificationDetailHost() {
   const title = ar ? n.title_ar : n.title_en || n.title_ar;
   const body = (ar ? n.body_ar : n.body_en || n.body_ar) ?? '';
   const when = new Intl.DateTimeFormat(ar ? 'ar-EG' : 'en-US', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' }).format(new Date(n.created_at));
-  const code = n.kind === 'birthday' ? (body.match(/\b[A-Z0-9]{6,}\b/)?.[0] ?? null) : null;
+  const code = n.kind === 'birthday' || n.kind === 'reward' ? (body.match(/\b[A-Z0-9]{6,}\b/)?.[0] ?? null) : null;
 
   let action: { label: string; path: string } | null = null;
   let related: React.ReactNode = null;
@@ -148,6 +148,10 @@ export function NotificationDetailHost() {
     action = { label: L('احجزه دلوقتي', 'Reserve it now'), path: r?.product_id ? `/products/${r.product_id}` : '/products' };
   } else if (entity === 'customer_photo') {
     action = { label: L('شوف شغلنا', 'See our work'), path: '/gallery' };
+  } else if (n.kind === 'reward') {
+    action = { label: L('احجز واستخدم الهدية', 'Book & use your gift'), path: '/book' };
+  } else if (entity === 'rebook' || n.kind === 'rebook') {
+    action = { label: L('احجز معادك', 'Book now'), path: '/book' };
   } else if (n.kind === 'birthday') {
     action = { label: L('احجز واستخدم الكود', 'Book & use the code'), path: '/book' };
   } else if (go) {
