@@ -16,7 +16,7 @@ export function HomeGallery() {
       <h2 className="mt-3 text-3xl font-bold text-espresso sm:text-4xl">{isAr ? 'من شغلنا' : 'Our work'}</h2>
       <div className="gold-rule my-8 max-w-xs" />
       <GalleryGrid photos={photos.slice(0, 6)} className="grid grid-cols-3 gap-1.5 sm:gap-2" />
-      {photos.length > 6 ? (
+      {photos.length > 0 ? (
         <Link to="/gallery" className="mt-5 inline-flex min-h-11 items-center rounded-btn border border-gold px-5 font-semibold text-espresso hover:bg-gold/10">
           {isAr ? `شوف كل الشغل (${photos.length})` : `See all work (${photos.length})`}
         </Link>

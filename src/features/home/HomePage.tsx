@@ -349,8 +349,6 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      <HomeGallery />
-
       {/* Reviews under services */}
       <section className="mx-auto max-w-5xl px-5 py-12 sm:py-16">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-gold font-latin">
@@ -431,6 +429,9 @@ export default function HomePage() {
           </div>
         )}
       </section>
+
+      {/* معرض الشغل: تحت خالص قبل التواصل */}
+      <HomeGallery />
 
       {/* Visit / contact strip */}
       <section className="border-t border-default bg-sand/60">

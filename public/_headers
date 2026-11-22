@@ -14,3 +14,9 @@
 
 /index.html
   Cache-Control: no-cache
+
+# شاشة الدور: مسموح تتعرض جوه لوحة التحكم (معاينة) بس
+/screen/*
+  ! Content-Security-Policy
+  ! X-Frame-Options
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cloudflareinsights.com; font-src 'self'; frame-ancestors 'self' https://tito-admin-4q8m.pages.dev; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
