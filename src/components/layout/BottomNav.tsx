@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Home, User, Scissors, MessageCircle } from 'lucide-react';
+import { Calendar, Home, Images, User, Scissors, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
 import { buildWhatsAppUrl } from '@/lib/urls';
@@ -10,6 +10,7 @@ const items = [
   { to: '/', icon: Home, labelKey: 'nav.home', primary: false },
   { to: '/bookings', icon: Calendar, labelKey: 'nav.bookings', primary: false },
   { to: '/book', icon: Scissors, labelKey: 'nav.book', primary: true },
+  { to: '/gallery', icon: Images, labelKey: 'nav.gallery', primary: false },
   { to: '/profile', icon: User, labelKey: 'nav.profile', primary: false },
 ] as const;
 
@@ -55,7 +56,7 @@ export function BottomNav() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label={t('a11y.mainNav')}
       >
-        <div className="grid grid-cols-4 items-center px-2">
+        <div className="grid grid-cols-5 items-center px-1">
           {items.map((item) => {
             const Icon = item.icon;
             const active =
@@ -71,7 +72,7 @@ export function BottomNav() {
                   className={cn(
                     'flex h-8 items-center justify-center rounded-full transition-colors',
                     // "احجز" دايماً بارز بالذهبي، والصفحة الحالية بتتلوّن بخفيف
-                    item.primary ? 'bg-gold px-5 text-espresso shadow-warm' : active ? 'bg-gold/20 px-4 text-bark' : 'px-4 text-ink',
+                    item.primary ? 'bg-gold px-4 text-espresso shadow-warm' : active ? 'bg-gold/20 px-3 text-bark' : 'px-3 text-ink',
                   )}
                 >
                   <Icon className="size-5" aria-hidden />
