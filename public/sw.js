@@ -103,7 +103,9 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = new URL((event.notification.data && event.notification.data.url) || '/', BASE).href;
+  // روابط زي '/bookings' بتتفتح جوه مسار الموقع (base path) مش من أول الدومين
+  const raw = (event.notification.data && event.notification.data.url) || '';
+  const target = /^https?:\/\//i.test(raw) ? raw : new URL(String(raw).replace(/^\/+/, ''), BASE).href;
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const c of list) {

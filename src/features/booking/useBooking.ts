@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { nullableArg, supabase } from '@/lib/supabase';
 import { extractErrorCode, getErrorReferenceId, mapErrorToI18nKey } from '@/lib/errors';
 import { canAttempt, recordAttempt } from '@/lib/rate-limit';
 import type { Booking, PaymentMethod, Service } from '@/types/database';
@@ -28,13 +28,7 @@ export function useActiveStaff() {
   return useQuery({
     queryKey: ['staff-active'],
     queryFn: async (): Promise<StaffMember[]> => {
-      const db = supabase as unknown as {
-        from: (t: string) => {
-          select: (c: string) => {
-            eq: (k: string, v: boolean) => { order: (c: string) => Promise<{ data: unknown; error: unknown }> };
-          };
-        };
-      };
+      const db = supabase;
       const { data, error } = await db
         .from('staff')
         .select('id, name, bio, bio_en, socials, experience_years, photo')
@@ -60,9 +54,7 @@ export function useStaffServices() {
   return useQuery({
     queryKey: ['staff-services'],
     queryFn: async (): Promise<StaffServiceRow[]> => {
-      const db = supabase as unknown as {
-        from: (t: string) => { select: (c: string) => Promise<{ data: unknown; error: unknown }> };
-      };
+      const db = supabase;
       const { data, error } = await db.from('staff_services').select('staff_id, service_id, is_offered, price_egp');
       if (error) return [];
       return (data ?? []) as StaffServiceRow[];
@@ -86,7 +78,7 @@ export function useAvailableSlots(
       // الوقت الكلي (حلاقة + إضافات ليها وقت) بنبعته بس لو فيه إضافة بوقت، غير كده الطلب زي ما كان
       const dur: Record<string, unknown> = durationMin ? { p_duration_min: durationMin } : {};
       if (staffId) {
-        const rpcUntyped = supabase.rpc.bind(supabase) as unknown as RpcUntyped;
+        const rpcUntyped = supabase.rpc.bind(supabase);
         const { data, error } = await rpcUntyped(
           staffId === 'any' ? 'get_available_slots_any' : 'get_available_slots_staff',
           staffId === 'any'
@@ -96,7 +88,7 @@ export function useAvailableSlots(
         if (error) throw error;
         return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
       }
-      const rpcPlain = supabase.rpc.bind(supabase) as unknown as RpcUntyped;
+      const rpcPlain = supabase.rpc.bind(supabase);
       const { data, error } = await rpcPlain('get_available_slots', { p_service_id: serviceId, p_date: date, ...dur });
       if (error) throw error;
       return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
@@ -136,32 +128,29 @@ export function useCreateBooking() {
       recordAttempt('create_booking');
 
       if (staffId) {
-        const rpcUntyped = supabase.rpc.bind(supabase) as unknown as RpcUntyped;
+        const rpcUntyped = supabase.rpc.bind(supabase);
         const { data, error } = await rpcUntyped('create_booking_staff', {
           p_service_id: serviceId,
           p_start_at: startAt,
           p_pay_at_shop: payAtShop,
           p_extra_ids: extraIds,
-          p_notes: notes?.trim() || null,
-          p_staff_id: staffId === 'any' ? null : staffId,
-          p_coupon: coupon,
+          p_notes: nullableArg(notes?.trim() || null),
+          p_staff_id: nullableArg(staffId === 'any' ? null : staffId),
+          p_coupon: nullableArg(coupon),
         });
         if (error) throw error;
         return data as string;
       }
       if (coupon) {
         // الدالة الجديدة مش في أنواع المشروع، فبنعدّي النوع يدوياً
-        const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
-          fn: string,
-          args: Record<string, unknown>,
-        ) => Promise<{ data: string | null; error: { message: string } | null }>;
+        const rpcUntyped = supabase.rpc.bind(supabase);
         const { data, error } = await rpcUntyped('create_booking_with_coupon', {
           p_service_id: serviceId,
           p_start_at: startAt,
           p_pay_at_shop: payAtShop,
           p_extra_ids: extraIds,
-          p_notes: notes?.trim() || null,
-          p_coupon: coupon,
+          p_notes: nullableArg(notes?.trim() || null),
+          p_coupon: nullableArg(coupon),
         });
         if (error) throw error;
         return data as string;
@@ -171,7 +160,7 @@ export function useCreateBooking() {
         p_start_at: startAt,
         p_pay_at_shop: payAtShop,
         p_extra_ids: extraIds,
-        p_notes: notes?.trim() || null,
+        p_notes: nullableArg(notes?.trim() || null),
       });
       if (error) throw error;
       return data;
@@ -205,9 +194,8 @@ export function useSubmitPayment() {
     }: {
       bookingId: string;
       method: PaymentMethod;
-      /** @deprecated proof upload removed — WhatsApp only */
+      /** التحويل بيتأكد على واتساب بس (مفيش صور إيصالات) */
       transactionRef?: string;
-      proofBlob?: Blob | null;
       userId?: string;
     }) => {
       if (!canAttempt('submit_payment')) throw new Error('RATE_LIMITED');

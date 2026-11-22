@@ -10,7 +10,7 @@ export const POLICY_KEY = 'tito.policy.accepted';
 /** نفس نص السياسة اللي في الرئيسية (بيجي من إعدادات الأدمن، وليه نص افتراضي) */
 export function usePolicyText(isAr: boolean) {
   const settings = useSettings();
-  const extra = settings.data as unknown as Record<string, string | null | undefined> | null | undefined;
+  const extra = settings.data;
   const text =
     (isAr ? extra?.booking_policy_ar : extra?.booking_policy_en)?.trim() ||
     (isAr ? DEFAULT_POLICY_AR : DEFAULT_POLICY_EN);

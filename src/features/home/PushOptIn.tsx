@@ -4,6 +4,7 @@ import { BellRing, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/features/profile/useAuth';
 import { enablePush, pushIsOn, pushSupported, resyncPush } from '@/lib/push';
+import { IosInstallGuide } from '@/components/layout/IosInstallGuide';
 
 const KEY = 'tito_push_dismissed';
 
@@ -13,6 +14,7 @@ export function PushOptIn() {
   const isAr = !!i18n.language?.startsWith('ar');
   const { user } = useAuth();
   const [state, setState] = useState<'hidden' | 'ask' | 'busy' | 'ios'>('hidden');
+  const [guide, setGuide] = useState(false);
 
   useEffect(() => {
     if (!user) { setState('hidden'); return; }
@@ -41,9 +43,15 @@ export function PushOptIn() {
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-espresso">{isAr ? 'فعّل تذكير المواعيد' : 'Turn on appointment reminders'}</p>
           {state === 'ios' ? (
-            <p className="mt-0.5 text-sm text-ink">
-              {isAr ? 'على الآيفون: دوس زرار المشاركة ثم «إضافة إلى الشاشة الرئيسية»، وافتح التطبيق من هناك وفعّل التذكير.' : 'On iPhone: tap Share → “Add to Home Screen”, open the app from there, then turn reminders on.'}
-            </p>
+            <>
+              <p className="mt-0.5 text-sm text-ink">
+                {isAr ? 'على الآيفون لازم تضيف tito للشاشة الرئيسية الأول عشان التذكير يوصلك.' : 'On iPhone, add tito to your Home Screen first so reminders can reach you.'}
+              </p>
+              <button type="button" onClick={() => setGuide(true)} className="mt-2 inline-flex min-h-10 items-center justify-center rounded-btn bg-gold px-4 text-sm font-semibold text-espresso">
+                {isAr ? 'اشرحلي خطوة بخطوة' : 'Show me how'}
+              </button>
+              <IosInstallGuide open={guide} onClose={() => setGuide(false)} />
+            </>
           ) : (
             <>
               <p className="mt-0.5 text-sm text-ink">{isAr ? 'هيجيلك إشعار على موبايلك قبل معادك بساعتين، من غير ما تفتح التطبيق.' : 'Get a notification before your appointment, even when the app is closed.'}</p>

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCircle2, XCircle, CalendarClock, BellRing, AlertTriangle, ChevronRight } from 'lucide-react';
+import { Bell, CheckCircle2, XCircle, CalendarClock, BellRing, AlertTriangle, ChevronRight, Gift } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
 import { cn } from '@/lib/cn';
@@ -84,7 +84,7 @@ export function useCustomerNotifications() {
   return { data, unread, markAll, markOne, isLoading: query.isLoading };
 }
 
-type Tone = 'reject' | 'cancel' | 'ok' | 'move' | 'info';
+type Tone = 'reject' | 'cancel' | 'ok' | 'move' | 'info' | 'gift';
 
 function toneOf(kind: string): Tone {
   const k = kind.toLowerCase();
@@ -93,6 +93,7 @@ function toneOf(kind: string): Tone {
   if (k.includes('cancel') || k.includes('declined')) return 'cancel';
   if (k.includes('confirm') || k.includes('approved') || k.includes('paid')) return 'ok';
   if (k.includes('move') || k.includes('resched')) return 'move';
+  if (k === 'birthday') return 'gift';
   return 'info';
 }
 
@@ -102,6 +103,7 @@ const TONES: Record<Tone, { Icon: typeof Bell; badge: string }> = {
   ok: { Icon: CheckCircle2, badge: 'bg-success/15 text-success' },
   move: { Icon: CalendarClock, badge: 'bg-gold/25 text-espresso' },
   info: { Icon: BellRing, badge: 'bg-gold/25 text-espresso' },
+  gift: { Icon: Gift, badge: 'bg-gold text-espresso' },
 };
 
 // بعض النصوص بتيجي من قاعدة البيانات بالإنجليزي، فبنترجمها هنا
@@ -177,7 +179,8 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
   const openItem = (n: CustomerNotification) => {
     setOpen(false);
     if (!n.is_read) void markOne.mutate(n.id);
-    navigate('/bookings');
+    // كوبون عيد الميلاد: نوديه على الحجز على طول عشان يستخدم الكود
+    navigate(n.kind === 'birthday' ? '/book' : '/bookings');
   };
 
   const panel = (

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { MessageCircle, Copy, Check, Store, Smartphone, Landmark } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { nullableArg, supabase } from '@/lib/supabase';
 import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -35,12 +35,6 @@ type Service = {
 type PayChoice = 'shop' | 'instapay' | 'vodafone_cash';
 type Pick = { uid: string; serviceId: string; date: string; slot: string | null; extras: string[]; staff: string | null };
 
-// دوال الحجز الجديدة مش في أنواع المشروع، فبنعدّي النوع يدوياً
-const rpcAny = (name: string, args: Record<string, unknown>) =>
-  (supabase.rpc.bind(supabase) as unknown as (
-    fn: string,
-    a: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: { message: string } | null }>)(name, args);
 
 const todayStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
 
@@ -286,27 +280,27 @@ export default function GroupBookingPage() {
         const p = picks[pi] as Pick;
         const st = resolveStaff(p);
         const { data, error: e } = st
-          ? await rpcAny('create_booking_staff', {
+          ? await supabase.rpc('create_booking_staff', {
               p_service_id: p.serviceId,
-              p_start_at: p.slot,
+              p_start_at: nullableArg(p.slot),
               p_pay_at_shop: payAtShop,
               p_extra_ids: p.extras,
-              p_notes: null,
-              p_staff_id: st === 'any' ? null : st,
-              p_coupon: null,
+              p_notes: nullableArg<string>(null),
+              p_staff_id: nullableArg(st === 'any' ? null : st),
+              p_coupon: nullableArg<string>(null),
             })
-          : await rpcAny('create_booking', {
+          : await supabase.rpc('create_booking', {
               p_service_id: p.serviceId,
-              p_start_at: p.slot,
+              p_start_at: nullableArg(p.slot),
               p_pay_at_shop: payAtShop,
               p_extra_ids: p.extras,
-              p_notes: null,
+              p_notes: nullableArg<string>(null),
             });
         if (e) throw e;
         created.push(String(data));
       }
       if (!payAtShop) {
-        const { error: e } = await rpcAny('submit_group_payment', {
+        const { error: e } = await supabase.rpc('submit_group_payment', {
           p_booking_ids: created,
           p_method: activeMethod,
           p_transaction_ref: 'whatsapp',
@@ -325,7 +319,7 @@ export default function GroupBookingPage() {
     } catch (e) {
       let cancelFailed = 0;
       for (const id of created) {
-        const r = await rpcAny('customer_cancel_booking', { p_booking_id: id }).catch(() => ({ error: { message: 'x' } }));
+        const r = await Promise.resolve(supabase.rpc('customer_cancel_booking', { p_booking_id: id })).catch(() => ({ error: { message: 'x' } }));
         if (r.error) cancelFailed += 1;
       }
       // المواعيد المعروضة ممكن تكون قديمة، فنحدّثها
@@ -726,16 +720,16 @@ function SlotPicker({
 }) {
   const { i18n } = useTranslation();
   const isAr = i18n.language?.startsWith('ar');
-  const durArg: Record<string, unknown> = durationMin ? { p_duration_min: durationMin } : {};
+  const durArg: { p_duration_min?: number } = durationMin ? { p_duration_min: durationMin } : {};
   const slotsQuery = useQuery({
     queryKey: ['group-slots', serviceId, date, staffValue, durationMin],
     enabled: !!date && !!serviceId && !noneOffers,
     queryFn: async () => {
       const { data, error } = !staffValue
-        ? await rpcAny('get_available_slots', { p_service_id: serviceId, p_date: date, ...durArg })
+        ? await supabase.rpc('get_available_slots', { p_service_id: serviceId, p_date: date, ...durArg })
         : staffValue === 'any'
-          ? await rpcAny('get_available_slots_any', { p_service_id: serviceId, p_date: date, ...durArg })
-          : await rpcAny('get_available_slots_staff', { p_service_id: serviceId, p_date: date, p_staff_id: staffValue, ...durArg });
+          ? await supabase.rpc('get_available_slots_any', { p_service_id: serviceId, p_date: date, ...durArg })
+          : await supabase.rpc('get_available_slots_staff', { p_service_id: serviceId, p_date: date, p_staff_id: staffValue, ...durArg });
       if (error) throw error;
       return ((data ?? []) as Array<{ start_at: string }>).map((s) => s.start_at);
     },

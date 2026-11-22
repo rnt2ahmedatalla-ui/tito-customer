@@ -17,6 +17,7 @@ import { buildWhatsAppUrl, isSafeUrl } from '@/lib/urls';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/cn';
 import { PushOptIn } from '@/features/home/PushOptIn';
+import { HomeGallery } from '@/features/gallery/HomeGallery';
 import { QuickRebook } from '@/features/home/QuickActions';
 import { WaitEstimateCard, InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 
@@ -153,7 +154,7 @@ export default function HomePage() {
   const tagline =
     (ar ? settings.data?.tagline_ar : settings.data?.tagline_en) || t('app.tagline');
 
-  const extra = settings.data as unknown as Record<string, string | null | undefined> | undefined;
+  const extra = settings.data;
   const { text: policyText } = usePolicyText(!!ar);
   const socialLinks = [
     { key: 'instagram', label: 'Instagram', url: (extra?.social_instagram ?? '').trim() },
@@ -347,6 +348,8 @@ export default function HomePage() {
           </div>
         </section>
       ) : null}
+
+      <HomeGallery />
 
       {/* Reviews under services */}
       <section className="mx-auto max-w-5xl px-5 py-12 sm:py-16">

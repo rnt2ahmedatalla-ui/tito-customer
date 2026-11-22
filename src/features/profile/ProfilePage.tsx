@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { MyPackagesCard } from '@/features/extras/ExtrasCards';
+import { BirthdayCard } from './BirthdayCard';
+import { IosInstallGuideButton } from '@/components/layout/IosInstallGuide';
 import { PageShell } from '@/components/layout/PageShell';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -124,7 +126,11 @@ export default function ProfilePage() {
         </Button>
       </div>
 
+      <BirthdayCard />
+
       <MyPackagesCard />
+
+      <IosInstallGuideButton className="mt-6" />
 
       <div className="mt-8">
         <p className="mb-2 text-sm font-medium text-espresso">{t('profile.language')}</p>

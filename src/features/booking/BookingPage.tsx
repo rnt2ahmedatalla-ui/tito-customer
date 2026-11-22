@@ -36,7 +36,7 @@ import { getDateRange, formatCairoDate, formatCairoTime, formatDateKey, isExpire
 import { formatEGP } from '@/lib/money';
 import { CouponBox, type AppliedCoupon } from '@/components/booking/CouponBox';
 import { StaffAvatar, StaffDetailsSheet, staffBio, expLabel, socialLinks } from '@/components/staff/StaffParts';
-import { buildWhatsAppUrl } from '@/lib/urls';
+import { appUrl, buildWhatsAppUrl } from '@/lib/urls';
 import { extractErrorCode } from '@/lib/errors';
 import type { PaymentMethod } from '@/types/database';
 import { cn } from '@/lib/cn';
@@ -158,10 +158,7 @@ export default function BookingPage() {
         queryKey: ['day-availability', serviceId, key, staffSel, durationMin],
         queryFn: async (): Promise<number> => {
           if (staffSel) {
-            const rpcStaff = supabase.rpc.bind(supabase) as unknown as (
-              fn: string,
-              args: Record<string, unknown>,
-            ) => Promise<{ data: unknown; error: { message: string } | null }>;
+            const rpcStaff = supabase.rpc.bind(supabase);
             const r = await rpcStaff(
               staffSel === 'any' ? 'get_available_slots_any' : 'get_available_slots_staff',
               staffSel === 'any'
@@ -171,10 +168,7 @@ export default function BookingPage() {
             if (r.error) throw r.error;
             return ((r.data ?? []) as unknown[]).length;
           }
-          const rpcPlain = supabase.rpc.bind(supabase) as unknown as (
-            fn: string,
-            args: Record<string, unknown>,
-          ) => Promise<{ data: unknown; error: { message: string } | null }>;
+          const rpcPlain = supabase.rpc.bind(supabase);
           const { data, error } = await rpcPlain('get_available_slots', {
             p_service_id: serviceId as string,
             p_date: key,
@@ -251,7 +245,7 @@ export default function BookingPage() {
         .select('id, pay_at_shop, payment:payments(status)')
         .eq('user_id', user.id)
         .eq('status', 'pending_payment');
-      const rows = (data ?? []) as unknown as Array<{ id: string; pay_at_shop: boolean | null; payment: { status?: string | null } | Array<{ status?: string | null }> | null }>;
+      const rows = (data ?? []) as Array<{ id: string; pay_at_shop: boolean | null; payment: { status?: string | null } | Array<{ status?: string | null }> | null }>;
       for (const r of rows) {
         const pays = Array.isArray(r.payment) ? r.payment : r.payment ? [r.payment] : [];
         const sent = pays.some((p) => p.status === 'submitted' || p.status === 'rejected' || p.status === 'confirmed');
@@ -417,10 +411,7 @@ export default function BookingPage() {
       const dateStr = formatCairoDate(booking.data.start_at, i18n.language);
       const timeStr = formatCairoTime(booking.data.start_at, i18n.language);
       const priceStr = formatEGP(booking.data.price_egp);
-      const bookingsLink =
-        typeof window !== 'undefined'
-          ? `${window.location.origin}/bookings`
-          : 'https://titobarber.com/bookings';
+      const bookingsLink = appUrl('bookings');
 
       if (isPayAtShop) {
         const msg =
@@ -802,8 +793,8 @@ export default function BookingPage() {
                 ))}
                 <p>{formatCairoDate(booking.data.start_at, i18n.language)}</p>
                 <p>{formatCairoTime(booking.data.start_at, i18n.language)}</p>
-                {(booking.data as unknown as { staff_id?: string | null }).staff_id && activeStaff.length > 1 ? (
-                  <p>{(i18n.language === 'ar' ? 'الحلاق: ' : 'Barber: ') + (activeStaff.find((m) => m.id === (booking.data as unknown as { staff_id?: string }).staff_id)?.name ?? '')}</p>
+                {booking.data.staff_id && activeStaff.length > 1 ? (
+                  <p>{(i18n.language === 'ar' ? 'الحلاق: ' : 'Barber: ') + (activeStaff.find((m) => m.id === booking.data?.staff_id)?.name ?? '')}</p>
                 ) : null}
                 <p className="text-gold-soft">{formatEGP(booking.data.price_egp)}</p>
               </div>

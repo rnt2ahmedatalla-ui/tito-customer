@@ -7,8 +7,7 @@ import { useAuth } from '@/features/profile/useAuth';
 import { canAttempt } from '@/lib/rate-limit';
 import { formatEGP } from '@/lib/money';
 
-type RpcFn = (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-const rpc = supabase.rpc.bind(supabase) as unknown as RpcFn;
+const rpc = supabase.rpc.bind(supabase);
 
 export interface AppliedCoupon {
   code: string;
@@ -61,7 +60,9 @@ export function CouponBox({
       setMsg(
         res?.error === 'EXPIRED'
           ? isAr ? 'الكوبون ده خلصت مدته' : 'This coupon has expired'
-          : isAr ? 'الكوبون مش صحيح' : 'Invalid coupon',
+          : res?.error === 'USED'
+            ? isAr ? 'الكوبون ده اتستخدم قبل كده' : 'This coupon was already used'
+            : isAr ? 'الكوبون مش صحيح' : 'Invalid coupon',
       );
       return;
     }

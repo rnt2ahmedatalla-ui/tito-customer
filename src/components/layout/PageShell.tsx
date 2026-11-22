@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/urls';
 import { type ReactNode } from 'react';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
@@ -27,7 +28,7 @@ export function PageShell({
     <div className="relative min-h-dvh overflow-x-clip bg-cream font-arabic text-espresso">
       {!marketing ? (
         <img
-          src="/brand/tito-icon-512.png"
+          src={assetUrl('/brand/tito-icon-512.png')}
           alt=""
           aria-hidden
           className="pointer-events-none fixed end-[-8%] top-[18%] z-0 w-[min(55vw,280px)] opacity-[0.04] select-none"

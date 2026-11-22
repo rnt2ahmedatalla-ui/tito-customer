@@ -1,3 +1,4 @@
+import { assetUrl } from '@/lib/urls';
 interface LogoProps {
   /** light = for cream backgrounds; dark = for espresso backgrounds */
   variant?: 'light' | 'dark';
@@ -11,11 +12,11 @@ export function Logo({ variant = 'dark', mark = false, height = 32, className }:
   let src: string;
   if (mark) {
     // Always use the real circular emblem (gold-on-dark stub was a 1×1 green pixel)
-    src = '/brand/tito-icon-512.png';
+    src = assetUrl('/brand/tito-icon-512.png');
   } else if (variant === 'dark') {
-    src = '/brand/tito-logo-horizontal-gold-on-dark-1200.png';
+    src = assetUrl('/brand/tito-logo-horizontal-gold-on-dark-1200.png');
   } else {
-    src = '/brand/tito-logo-horizontal-transparent-1200.png';
+    src = assetUrl('/brand/tito-logo-horizontal-transparent-1200.png');
   }
 
   const maxW = mark ? height : Math.round(height * 3.2);

@@ -18,15 +18,7 @@ export interface LedgerRow {
   created_at: string;
 }
 
-// الجداول دي مش في أنواع المشروع، فبنتعامل معاها بشكل عام
-const db = supabase as unknown as {
-  from: (t: string) => {
-    select: (c: string) => {
-      eq: (k: string, v: unknown) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> };
-      order: (c: string, o: { ascending: boolean }) => Promise<{ data: unknown; error: unknown }>;
-    };
-  };
-};
+const db = supabase;
 
 export function useLoyaltySettings() {
   return useQuery({

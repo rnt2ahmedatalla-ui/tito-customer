@@ -23,7 +23,7 @@ function useRows(): Row[] {
   const { user } = useAuth();
   const q = useBookings();
   if (!user) return [];
-  return (q.data ?? []) as unknown as Row[];
+  return (q.data ?? []) as Row[];
 }
 
 /** كارت أعلى الرئيسية: احجز نفس آخر حلاقة بضغطة (نفس الخدمة ونفس الحلاق). ينفع تخفيه بـ ✕ */

@@ -10,7 +10,8 @@
     "products": "Products",
     "whatsapp": "WhatsApp",
     "bookings": "My bookings",
-    "profile": "Profile"
+    "profile": "Profile",
+    "gallery": "Our work"
   },
   "home": {
     "heroHeadline": "Sharp cut. Clinical care.",
@@ -181,7 +182,9 @@
     "reference": "Reference: {{id}}",
     "offline": "You are offline",
     "rateLimited": "Please wait before trying again",
-    "PREPAY_REQUIRED": "Prepayment is required for this booking"
+    "PREPAY_REQUIRED": "Prepayment is required for this booking",
+    "COUPON_INVALID": "This coupon is not valid for you",
+    "COUPON_USED": "This coupon was already used"
   },
   "common": {
     "back": "Back",

@@ -13,6 +13,8 @@ const ProductsPage = lazy(() => import('@/features/products/ProductsPage'));
 const ProductOrderPage = lazy(() => import('@/features/products/ProductOrderPage'));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'));
 const NotFoundPage = lazy(() => import('@/features/NotFoundPage'));
+const GalleryPage = lazy(() => import('@/features/gallery/GalleryPage'));
+const QueueScreenPage = lazy(() => import('@/features/screen/QueueScreenPage'));
 
 function PageLoader() {
   return (
@@ -44,6 +46,8 @@ const router = createBrowserRouter(
     { path: '/products', element: withSuspense(ProductsPage) },
     { path: '/products/:id', element: withSuspense(ProductOrderPage) },
     { path: '/profile', element: withSuspense(ProfilePage) },
+    { path: '/gallery', element: withSuspense(GalleryPage) },
+    { path: '/screen/:token', element: withSuspense(QueueScreenPage) },
     { path: '*', element: withSuspense(NotFoundPage) },
   ],
   { basename },

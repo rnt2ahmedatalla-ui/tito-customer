@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { PaymentPanel } from '@/components/booking/PaymentPanel';
 import { useSettings } from '@/features/home/useHomeData';
 import { useAuth, useSignIn } from '@/features/profile/useAuth';
-import { supabase } from '@/lib/supabase';
+import { nullableArg, supabase } from '@/lib/supabase';
 import { formatEGP } from '@/lib/money';
 import type { PaymentMethod } from '@/types/database';
 
@@ -73,7 +73,7 @@ export default function ProductOrderPage() {
         p_order_id: orderId,
         p_method: method,
         p_transaction_ref: 'whatsapp',
-        p_proof_path: null,
+        p_proof_path: nullableArg<string>(null),
       });
       if (error) throw error;
     },

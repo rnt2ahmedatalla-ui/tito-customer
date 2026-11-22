@@ -1,11 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { nullableArg, supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
 
-// الجداول والدوال دي مش في أنواع المشروع، فبنتعامل معاها بشكل عام
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const db = supabase as unknown as { from: (t: string) => any; rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: { message: string } | null }> };
-/* eslint-enable @typescript-eslint/no-explicit-any */
+const db = supabase;
 
 export type FeatureFlags = { waitlist: boolean; packages: boolean; waitEstimate: boolean; waitWindowHours: number };
 
@@ -39,8 +36,9 @@ export function useBarbersNow(enabled: boolean) {
     enabled,
     queryFn: async (): Promise<BarberNow[] | null> => {
       const { data, error } = await db.rpc('barbers_now');
-      if (error || !data || !data.enabled || !data.open) return null;
-      return (data.barbers ?? []) as BarberNow[];
+      const r = data as { enabled?: boolean; open?: boolean; barbers?: BarberNow[] } | null;
+      if (error || !r || !r.enabled || !r.open) return null;
+      return r.barbers ?? [];
     },
     refetchInterval: 60_000,
     retry: false,
@@ -54,8 +52,9 @@ export function useQueueEstimate(enabled: boolean) {
     enabled,
     queryFn: async (): Promise<number | null> => {
       const { data, error } = await db.rpc('queue_estimate');
-      if (error || !data || !data.enabled) return null;
-      return Number(data.minutes ?? 0);
+      const r = data as { enabled?: boolean; minutes?: number } | null;
+      if (error || !r || !r.enabled) return null;
+      return Number(r.minutes ?? 0);
     },
     refetchInterval: 60_000,
     retry: false,
@@ -100,7 +99,7 @@ export function useMyWaitlist(day: string | null, enabled: boolean) {
       const { data, error } = await db
         .from('waitlist')
         .select('id, day, status')
-        .eq('day', day)
+        .eq('day', day ?? '')
         .in('status', ['waiting', 'notified'])
         .maybeSingle();
       if (error) return null;
@@ -114,7 +113,7 @@ export function useWaitlistActions() {
   const qc = useQueryClient();
   const join = useMutation({
     mutationFn: async (v: { service: string | null; day: string; note: string }) => {
-      const { error } = await db.rpc('waitlist_join', { p_service: v.service, p_day: v.day, p_note: v.note || null });
+      const { error } = await db.rpc('waitlist_join', { p_service: nullableArg(v.service), p_day: v.day, p_note: nullableArg(v.note || null) });
       if (error) throw new Error(error.message);
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['my-waitlist'] }),

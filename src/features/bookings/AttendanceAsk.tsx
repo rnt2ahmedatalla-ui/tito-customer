@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 
 type Rpc = (fn: string, a?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
+const rpc = supabase.rpc.bind(supabase);
 
 /** "هتيجي؟" على كارت الحجز: جاي / مش جاي (مش جاي بيلغي الحجز ويفضّي المعاد) */
 export function AttendanceAsk({ bookingId, asked, attendance }: { bookingId: string; asked: boolean; attendance: string | null }) {

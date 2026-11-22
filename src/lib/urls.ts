@@ -30,3 +30,19 @@ export function buildWhatsAppUrl(phone: string, message?: string): string | null
   }
   return base;
 }
+
+/**
+ * Absolute link to a page of this site that works with any base path
+ * (e.g. "/" on Cloudflare, "/tito-customer/" on GitHub Pages).
+ */
+export function appUrl(path = ''): string {
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const clean = path.replace(/^\/+/, '');
+  return `${origin}${base}/${clean}`;
+}
+
+/** مسار ملف من فولدر public بيشتغل مع أي base path */
+export function assetUrl(path: string): string {
+  return `${(import.meta.env.BASE_URL || '/').replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+}

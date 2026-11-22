@@ -9,6 +9,8 @@ export type ErrorCode =
   | 'TOO_MANY_PENDING'
   | 'BOOKING_CLOSED'
   | 'PREPAY_REQUIRED'
+  | 'COUPON_INVALID'
+  | 'COUPON_USED'
   | 'UNKNOWN';
 
 const CODE_PATTERNS: { pattern: RegExp; code: ErrorCode }[] = [
@@ -20,6 +22,8 @@ const CODE_PATTERNS: { pattern: RegExp; code: ErrorCode }[] = [
   { pattern: /TOO_MANY_PENDING/i, code: 'TOO_MANY_PENDING' },
   { pattern: /BOOKING_CLOSED/i, code: 'BOOKING_CLOSED' },
   { pattern: /PREPAY_REQUIRED/i, code: 'PREPAY_REQUIRED' },
+  { pattern: /COUPON_USED/i, code: 'COUPON_USED' },
+  { pattern: /COUPON_INVALID/i, code: 'COUPON_INVALID' },
 ];
 
 export function extractErrorCode(error: unknown): ErrorCode {

@@ -1,9 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const db = supabase as unknown as { from: (t: string) => any };
-/* eslint-enable @typescript-eslint/no-explicit-any */
+const db = supabase;
 
 export type SeasonPeriod = {
   id: string;

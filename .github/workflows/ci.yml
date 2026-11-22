@@ -1,5 +1,7 @@
 name: CI
 
+# بيتأكد إن الكود سليم (typecheck + tests + build) مع كل تعديل.
+# النشر نفسه بيعمله Cloudflare Pages لوحده من GitHub.
 on:
   push:
     branches: [main]
@@ -7,17 +9,19 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: bash scripts/check-secrets.sh
-      - run: npm run build
+      - run: npm run typecheck
       - run: npm test
-      - run: npm audit --audit-level=high
-        continue-on-error: true
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder

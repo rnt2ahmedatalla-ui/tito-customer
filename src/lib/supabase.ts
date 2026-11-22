@@ -20,3 +20,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 export function getSupabaseOrigin(): string {
   return new URL(supabaseUrl).origin;
 }
+
+/**
+ * دوال قاعدة البيانات بتقبل NULL في بعض الخانات، بس مولّد الأنواع بيكتبها string.
+ * الدالة دي بتعدّي null بشكل صريح في المكان ده بس.
+ */
+export function nullableArg<T>(value: T | null): T {
+  return value as T;
+}

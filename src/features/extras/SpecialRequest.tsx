@@ -3,13 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Clock, Sparkles, Star, X } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { nullableArg, supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
 
 type Rpc = (fn: string, a?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
+const rpc = supabase.rpc.bind(supabase);
 
 type Cfg = { is_enabled: boolean; surcharge_pct: number; max_days_ahead: number };
 
@@ -46,7 +46,7 @@ export function SpecialRequestPrompt({ day, serviceId }: { day: string; serviceI
     queryKey: ['special-slots', serviceId, d],
     enabled: open && !!serviceId && !!d,
     queryFn: async () => {
-      const r = await rpc('get_special_slots', { p_service_id: serviceId, p_date: d });
+      const r = await rpc('get_special_slots', { p_service_id: nullableArg(serviceId), p_date: d });
       if (r.error) throw new Error(r.error.message);
       return (r.data ?? []) as Array<{ start_at: string; price_egp: number }>;
     },
@@ -54,7 +54,7 @@ export function SpecialRequestPrompt({ day, serviceId }: { day: string; serviceI
 
   const send = useMutation({
     mutationFn: async () => {
-      const r = await rpc('create_special_request', { p_service_id: serviceId, p_start_at: slot, p_note: note || null });
+      const r = await rpc('create_special_request', { p_service_id: nullableArg(serviceId), p_start_at: nullableArg(slot), p_note: nullableArg(note || null) });
       if (r.error) throw new Error(r.error.message);
     },
     onSuccess: () => {
@@ -143,7 +143,7 @@ export function SpecialRequestsButton() {
     queryKey: ['my-special-requests'],
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data, error } = await (supabase as unknown as { from: (t: string) => { select: (c: string) => { order: (c: string, o: { ascending: boolean }) => { limit: (n: number) => Promise<{ data: unknown; error: unknown }> } } } })
+      const { data, error } = await supabase
         .from('special_requests').select('id, start_at, price_egp, status, reject_reason, created_at').order('created_at', { ascending: false }).limit(50);
       if (error) return [] as MyReq[];
       return (data ?? []) as MyReq[];

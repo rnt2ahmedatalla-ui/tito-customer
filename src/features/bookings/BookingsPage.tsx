@@ -28,7 +28,7 @@ import type { BookingWithDetails } from '@/types/database';
 
 
 const bookingStaff = (b: BookingWithDetails): string | null =>
-  (b as unknown as { staff_id?: string | null }).staff_id ?? null;
+  b.staff_id ?? null;
 
 function rescheduleMessage(code: string, isAr: boolean): string {
   if (code.includes('SLOT_TAKEN')) return isAr ? 'المعاد ده اتحجز قبل كده، اختار معاد تاني' : 'That time was just booked, pick another';
@@ -63,10 +63,7 @@ function RescheduleBox({
     enabled: !!date && !!serviceId,
     queryFn: async () => {
       // لو الحجز على حلاق معين، المواعيد البديلة بتبقى بتاعته هو (جدوله واستراحاته)
-      const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
-        fn: string,
-        a: Record<string, unknown>,
-      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const rpcUntyped = supabase.rpc.bind(supabase);
       // لو الحجز فيه إضافات ليها وقت، المواعيد البديلة بتتحسب على مدته الكاملة
       const bookingMin = Number(booking.duration_minutes ?? 0);
       const svcMin = Number(booking.service?.duration_minutes ?? 0);
@@ -83,10 +80,7 @@ function RescheduleBox({
   const saveMutation = useMutation({
     mutationFn: async (newStart: string) => {
       // الدالة مش موجودة في أنواع المشروع الحالية، فبنعدّي النوع يدوياً
-      const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
-        fn: string,
-        args: Record<string, unknown>,
-      ) => Promise<{ error: { message: string } | null }>;
+      const rpcUntyped = supabase.rpc.bind(supabase);
       const { error: rpcErr } = await rpcUntyped('customer_reschedule_booking', {
         p_booking_id: booking.id,
         p_new_start_at: newStart,
@@ -191,10 +185,7 @@ export default function BookingsPage() {
   const redeemedIds = new Set(ledger.filter((r) => r.kind === 'redeem' && r.booking_id).map((r) => r.booking_id as string));
   const redeem = useMutation({
     mutationFn: async ({ id, points }: { id: string; points: number }) => {
-      const rpcUntyped = supabase.rpc.bind(supabase) as unknown as (
-        fn: string,
-        a: Record<string, unknown>,
-      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const rpcUntyped = supabase.rpc.bind(supabase);
       const { data, error: e } = await rpcUntyped('loyalty_redeem', { p_booking_id: id, p_points: points });
       if (e) throw e;
       return data as { points: number; discount: number };
@@ -397,8 +388,8 @@ export default function BookingsPage() {
                 {booking.status === 'confirmed' && new Date(booking.start_at) > new Date() ? (
                   <AttendanceAsk
                     bookingId={booking.id}
-                    asked={!!(booking as unknown as { attendance_asked_at?: string | null }).attendance_asked_at}
-                    attendance={(booking as unknown as { attendance?: string | null }).attendance ?? null}
+                    asked={!!booking.attendance_asked_at}
+                    attendance={booking.attendance ?? null}
                   />
                 ) : null}
                 {booking.status === 'confirmed' && new Date(booking.end_at) > new Date() ? (
@@ -408,7 +399,7 @@ export default function BookingsPage() {
                 ) : null}
                 {booking.status === 'completed' ? (
                   <Link
-                    to={`/book?step=datetime&service=${booking.service_id}${(booking as unknown as { staff_id?: string | null }).staff_id ? `&staff=${(booking as unknown as { staff_id: string }).staff_id}` : ''}`}
+                    to={`/book?step=datetime&service=${booking.service_id}${booking.staff_id ? `&staff=${booking.staff_id}` : ''}`}
                     className="mt-3 inline-flex"
                   >
                     <Button size="sm" variant="secondary">{isAr ? 'احجز نفس الحلاقة تاني' : 'Book the same again'}</Button>
@@ -500,7 +491,7 @@ export default function BookingsPage() {
                 {rescheduleId === booking.id && canCancel ? (
                   <RescheduleBox
                     booking={booking}
-                    serviceId={(booking as unknown as { service_id: string }).service_id}
+                    serviceId={booking.service_id}
                     staffId={bookingStaff(booking)}
                     onClose={() => setRescheduleId(null)}
                   />

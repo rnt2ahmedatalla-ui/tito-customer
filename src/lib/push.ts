@@ -2,18 +2,18 @@ import { supabase } from '@/lib/supabase';
 
 const VAPID_PUBLIC_KEY = 'BK-_hVyrW02w389B9reVSNKRm7pgua5VuypBvrlHCCMcvyp0uXV27tt6e7VKFMsCg-t0VA8sIgqzDVLkkKXrlj4';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const rpc = supabase.rpc.bind(supabase) as unknown as (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: { message: string } | null }>;
-/* eslint-enable @typescript-eslint/no-explicit-any */
+const rpc = supabase.rpc.bind(supabase);
 
 export function pushSupported(): boolean {
   return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
-function b64ToUint8(b64: string): Uint8Array {
+function b64ToBuffer(b64: string): ArrayBuffer {
   const pad = '='.repeat((4 - (b64.length % 4)) % 4);
   const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
+  return out.buffer;
 }
 
 async function currentSubscription(): Promise<PushSubscription | null> {
@@ -41,7 +41,7 @@ export async function enablePush(lang: string): Promise<boolean> {
   const reg = await navigator.serviceWorker.ready;
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
-    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToUint8(VAPID_PUBLIC_KEY) as unknown as BufferSource });
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBuffer(VAPID_PUBLIC_KEY) });
   }
   await saveToServer(sub, lang);
   return true;
