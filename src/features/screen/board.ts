@@ -2,7 +2,7 @@ import type { Json } from '@/types/database';
 
 /* ───────── إعدادات الشاشة (بتتحفظ من لوحة التحكم) ───────── */
 
-export type NameStyle = 'first' | 'initial' | 'hidden';
+export type NameStyle = 'first' | 'full' | 'initial' | 'hidden';
 export type TextSize = 'm' | 'l' | 'xl';
 
 export type ScreenLayout = {
@@ -17,6 +17,8 @@ export type ScreenLayout = {
   /** وقت الانتظار التقريبي */
   show_wait: boolean;
   name_style: NameStyle;
+  /** الخدمة والإضافات تحت اسم العميل */
+  show_services: boolean;
   /** العمود الجانبي (صور / تقييمات / عروض) */
   show_side: boolean;
   side: { gallery: boolean; reviews: boolean; offers: boolean };
@@ -46,6 +48,7 @@ export const DEFAULT_LAYOUT: ScreenLayout = {
   show_times: true,
   show_wait: true,
   name_style: 'first',
+  show_services: true,
   show_side: true,
   side: { gallery: true, reviews: true, offers: true },
   show_waitlist: true,
@@ -87,7 +90,8 @@ export function normalizeLayout(raw: unknown): ScreenLayout {
     show_list: bool(r.show_list, d.show_list),
     show_times: bool(r.show_times, d.show_times),
     show_wait: bool(r.show_wait, d.show_wait),
-    name_style: ns === 'initial' || ns === 'hidden' ? ns : 'first',
+    name_style: ns === 'initial' || ns === 'hidden' || ns === 'full' ? ns : 'first',
+    show_services: bool(r.show_services, d.show_services),
     show_side: bool(r.show_side, d.show_side),
     side: { gallery: bool(side.gallery, true), reviews: bool(side.reviews, true), offers: bool(side.offers, true) },
     show_waitlist: bool(r.show_waitlist, d.show_waitlist),
@@ -110,7 +114,8 @@ export function normalizeLayout(raw: unknown): ScreenLayout {
 /* ───────── بيانات الشاشة ───────── */
 
 export type BarberState = 'busy' | 'open' | 'off' | 'closed';
-export type BoardPerson = { name: string | null; at: string; end: string | null };
+export type BoardSvc = { ar: string; en: string; x_ar: string[]; x_en: string[] };
+export type BoardPerson = { name: string | null; at: string; end: string | null; svc: BoardSvc | null };
 export type BoardBarber = {
   id: string;
   name: string;
@@ -119,14 +124,24 @@ export type BoardBarber = {
   open: string | null;
   close: string | null;
   reopen: string | null;
-  now: { name: string | null; start: string | null; until: string } | null;
+  now: { name: string | null; start: string | null; until: string; svc: BoardSvc | null } | null;
   next: BoardPerson[];
   wait_min: number | null;
+  /** فاضي فعلاً لزبون من غير حجز (الوقت لحد اللي بعده يكفي أقصر خدمة) */
+  free_now: boolean;
+  /** بين زبونين / استراحة قصيرة: نعرض الدور عادي */
+  ready: boolean;
+  /** أقرب معاد يتحجز أونلاين النهارده */
+  slot: string | null;
+  /** مفيش مواعيد تانية النهارده */
+  day_full: boolean;
 };
 export type Board = {
   shop: string;
   shopState: 'open' | 'closed';
   reopen: string | null;
+  /** أقرب معاد متاح للحجز (أي يوم) */
+  nextSlot: string | null;
   barbers: BoardBarber[];
   gallery: Array<{ thumb: string; full: string; caption_ar: string | null; caption_en: string | null }>;
   packages: Array<{ name_ar: string; name_en: string | null; sessions: number; price: number }>;
@@ -140,12 +155,26 @@ export type Board = {
 
 const STATES: BarberState[] = ['busy', 'open', 'off', 'closed'];
 
+const strs = (v: unknown): string[] => arr(v).filter((x): x is string => typeof x === 'string' && !!x.trim());
+function parseSvc(v: unknown): BoardSvc | null {
+  if (!isObj(v) || !str(v.ar)) return null;
+  return { ar: str(v.ar), en: str(v.en) || str(v.ar), x_ar: strs(v.x_ar), x_en: strs(v.x_en) };
+}
+
+/** «حلاقة + لحية · ماسك» */
+export function svcText(svc: BoardSvc | null | undefined, ar: boolean): string {
+  if (!svc) return '';
+  const main = ar ? svc.ar : svc.en;
+  const extra = ar ? svc.x_ar : svc.x_en;
+  return extra.length ? `${main} + ${extra.join(' + ')}` : main;
+}
+
 /** بيقرا رد queue_board بأمان. null لو اللينك غلط أو الشاشة مقفولة */
 export function parseBoard(data: Json | null): Board | null {
   if (!isObj(data) || data.ok !== true) return null;
   const barbers = arr(data.barbers).filter(isObj).map((b): BoardBarber => {
     const st = str(b.state) as BarberState;
-    const now = isObj(b.now) && str(b.now.until) ? { name: strOrNull(b.now.name), start: strOrNull(b.now.start), until: str(b.now.until) } : null;
+    const now = isObj(b.now) && str(b.now.until) ? { name: strOrNull(b.now.name), start: strOrNull(b.now.start), until: str(b.now.until), svc: parseSvc(b.now.svc) } : null;
     const waitRaw = numOrNull(b.wait_min);
     return {
       id: str(b.id),
@@ -157,8 +186,13 @@ export function parseBoard(data: Json | null): Board | null {
       close: strOrNull(b.close),
       reopen: strOrNull(b.reopen),
       now,
-      next: arr(b.next).filter(isObj).map((n) => ({ name: strOrNull(n.name), at: str(n.at), end: strOrNull(n.end) })).filter((n) => n.at),
+      next: arr(b.next).filter(isObj).map((n) => ({ name: strOrNull(n.name), at: str(n.at), end: strOrNull(n.end), svc: parseSvc(n.svc) })).filter((n) => n.at),
       wait_min: waitRaw === null ? null : Math.max(0, Math.round(waitRaw)),
+      // البيانات القديمة: «فاضي» = مفيش انتظار
+      free_now: typeof b.free_now === 'boolean' ? b.free_now : st === 'open' && waitRaw === 0,
+      ready: b.ready === true,
+      slot: strOrNull(b.slot),
+      day_full: b.day_full === true,
     };
   });
   const anyOpen = barbers.some((b) => b.state === 'busy' || b.state === 'open');
@@ -167,6 +201,7 @@ export function parseBoard(data: Json | null): Board | null {
     shop: str(data.shop),
     shopState: ss === 'open' || ss === 'closed' ? ss : anyOpen ? 'open' : 'closed',
     reopen: strOrNull(data.reopen),
+    nextSlot: strOrNull(data.next_slot),
     barbers,
     gallery: arr(data.gallery).filter(isObj).map((g) => ({ thumb: str(g.thumb), full: str(g.full), caption_ar: strOrNull(g.caption_ar), caption_en: strOrNull(g.caption_en) })).filter((g) => g.full),
     packages: arr(data.packages).filter(isObj).map((p) => ({ name_ar: str(p.name_ar), name_en: strOrNull(p.name_en), sessions: num(p.sessions), price: num(p.price) })),

@@ -857,6 +857,7 @@ export type Database = {
       }
       feature_settings: {
         Row: {
+          products_enabled: boolean
           auto_complete_hours: number
           gallery_enabled: boolean
           id: number
@@ -869,6 +870,7 @@ export type Database = {
           waitlist_enabled: boolean
         }
         Insert: {
+          products_enabled?: boolean
           auto_complete_hours?: number
           gallery_enabled?: boolean
           id?: number
@@ -881,6 +883,7 @@ export type Database = {
           waitlist_enabled?: boolean
         }
         Update: {
+          products_enabled?: boolean
           auto_complete_hours?: number
           gallery_enabled?: boolean
           id?: number
@@ -1660,8 +1663,45 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          is_active: boolean
+          name_ar: string
+          name_en: string | null
+          sort: number
+        }
+        Insert: {
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name_ar: string
+          name_en?: string | null
+          sort?: number
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name_ar?: string
+          name_en?: string | null
+          sort?: number
+        }
+        Relationships: []
+      }
       product_orders: {
         Row: {
+          qty: number
+          unit_price: number | null
+          pay_mode: string
+          booking_id: string | null
+          paid_at: string | null
+          picked_up_at: string | null
+          note: string | null
           created_at: string
           id: string
           method: string | null
@@ -1677,6 +1717,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          qty?: number
+          unit_price?: number | null
+          pay_mode?: string
+          booking_id?: string | null
+          paid_at?: string | null
+          picked_up_at?: string | null
+          note?: string | null
           created_at?: string
           id?: string
           method?: string | null
@@ -1692,6 +1739,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          qty?: number
+          unit_price?: number | null
+          pay_mode?: string
+          booking_id?: string | null
+          paid_at?: string | null
+          picked_up_at?: string | null
+          note?: string | null
           created_at?: string
           id?: string
           method?: string | null
@@ -1723,8 +1777,62 @@ export type Database = {
           },
         ]
       }
+      product_requests: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          note: string | null
+          notified_at: string | null
+          notified_via: string | null
+          product_id: string | null
+          product_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          notified_at?: string | null
+          notified_via?: string | null
+          product_id?: string | null
+          product_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          notified_at?: string | null
+          notified_via?: string | null
+          product_id?: string | null
+          product_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
+          category_id: string | null
+          in_stock: boolean
+          thumb_path: string | null
+          is_featured: boolean
           created_at: string
           description_ar: string | null
           description_en: string | null
@@ -1738,6 +1846,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category_id?: string | null
+          in_stock?: boolean
+          thumb_path?: string | null
+          is_featured?: boolean
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
@@ -1751,6 +1863,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category_id?: string | null
+          in_stock?: boolean
+          thumb_path?: string | null
+          is_featured?: boolean
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
@@ -2698,6 +2814,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_product_request_notify: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      admin_product_request_set: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      cancel_my_product_order: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+      cancel_my_product_request: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      create_product_order_v2: {
+        Args: { p_booking_id?: string | null; p_note?: string | null; p_pay?: string; p_product_id: string; p_qty?: number }
+        Returns: string
+      }
+      request_product: {
+        Args: { p_category_id?: string | null; p_name?: string | null; p_note?: string | null; p_product_id?: string | null }
+        Returns: string
+      }
+      set_my_product_order_booking: {
+        Args: { p_booking_id: string | null; p_order_id: string }
+        Returns: undefined
+      }
       admin_add_review: {
         Args: { p_comment: string; p_display_name?: string; p_rating: number }
         Returns: Json

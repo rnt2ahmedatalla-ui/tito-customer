@@ -93,7 +93,7 @@ function toneOf(kind: string): Tone {
   if (k.includes('cancel') || k.includes('declined')) return 'cancel';
   if (k.includes('confirm') || k.includes('approved') || k.includes('paid')) return 'ok';
   if (k.includes('move') || k.includes('resched')) return 'move';
-  if (k === 'birthday') return 'gift';
+  if (k === 'birthday' || k === 'product') return 'gift';
   return 'info';
 }
 
@@ -181,7 +181,7 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
     if (!n.is_read) void markOne.mutate(n.id);
     // كوبون عيد الميلاد: نوديه على الحجز على طول عشان يستخدم الكود
     // إشعارات صاحب المحل (campaign) بتفتح الرئيسية، وعيد الميلاد بيفتح الحجز
-    navigate(n.kind === 'birthday' ? '/book' : n.kind === 'campaign' ? '/' : '/bookings');
+    navigate(n.kind === 'birthday' ? '/book' : n.kind === 'campaign' ? '/' : n.kind === 'product' ? '/products' : '/bookings');
   };
 
   const panel = (

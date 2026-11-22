@@ -1,81 +1,76 @@
-import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { useMemo, useState } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
+import { CalendarClock, PackageSearch } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
-import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { supabase } from '@/lib/supabase';
-import { formatEGP } from '@/lib/money';
+import { formatCairoDate, formatCairoTime } from '@/lib/time';
+import { useFeatureFlags } from '@/features/extras/useExtras';
+import { CategoryTabs, MyStorePanel, ProductCard, RequestSheet } from './StoreParts';
+import { useLang, useStoreCategories, useStoreProducts, useUpcomingBookings } from './useStore';
 
-type Product = {
-  id: string;
-  name_ar: string;
-  name_en: string;
-  description_ar: string | null;
-  description_en: string | null;
-  price_egp: number;
-  image_path: string | null;
-};
-
+/** متجر المنتجات: أقسام + شبكة منتجات + طلباتي + «اطلب منتج مش موجود» */
 export default function ProductsPage() {
-  const { t, i18n } = useTranslation();
-  const products = useQuery({
-    queryKey: ['products'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, name_ar, name_en, description_ar, description_en, price_egp, image_path')
-        .eq('is_active', true)
-        .order('sort_order');
-      if (error) throw error;
-      return (data ?? []) as Product[];
-    },
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-  });
+  const { ar, L } = useLang();
+  const [sp] = useSearchParams();
+  const bookingId = sp.get('booking');
+  const flags = useFeatureFlags();
+  const cats = useStoreCategories();
+  const products = useStoreProducts();
+  const upcoming = useUpcomingBookings();
+  const [cat, setCat] = useState('all');
+  const [reqOpen, setReqOpen] = useState(false);
 
-  const img = (path: string | null) =>
-    path
-      ? `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/product-images/${path}`
-      : null;
+  const list = useMemo(() => (products.data ?? []).filter((p) => cat === 'all' || p.category_id === cat), [products.data, cat]);
+  // الأقسام اللي فيها منتجات بس
+  const usedCats = useMemo(() => (cats.data ?? []).filter((c) => (products.data ?? []).some((p) => p.category_id === c.id)), [cats.data, products.data]);
+  const forBooking = bookingId ? (upcoming.data ?? []).find((b) => b.id === bookingId) : null;
+
+  if (flags.data && !flags.data.products) return <Navigate to="/" replace />;
 
   return (
     <PageShell>
-      <h1 className="text-2xl font-bold text-espresso">{t('products.title')}</h1>
-      <p className="mt-2 text-sm text-ink">{t('products.support')}</p>
+      <header className="mb-4">
+        <p className="font-latin text-xs font-medium uppercase tracking-[0.2em] text-gold">Shop</p>
+        <h1 className="mt-1 text-2xl font-bold text-espresso sm:text-3xl">{L('منتجاتنا', 'Our products')}</h1>
+        <p className="mt-1.5 text-sm text-ink">{L('احجز المنتج وخده مع حلاقتك — ادفع كاش وانت بتستلم أو أونلاين.', 'Reserve a product and pick it up with your cut — pay cash on pickup or online.')}</p>
+      </header>
+
+      {forBooking ? (
+        <p className="mb-4 flex items-center gap-2 rounded-btn bg-espresso px-3 py-2.5 text-sm text-cream">
+          <CalendarClock className="size-4 shrink-0 text-gold" />
+          {L('هتاخد اللي تختاره مع حلاقتك', 'Pick-up with your cut on')} {formatCairoDate(forBooking.start_at, ar ? 'ar' : 'en')} · <span className="font-latin" dir="ltr">{formatCairoTime(forBooking.start_at, ar ? 'ar' : 'en')}</span>
+        </p>
+      ) : null}
+
+      <div className="mb-4 empty:hidden"><MyStorePanel /></div>
+
+      {usedCats.length > 0 ? <div className="mb-4"><CategoryTabs cats={usedCats} value={cat} onChange={setCat} /></div> : null}
+
       {products.isLoading ? (
-        <div className="mt-6 space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-28" />
-          ))}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4]" />)}
         </div>
-      ) : (products.data ?? []).length === 0 ? (
-        <p className="mt-8 text-center text-ink">{t('products.empty')}</p>
+      ) : list.length === 0 ? (
+        <p className="rounded-card border border-dashed border-default bg-white/60 p-8 text-center text-ink">{L('مفيش منتجات هنا دلوقتي', 'No products here yet')}</p>
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {(products.data ?? []).map((p) => {
-            const name = i18n.language === 'ar' ? p.name_ar : p.name_en;
-            const desc = i18n.language === 'ar' ? p.description_ar : p.description_en;
-            return (
-              <article key={p.id} className="overflow-hidden rounded-card border border-default bg-white">
-                {img(p.image_path) ? (
-                  <img src={img(p.image_path)!} alt="" className="h-40 w-full object-cover" />
-                ) : (
-                  <div className="h-28 bg-sand" />
-                )}
-                <div className="space-y-2 p-4">
-                  <h2 className="font-semibold text-espresso">{name}</h2>
-                  {desc ? <p className="text-sm text-ink">{desc}</p> : null}
-                  <p className="font-latin font-bold text-espresso">{formatEGP(p.price_egp)}</p>
-                  <Link to={`/products/${p.id}`}>
-                    <Button size="sm" className="w-full">{t('products.order')}</Button>
-                  </Link>
-                </div>
-              </article>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {list.map((p) => <ProductCard key={p.id} p={p} bookingId={bookingId} />)}
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={() => setReqOpen(true)}
+        className="mt-6 flex w-full items-center gap-3 rounded-card border border-dashed border-gold/60 bg-white p-4 text-start transition hover:bg-gold/5"
+      >
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gold/15 text-bark"><PackageSearch className="size-5" /></span>
+        <span className="min-w-0">
+          <span className="block font-semibold text-espresso">{L('مش لاقي اللي بتدوّر عليه؟', 'Can’t find what you need?')}</span>
+          <span className="block text-sm text-ink">{L('اطلبه وهنبلّغك أول ما يوصل المحل', 'Request it and we’ll notify you when it’s in')}</span>
+        </span>
+      </button>
+
+      <RequestSheet open={reqOpen} onClose={() => setReqOpen(false)} cats={cats.data ?? []} />
     </PageShell>
   );
 }

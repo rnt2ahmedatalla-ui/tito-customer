@@ -25,6 +25,7 @@ import { PolicyNote } from './PolicyNote';
 import { SpecialRequestPrompt } from '@/features/extras/SpecialRequest';
 import { useFeatureFlags, usePrepayRequired } from '@/features/extras/useExtras';
 import { AddToCalendar } from '@/components/booking/AddToCalendar';
+import { AddProductCta, ProductsPriceStrip } from '@/features/products/HomeProducts';
 import { HoldTimer } from '@/components/booking/HoldTimer';
 import { PaymentPanel } from '@/components/booking/PaymentPanel';
 import { LeatherPattern } from '@/components/brand/Pattern';
@@ -492,6 +493,7 @@ export default function BookingPage() {
                 </div>
               </div>
             ) : null}
+            <ProductsPriceStrip />
           </div>
           <div className="sticky bottom-[calc(8.5rem+env(safe-area-inset-bottom))] z-10 mt-6 rounded-card border border-gold/40 bg-cream/95 p-3 shadow-warm backdrop-blur sm:static sm:shadow-none">
             <div className="flex items-center justify-between gap-3">
@@ -811,6 +813,7 @@ export default function BookingPage() {
                   />
                 </div>
               ) : null}
+              {booking.data ? <AddProductCta bookingId={booking.data.id} dark /> : null}
               {whatsappUrl ? (
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                   <Button variant="secondary" fullWidth>

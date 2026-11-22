@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_LAYOUT, formatDuration, isIdle, minutesUntil, normalizeLayout, parseBoard, progress } from '../board';
+import { DEFAULT_LAYOUT, formatDuration, isIdle, minutesUntil, normalizeLayout, parseBoard, progress, svcText } from '../board';
 
 describe('queue board', () => {
   it('returns null for a wrong link', () => {
@@ -57,5 +57,26 @@ describe('queue board', () => {
     expect(formatDuration(70, true)).toBe('ساعة و10 د');
     expect(formatDuration(120, false)).toBe('2h');
     expect(progress('2026-01-01T09:30:00Z', '2026-01-01T10:30:00Z', t0)).toBeCloseTo(0.5);
+  });
+
+  it('reads services, full names and real availability', () => {
+    const b = parseBoard({
+      ok: true,
+      next_slot: '2026-01-02T11:00:00Z',
+      barbers: [
+        { id: '1', name: 'T', state: 'open', free_now: false, ready: true, slot: null, day_full: true, now: null,
+          next: [{ name: 'Mahmoud Ali', at: '2026-01-01T10:00:00Z', end: null, svc: { ar: 'حلاقة', en: 'Haircut', x_ar: ['ماسك'], x_en: ['Mask'] } }], wait_min: 3 },
+      ],
+      layout: { name_style: 'full', show_services: false },
+    });
+    const x = b!.barbers[0]!;
+    expect(x.free_now).toBe(false);
+    expect(x.ready).toBe(true);
+    expect(x.day_full).toBe(true);
+    expect(b!.nextSlot).toBe('2026-01-02T11:00:00Z');
+    expect(svcText(x.next[0]!.svc, true)).toBe('حلاقة + ماسك');
+    expect(svcText(x.next[0]!.svc, false)).toBe('Haircut + Mask');
+    expect(b!.layout.name_style).toBe('full');
+    expect(b!.layout.show_services).toBe(false);
   });
 });

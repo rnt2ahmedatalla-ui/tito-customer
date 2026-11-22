@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
-import { Clock, Hourglass, Maximize, Minimize, Moon, Scissors, Sparkles, Star, Users } from 'lucide-react';
+import { CalendarCheck, Clock, Hourglass, ListPlus, Maximize, Minimize, Moon, Scissors, Sparkles, Star, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatCairoTime } from '@/lib/time';
 import { galleryUrl } from '@/features/gallery/useGallery';
@@ -15,6 +15,7 @@ import {
   normalizeLayout,
   parseBoard,
   progress,
+  svcText,
   type Board,
   type BoardBarber,
   type ScreenLayout,
@@ -201,7 +202,7 @@ export default function QueueScreenPage() {
           <section className={cn('flex min-h-0 flex-col gap-[calc(var(--u)*2)]', layout.show_side ? 'flex-1 landscape:w-[58%] landscape:flex-none' : 'flex-1')}>
             <div className={cn('grid min-h-0 flex-1 gap-[calc(var(--u)*2)]', board.barbers.length > 1 ? 'landscape:grid-cols-2' : 'grid-cols-1')}>
               {board.barbers.map((b) => (
-                <BarberPanel key={b.id} b={b} layout={layout} now={now} ar={ar} compact={board.barbers.length > 1} />
+                <BarberPanel key={b.id} b={b} layout={layout} now={now} ar={ar} compact={board.barbers.length > 1} nextSlot={board.nextSlot} />
               ))}
             </div>
           </section>
@@ -267,7 +268,7 @@ function Label({ children, className }: { children: ReactNode; className?: strin
   return <p style={fs(2.1)} className={cn('font-medium tracking-wide text-cream/55', className)}>{children}</p>;
 }
 
-function BarberPanel({ b, layout, now, ar, compact }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; compact: boolean }) {
+function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; compact: boolean; nextSlot: string | null }) {
   const k = compact ? 0.8 : 1;
   const nextUp = b.next[0] ?? null;
   const rest = b.next.slice(1);
@@ -278,7 +279,10 @@ function BarberPanel({ b, layout, now, ar, compact }: { b: BoardBarber; layout: 
     off: ['استراحة', 'On a break', 'bg-white/10 text-cream/70'],
     closed: ['مقفول', 'Closed', 'bg-danger/25 text-[#FFB4AB]'],
   };
-  const [sAr, sEn, sCls] = stateText[b.state];
+  let [sAr, sEn, sCls] = stateText[b.state];
+  // مش فاضي فعلاً (دقايق قبل حجز / تظبيط المحل): «جاهز للدور» بدل «فاضي»
+  if (b.state === 'open' && !b.free_now) [sAr, sEn, sCls] = ['جاهز للدور', 'Ready for next', 'bg-gold/20 text-gold-soft'];
+  const showSvc = layout.show_services;
 
   return (
     <section className="flex min-h-0 flex-col overflow-hidden rounded-[calc(var(--u)*2.4)] border border-gold/25 bg-white/[0.04] p-[calc(var(--u)*2.6)] shadow-2xl">
@@ -295,7 +299,7 @@ function BarberPanel({ b, layout, now, ar, compact }: { b: BoardBarber; layout: 
 
       <div className="flex min-h-0 flex-1 flex-col gap-[calc(var(--u)*1.4)] pt-[calc(var(--u)*1.4)]">
         {away ? (
-          <AwayBlock b={b} layout={layout} now={now} ar={ar} k={k} />
+          <AwayBlock b={b} layout={layout} now={now} ar={ar} k={k} nextSlot={nextSlot} />
         ) : layout.show_now ? (
           <NowBlock b={b} layout={layout} now={now} ar={ar} k={k} />
         ) : null}
@@ -304,7 +308,10 @@ function BarberPanel({ b, layout, now, ar, compact }: { b: BoardBarber; layout: 
           <div className="shrink-0 rounded-[calc(var(--u)*1.8)] bg-gradient-to-l from-gold/30 to-gold/10 px-[calc(var(--u)*2)] py-[calc(var(--u)*1.5)] ring-1 ring-gold/40">
             <Label className="text-gold-soft">{away ? (ar ? 'أول حجز' : 'First booking') : ar ? 'عليه الدور' : 'Up next'}</Label>
             <div className="flex items-end justify-between gap-[calc(var(--u)*2)]">
-              <p style={fs(6.8 * k)} className="min-w-0 truncate font-bold leading-[1.15] text-cream">{displayName(nextUp.name, ar)}</p>
+              <div className="min-w-0">
+                <p style={fs((layout.name_style === 'full' ? 5.6 : 6.8) * k)} className="truncate font-bold leading-[1.15] text-cream">{displayName(nextUp.name, ar)}</p>
+                {showSvc && nextUp.svc ? <SvcLine text={svcText(nextUp.svc, ar)} size={2.6 * k} /> : null}
+              </div>
               <div className="shrink-0 text-end leading-tight">
                 <p style={fs(4.2 * k)} className="font-bold text-gold-soft">
                   {minutesUntil(nextUp.at, now) <= 0 ? (ar ? 'دلوقتي' : 'Now') : `${ar ? 'بعد' : 'in'} ${formatDuration(minutesUntil(nextUp.at, now), ar)}`}
@@ -322,8 +329,11 @@ function BarberPanel({ b, layout, now, ar, compact }: { b: BoardBarber; layout: 
             <ol className="mt-[calc(var(--u)*0.4)] flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden">
               {rest.map((n, i) => (
                 <li key={`${n.at}-${i}`} className="flex w-full items-baseline justify-between gap-[calc(var(--u)*2)] border-b border-white/10 py-[calc(var(--u)*0.7)]">
-                  <span style={fs(3.3 * k)} className="min-w-0 truncate">
-                    <span className="font-latin text-gold-soft">{i + 2}.</span> {displayName(n.name, ar)}
+                  <span className="min-w-0">
+                    <span style={fs(3.3 * k)} className="block truncate">
+                      <span className="font-latin text-gold-soft">{i + 2}.</span> {displayName(n.name, ar)}
+                    </span>
+                    {showSvc && n.svc ? <span style={fs(2 * k)} className="block truncate text-cream/55">{svcText(n.svc, ar)}</span> : null}
                   </span>
                   <span style={fs(2.3 * k)} className="shrink-0 text-cream/65">
                     {layout.show_times ? <span className="font-latin">{formatCairoTime(n.at, ar ? 'ar' : 'en')}</span> : null}
@@ -338,14 +348,7 @@ function BarberPanel({ b, layout, now, ar, compact }: { b: BoardBarber; layout: 
           <div className="flex-1" />
         )}
 
-        {layout.show_wait && !away && b.wait_min !== null ? (
-          <div style={fs(3 * k)} className={cn('flex shrink-0 items-center gap-[calc(var(--u)*1.2)] rounded-[calc(var(--u)*1.4)] px-[calc(var(--u)*2)] py-[calc(var(--u)*1.2)] font-semibold', b.wait_min <= 0 ? 'bg-success/25 text-[#9BE7BE]' : 'bg-white/[0.06] text-gold-soft')}>
-            <Clock className="size-[1.1em] shrink-0" aria-hidden />
-            {b.wait_min <= 0
-              ? (ar ? 'مفيش انتظار — اتفضل' : 'No wait — come on in')
-              : ar ? `الانتظار حوالي ${formatDuration(b.wait_min, true)}` : `Wait about ${formatDuration(b.wait_min, false)}`}
-          </div>
-        ) : null}
+        {layout.show_wait && !away ? <StatusBar b={b} layout={layout} now={now} ar={ar} k={k} /> : null}
       </div>
     </section>
   );
@@ -353,6 +356,7 @@ function BarberPanel({ b, layout, now, ar, compact }: { b: BoardBarber; layout: 
 
 function NowBlock({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; k: number }) {
   if (!b.now) {
+    if (!b.free_now) return null;
     const idle = (ar ? layout.idle_ar : layout.idle_en) || (ar ? 'الكرسي فاضي — اتفضل' : 'Chair is free — come on in');
     return (
       <div className="flex items-center gap-[calc(var(--u)*1.6)] rounded-[calc(var(--u)*1.8)] bg-success/15 p-[calc(var(--u)*2)] ring-1 ring-success/40">
@@ -367,7 +371,10 @@ function NowBlock({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLay
     <div className="shrink-0 rounded-[calc(var(--u)*1.8)] bg-white/[0.05] px-[calc(var(--u)*2)] py-[calc(var(--u)*1.5)]">
       <Label>{ar ? 'في الكرسي دلوقتي' : 'In the chair'}</Label>
       <div className="flex items-end justify-between gap-[calc(var(--u)*2)]">
-        <p style={fs(5.4 * k)} className="min-w-0 truncate font-bold leading-[1.15]">{displayName(b.now.name, ar)}</p>
+        <div className="min-w-0">
+          <p style={fs((layout.name_style === 'full' ? 4.6 : 5.4) * k)} className="truncate font-bold leading-[1.15]">{displayName(b.now.name, ar)}</p>
+          {layout.show_services && b.now.svc ? <SvcLine text={svcText(b.now.svc, ar)} size={2.4 * k} /> : null}
+        </div>
         <p style={fs(3 * k)} className="shrink-0 font-semibold text-cream/75">{left <= 0 ? (ar ? 'بيخلّص' : 'Finishing') : `${ar ? 'فاضل' : ''} ${formatDuration(left, ar)}${ar ? '' : ' left'}`}</p>
       </div>
       <div className="mt-[calc(var(--u)*1.2)] overflow-hidden rounded-full bg-white/10" style={{ height: 'calc(var(--u)*0.9)' }}>
@@ -377,7 +384,7 @@ function NowBlock({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLay
   );
 }
 
-function AwayBlock({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; k: number }) {
+function AwayBlock({ b, layout, now, ar, k, nextSlot }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; k: number; nextSlot: string | null }) {
   const title = (ar ? layout.closed_ar : layout.closed_en) || (b.state === 'off' ? (ar ? 'في استراحة دلوقتي' : 'On a break') : ar ? 'مقفولين دلوقتي' : 'Closed now');
   const mins = b.reopen ? minutesUntil(b.reopen, now) : 0;
   const sameDay = b.reopen ? cairoYmd(new Date(b.reopen).getTime()) === cairoYmd(now) : false;
@@ -393,9 +400,53 @@ function AwayBlock({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLa
           {sameDay && mins > 0 ? <p style={fs(2.6 * k)} className="text-cream/60">{ar ? `بعد ${formatDuration(mins, true)}` : `in ${formatDuration(mins, false)}`}</p> : null}
         </>
       ) : null}
-      {layout.show_qr ? <p style={fs(2.4 * k)} className="text-cream/55">{ar ? 'تقدر تحجز من موبايلك دلوقتي' : 'You can book from your phone now'}</p> : null}
+      {layout.show_qr && (b.slot || nextSlot) ? <p style={fs(2.4 * k)} className="text-cream/55">{ar ? 'تقدر تحجز من موبايلك دلوقتي' : 'You can book from your phone now'}</p> : null}
     </div>
   );
+}
+
+function SvcLine({ text, size }: { text: string; size: number }) {
+  return (
+    <p style={fs(size)} className="mt-[calc(var(--u)*0.3)] flex min-w-0 items-center gap-[calc(var(--u)*0.8)] text-gold-soft/90">
+      <Scissors className="size-[0.9em] shrink-0 opacity-70" aria-hidden />
+      <span className="truncate">{text}</span>
+    </p>
+  );
+}
+
+/** الشريط اللي تحت: «اتفضل» بس لو فاضي فعلاً، وإلا أقرب معاد يتحجز، وإلا قايمة الانتظار */
+function StatusBar({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; k: number }) {
+  const base = 'flex shrink-0 items-center gap-[calc(var(--u)*1.2)] rounded-[calc(var(--u)*1.4)] px-[calc(var(--u)*2)] py-[calc(var(--u)*1.2)] font-semibold';
+  const icon = 'size-[1.1em] shrink-0';
+  if (b.free_now && !b.now) {
+    return (
+      <div style={fs(3 * k)} className={cn(base, 'bg-success/25 text-[#9BE7BE]')}>
+        <Clock className={icon} aria-hidden />
+        {ar ? 'مفيش انتظار — اتفضل' : 'No wait — come on in'}
+      </div>
+    );
+  }
+  if (b.slot) {
+    const mins = minutesUntil(b.slot, now);
+    return (
+      <div style={fs(3 * k)} className={cn(base, 'bg-white/[0.06] text-gold-soft')}>
+        <CalendarCheck className={icon} aria-hidden />
+        <span className="min-w-0 truncate">
+          {ar ? `أقرب معاد متاح الساعة ${formatCairoTime(b.slot, 'ar')}` : `Next free slot at ${formatCairoTime(b.slot, 'en')}`}
+          {mins > 0 ? <span className="font-normal text-cream/55">{ar ? ` · بعد ${formatDuration(mins, true)}` : ` · in ${formatDuration(mins, false)}`}</span> : null}
+        </span>
+      </div>
+    );
+  }
+  if (b.day_full && layout.show_waitlist) {
+    return (
+      <div style={fs(2.8 * k)} className={cn(base, 'bg-white/[0.06] text-cream/80')}>
+        <ListPlus className={cn(icon, 'text-gold-soft')} aria-hidden />
+        <span className="min-w-0 truncate">{ar ? 'المواعيد النهارده خلصت — سجّل في قايمة الانتظار' : 'Fully booked today — join the waitlist'}</span>
+      </div>
+    );
+  }
+  return null;
 }
 
 type Slide =

@@ -22,6 +22,7 @@ import { formatCairoDate, formatCairoTime, isWithinCancelWindow } from '@/lib/ti
 import { formatEGP } from '@/lib/money';
 import { cn } from '@/lib/cn';
 import { AttendanceAsk } from './AttendanceAsk';
+import { BookingProductsLine } from '@/features/products/HomeProducts';
 import { AddToCalendar } from '@/components/booking/AddToCalendar';
 import { InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 import type { BookingWithDetails } from '@/types/database';
@@ -396,6 +397,9 @@ export default function BookingsPage() {
                   <div className="mt-3">
                     <AddToCalendar id={booking.id} startAt={booking.start_at} endAt={booking.end_at} serviceName={serviceName} />
                   </div>
+                ) : null}
+                {(booking.status === 'confirmed' || booking.status === 'pending_payment') && new Date(booking.end_at) > new Date() ? (
+                  <BookingProductsLine bookingId={booking.id} />
                 ) : null}
                 {booking.status === 'completed' ? (
                   <Link

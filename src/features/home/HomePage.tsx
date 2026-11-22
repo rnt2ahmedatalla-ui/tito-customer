@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/cn';
 import { PushOptIn } from '@/features/home/PushOptIn';
 import { HomeGallery } from '@/features/gallery/HomeGallery';
+import { HomeProducts } from '@/features/products/HomeProducts';
 import { QuickRebook } from '@/features/home/QuickActions';
 import { WaitEstimateCard, InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 
@@ -299,6 +300,8 @@ export default function HomePage() {
         <InactiveBanner />
         <RatePrompt />
       </section>
+
+      <HomeProducts />
 
       {/* سياسة الحجز (مطوية) */}
       <section className="mx-auto max-w-5xl px-5 pb-2 pt-2">

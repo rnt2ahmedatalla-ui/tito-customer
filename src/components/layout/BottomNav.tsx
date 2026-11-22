@@ -33,7 +33,7 @@ export function BottomNav() {
   });
 
   const whatsappUrl = settings.data?.shop_whatsapp ? buildWhatsAppUrl(settings.data.shop_whatsapp) : null;
-  const onBookingFlow = location.pathname.startsWith('/book');
+  const onBookingFlow = location.pathname.startsWith('/book') || /^\/products\/[^/]+/.test(location.pathname);
 
   return (
     <>

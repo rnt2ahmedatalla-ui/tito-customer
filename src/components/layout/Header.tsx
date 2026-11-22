@@ -14,6 +14,7 @@ const navItems = [
   { to: '/book', labelKey: 'nav.book' },
   { to: '/bookings', labelKey: 'nav.bookings' },
   { to: '/gallery', labelKey: 'nav.gallery' },
+  { to: '/products', labelKey: 'nav.products' },
   { to: '/profile', labelKey: 'nav.profile' },
 ] as const;
 
@@ -23,7 +24,9 @@ interface HeaderProps {
 
 export function Header({ dark = false }: HeaderProps) {
   const { t, i18n } = useTranslation();
-  const showGallery = useFeatureFlags().data?.gallery === true;
+  const flags = useFeatureFlags().data;
+  const showGallery = flags?.gallery === true;
+  const showProducts = flags?.products !== false;
   const location = useLocation();
   const navigate = useNavigate();
   const isAr = !!i18n.language?.startsWith('ar');
@@ -70,7 +73,7 @@ export function Header({ dark = false }: HeaderProps) {
         </div>
 
         <nav className="hidden items-center gap-1 sm:flex" aria-label={t('a11y.mainNav')}>
-          {navItems.filter((n) => n.to !== '/gallery' || showGallery).map(({ to, labelKey }) => {
+          {navItems.filter((n) => (n.to !== '/gallery' || showGallery) && (n.to !== '/products' || showProducts)).map(({ to, labelKey }) => {
             const active = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
             return (
               <Link
