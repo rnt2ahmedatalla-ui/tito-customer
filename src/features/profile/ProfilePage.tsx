@@ -1,3 +1,4 @@
+import { MyPhotos } from './MyPhotos';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
@@ -129,6 +130,8 @@ export default function ProfilePage() {
       <BirthdayCard />
 
       <MyPackagesCard />
+
+      <MyPhotos />
 
       <IosInstallGuideButton className="mt-6" />
 

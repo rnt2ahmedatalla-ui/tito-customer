@@ -282,6 +282,7 @@ function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber
   let [sAr, sEn, sCls] = stateText[b.state];
   // مش فاضي فعلاً (دقايق قبل حجز / تظبيط المحل): «جاهز للدور» بدل «فاضي»
   if (b.state === 'open' && !b.free_now) [sAr, sEn, sCls] = ['جاهز للدور', 'Ready for next', 'bg-gold/20 text-gold-soft'];
+  if (b.state === 'off' && b.reopen && cairoYmd(new Date(b.reopen).getTime()) !== cairoYmd(now)) [sAr, sEn] = ['إجازة', 'On leave'];
   const showSvc = layout.show_services;
 
   return (
@@ -385,9 +386,12 @@ function NowBlock({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLay
 }
 
 function AwayBlock({ b, layout, now, ar, k, nextSlot }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; k: number; nextSlot: string | null }) {
-  const title = (ar ? layout.closed_ar : layout.closed_en) || (b.state === 'off' ? (ar ? 'في استراحة دلوقتي' : 'On a break') : ar ? 'مقفولين دلوقتي' : 'Closed now');
   const mins = b.reopen ? minutesUntil(b.reopen, now) : 0;
   const sameDay = b.reopen ? cairoYmd(new Date(b.reopen).getTime()) === cairoYmd(now) : false;
+  // راجع يوم تاني وهو المفروض شغال النهارده = إجازة مش استراحة
+  const vacation = b.state === 'off' && !!b.reopen && !sameDay;
+  const title = (ar ? layout.closed_ar : layout.closed_en)
+    || (vacation ? (ar ? 'في إجازة' : 'On leave') : b.state === 'off' ? (ar ? 'في استراحة دلوقتي' : 'On a break') : ar ? 'مقفولين دلوقتي' : 'Closed now');
   return (
     <div className="flex shrink-0 flex-col items-center justify-center gap-[calc(var(--u)*0.9)] rounded-[calc(var(--u)*1.8)] bg-white/[0.04] p-[calc(var(--u)*2)] text-center">
       <Moon className="text-gold" style={{ width: `calc(var(--u)*${4.5 * k})`, height: `calc(var(--u)*${4.5 * k})` }} aria-hidden />

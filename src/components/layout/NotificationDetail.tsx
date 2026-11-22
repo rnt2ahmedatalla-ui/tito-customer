@@ -146,6 +146,8 @@ export function NotificationDetailHost() {
   } else if (entity === 'product_request') {
     const r = request.data;
     action = { label: L('احجزه دلوقتي', 'Reserve it now'), path: r?.product_id ? `/products/${r.product_id}` : '/products' };
+  } else if (entity === 'customer_photo') {
+    action = { label: L('شوف شغلنا', 'See our work'), path: '/gallery' };
   } else if (n.kind === 'birthday') {
     action = { label: L('احجز واستخدم الكود', 'Book & use the code'), path: '/book' };
   } else if (go) {

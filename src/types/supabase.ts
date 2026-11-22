@@ -809,6 +809,11 @@ export type Database = {
       }
       customer_photos: {
         Row: {
+          uploaded_by: string
+          status: string
+          share_consent: boolean
+          gallery_item_id: string | null
+          reviewed_at: string | null
           created_at: string
           full_path: string
           id: string
@@ -819,6 +824,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          uploaded_by?: string
+          status?: string
+          share_consent?: boolean
+          gallery_item_id?: string | null
+          reviewed_at?: string | null
           created_at?: string
           full_path: string
           id?: string
@@ -829,6 +839,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          uploaded_by?: string
+          status?: string
+          share_consent?: boolean
+          gallery_item_id?: string | null
+          reviewed_at?: string | null
           created_at?: string
           full_path?: string
           id?: string
@@ -1421,6 +1436,7 @@ export type Database = {
       }
       gallery_items: {
         Row: {
+          source_photo_id: string | null
           caption_ar: string | null
           caption_en: string | null
           created_at: string
@@ -1431,6 +1447,7 @@ export type Database = {
           thumb_path: string
         }
         Insert: {
+          source_photo_id?: string | null
           caption_ar?: string | null
           caption_en?: string | null
           created_at?: string
@@ -1441,6 +1458,7 @@ export type Database = {
           thumb_path: string
         }
         Update: {
+          source_photo_id?: string | null
           caption_ar?: string | null
           caption_en?: string | null
           created_at?: string
@@ -2173,6 +2191,7 @@ export type Database = {
       }
       services: {
         Row: {
+          is_archived: boolean
           created_at: string
           description_ar: string | null
           description_en: string | null
@@ -2187,6 +2206,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          is_archived?: boolean
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
@@ -2201,6 +2221,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          is_archived?: boolean
           created_at?: string
           description_ar?: string | null
           description_en?: string | null
@@ -2814,6 +2835,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_photo_published: {
+        Args: { p_gallery: string; p_photo: string }
+        Returns: undefined
+      }
+      admin_photo_review: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      customer_add_photo: {
+        Args: { p_full: string; p_note?: string | null; p_share?: boolean; p_thumb: string }
+        Returns: string
+      }
+      customer_delete_photo: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      customer_set_photo_share: {
+        Args: { p_id: string; p_share: boolean }
+        Returns: undefined
+      }
       admin_product_request_notify: {
         Args: { p_id: string }
         Returns: Json
