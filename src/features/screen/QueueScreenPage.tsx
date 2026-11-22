@@ -6,6 +6,7 @@ import { CalendarCheck, Clock, Hourglass, ListPlus, Maximize, Minimize, Moon, Sc
 import { supabase } from '@/lib/supabase';
 import { formatCairoTime } from '@/lib/time';
 import { galleryUrl } from '@/features/gallery/useGallery';
+import { productImg } from '@/features/products/useStore';
 import { appUrl, assetUrl } from '@/lib/urls';
 import { cn } from '@/lib/cn';
 import {
@@ -456,7 +457,8 @@ function StatusBar({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLa
 type Slide =
   | { kind: 'photo'; src: string; caption: string | null }
   | { kind: 'review'; name: string; rating: number; comment: string }
-  | { kind: 'offers'; lines: string[] };
+  | { kind: 'offers'; lines: string[] }
+  | { kind: 'products'; items: Board['products'] };
 
 /** العمود الجانبي: صور الشغل والتقييمات والعروض بتتقلّب لوحدها */
 function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; ar: boolean }) {
@@ -469,18 +471,25 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
           ...board.packages.map((p) => (ar ? `${p.name_ar}: ${p.sessions} حلاقات بـ ${p.price} ج` : `${p.name_en || p.name_ar}: ${p.sessions} cuts for EGP ${p.price}`)),
         ]
       : [];
-    // ترتيب: صورتين ← تقييم ← ... والعروض كل 5
+    // المنتجات: كل صفحة فيها لحد 4 منتجات
+    const prodPages: Slide[] = [];
+    if (layout.side.products) for (let k = 0; k < board.products.length; k += 4) prodPages.push({ kind: 'products', items: board.products.slice(k, k + 4) });
+    // ترتيب: صورتين ← تقييم ← ... والعروض كل 5 والمنتجات كل 4
     const out: Slide[] = [];
+    let mi = 0;
     let pi = 0;
     let ri = 0;
     const total = photos.length + reviews.length;
     for (let i = 0; i < total; i++) {
       if (offerLines.length && i % 5 === 0) out.push({ kind: 'offers', lines: offerLines });
+      if (prodPages.length && i % 4 === 3) out.push(prodPages[mi++ % prodPages.length]!);
       const wantReview = (i % 3 === 2 && ri < reviews.length) || pi >= photos.length;
       const s = wantReview ? reviews[ri++] : photos[pi++];
       if (s) out.push(s);
     }
     if (!out.length && offerLines.length) out.push({ kind: 'offers', lines: offerLines });
+    // لو مفيش صور ولا تقييمات كفاية: المنتجات كلها تتعرض برضه
+    if (out.length < 4) for (const pp of prodPages) if (!out.includes(pp)) out.push(pp);
     return out;
   }, [board, layout, ar]);
 
@@ -519,6 +528,25 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
             <p style={fs(3)} className="font-semibold">{s.caption || (ar ? 'من شغلنا ✂️' : 'Our work ✂️')}</p>
           </figcaption>
         </figure>
+      ) : s.kind === 'products' ? (
+        <div key={`m-${i}`} className="tito-fade flex h-full flex-col gap-[calc(var(--u)*1.6)] p-[calc(var(--u)*2.4)]">
+          <div className="text-center">
+            <p style={fs(2.4)} className="font-latin uppercase tracking-[0.3em] text-gold">{ar ? 'منتجاتنا' : 'Our products'}</p>
+            <p style={fs(2.6)} className="text-cream/70">{ar ? 'احجزها من الموقع وخدها مع حلاقتك' : 'Reserve on our site, pick up with your cut'}</p>
+          </div>
+          <ul className={cn('grid min-h-0 flex-1 gap-[calc(var(--u)*1.4)]', s.items.length > 1 ? 'grid-cols-2' : 'grid-cols-1')} style={{ gridAutoRows: '1fr' }}>
+            {s.items.map((p) => (
+              <li key={p.image} className="relative min-h-0 overflow-hidden rounded-[calc(var(--u)*1.6)] bg-black/30">
+                <img src={productImg(p.image) ?? ''} alt="" className="absolute inset-0 size-full object-cover" />
+                {p.featured ? <span style={fs(1.8)} className="absolute start-[calc(var(--u)*1)] top-[calc(var(--u)*1)] rounded-full bg-gold px-[calc(var(--u)*1.2)] font-bold text-espresso">{ar ? 'مميّز' : 'Featured'}</span> : null}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-[calc(var(--u)*1.4)] pt-[calc(var(--u)*5)]">
+                  <p style={fs(2.6)} className="line-clamp-1 font-bold">{ar ? p.name_ar : p.name_en || p.name_ar}</p>
+                  <p style={fs(2.8)} className="font-latin font-bold text-gold">{Math.round(p.price)} {ar ? 'ج' : 'EGP'}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : s.kind === 'review' ? (
         <div key={`r-${i}`} className="tito-fade flex h-full flex-col items-center justify-center gap-[calc(var(--u)*2.4)] p-[calc(var(--u)*4)] text-center">
           <div className="flex gap-[calc(var(--u)*0.6)]" aria-label={`${s.rating}/5`}>

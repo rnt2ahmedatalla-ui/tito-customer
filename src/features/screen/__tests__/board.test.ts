@@ -46,7 +46,7 @@ describe('queue board', () => {
     expect(l.slide_seconds).toBe(60);
     expect(l.reviews_min).toBe(4);
     expect(l.name_style).toBe('first');
-    expect(l.side).toEqual({ gallery: true, reviews: false, offers: true });
+    expect(l.side).toEqual({ gallery: true, reviews: false, offers: true, products: true });
   });
 
   it('formats durations and countdowns', () => {

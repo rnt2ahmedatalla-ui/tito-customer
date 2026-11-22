@@ -21,7 +21,7 @@ export type ScreenLayout = {
   show_services: boolean;
   /** العمود الجانبي (صور / تقييمات / عروض) */
   show_side: boolean;
-  side: { gallery: boolean; reviews: boolean; offers: boolean };
+  side: { gallery: boolean; reviews: boolean; offers: boolean; products: boolean };
   show_waitlist: boolean;
   /** شريط آخر الحجوزات تحت */
   show_activity: boolean;
@@ -50,7 +50,7 @@ export const DEFAULT_LAYOUT: ScreenLayout = {
   name_style: 'first',
   show_services: true,
   show_side: true,
-  side: { gallery: true, reviews: true, offers: true },
+  side: { gallery: true, reviews: true, offers: true, products: true },
   show_waitlist: true,
   show_activity: true,
   show_ticker: true,
@@ -93,7 +93,7 @@ export function normalizeLayout(raw: unknown): ScreenLayout {
     name_style: ns === 'initial' || ns === 'hidden' || ns === 'full' ? ns : 'first',
     show_services: bool(r.show_services, d.show_services),
     show_side: bool(r.show_side, d.show_side),
-    side: { gallery: bool(side.gallery, true), reviews: bool(side.reviews, true), offers: bool(side.offers, true) },
+    side: { gallery: bool(side.gallery, true), reviews: bool(side.reviews, true), offers: bool(side.offers, true), products: bool(side.products, true) },
     show_waitlist: bool(r.show_waitlist, d.show_waitlist),
     show_activity: bool(r.show_activity, d.show_activity),
     show_ticker: bool(r.show_ticker, d.show_ticker),
@@ -145,6 +145,7 @@ export type Board = {
   barbers: BoardBarber[];
   gallery: Array<{ thumb: string; full: string; caption_ar: string | null; caption_en: string | null }>;
   packages: Array<{ name_ar: string; name_en: string | null; sessions: number; price: number }>;
+  products: Array<{ name_ar: string; name_en: string | null; price: number; image: string; featured: boolean }>;
   reviews: Array<{ name: string; rating: number; comment: string }>;
   waitlist: Array<{ name: string | null; at: string }>;
   activity: Array<{ name: string | null; at: string; created: string }>;
@@ -204,6 +205,7 @@ export function parseBoard(data: Json | null): Board | null {
     nextSlot: strOrNull(data.next_slot),
     barbers,
     gallery: arr(data.gallery).filter(isObj).map((g) => ({ thumb: str(g.thumb), full: str(g.full), caption_ar: strOrNull(g.caption_ar), caption_en: strOrNull(g.caption_en) })).filter((g) => g.full),
+    products: arr(data.products).filter(isObj).map((p) => ({ name_ar: str(p.name_ar), name_en: strOrNull(p.name_en), price: num(p.price), image: str(p.image), featured: p.featured === true })).filter((p) => p.image && p.name_ar),
     packages: arr(data.packages).filter(isObj).map((p) => ({ name_ar: str(p.name_ar), name_en: strOrNull(p.name_en), sessions: num(p.sessions), price: num(p.price) })),
     reviews: arr(data.reviews).filter(isObj).map((r) => ({ name: str(r.name), rating: clamp(Math.round(num(r.rating)), 1, 5), comment: str(r.comment) })).filter((r) => r.comment),
     waitlist: arr(data.waitlist).filter(isObj).map((w) => ({ name: strOrNull(w.name), at: str(w.at) })),
