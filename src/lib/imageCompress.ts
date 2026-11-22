@@ -24,11 +24,29 @@ export type CompressOptions = {
 
 type Source = { el: CanvasImageSource; width: number; height: number; close: () => void };
 
-async function decode(file: Blob): Promise<Source> {
+/** خطأ صورة برسالة مفهومة للمستخدم (عربي أو إنجليزي حسب لغة الصفحة) */
+export class ImageError extends Error {
+  code: string;
+  constructor(code: 'IMAGE_DECODE_FAILED' | 'IMAGE_EMPTY' | 'IMAGE_HEIC') {
+    const en = typeof document !== 'undefined' && !!document.documentElement.lang?.startsWith('en');
+    const msg: Record<string, [string, string]> = {
+      IMAGE_DECODE_FAILED: ['الصورة دي المتصفح مش عارف يقراها. جرّب صورة تانية، أو خد لها screenshot وارفعها.', "This image can't be read. Try another photo, or take a screenshot of it and upload that."],
+      IMAGE_EMPTY: ['الصورة لسه متحمّلتش على الموبايل (ممكن تكون على Google Photos). افتحها في المعرض الأول وبعدين اختارها تاني.', "The photo isn't on the phone yet (maybe it's in the cloud). Open it in your gallery first, then pick it again."],
+      IMAGE_HEIC: ['الصورة بصيغة HEIC والمتصفح مش بيقراها. خد لها screenshot وارفعها، أو خلّي الكاميرا تصوّر JPG.', "This is a HEIC photo the browser can't read. Take a screenshot of it, or set the camera to JPG."],
+    };
+    const pair = msg[code] ?? ['', ''];
+    super(en ? pair[1] : pair[0]);
+    this.name = 'ImageError';
+    this.code = code;
+  }
+}
+
+async function tryDecode(file: Blob): Promise<Source | null> {
   if (typeof createImageBitmap === 'function') {
     try {
       const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
-      return { el: bmp, width: bmp.width, height: bmp.height, close: () => bmp.close() };
+      if (bmp.width > 0 && bmp.height > 0) return { el: bmp, width: bmp.width, height: bmp.height, close: () => bmp.close() };
+      bmp.close();
     } catch {
       /* نجرب الطريقة التانية */
     }
@@ -39,11 +57,44 @@ async function decode(file: Blob): Promise<Source> {
     img.decoding = 'async';
     img.src = url;
     await img.decode();
+    if (!img.naturalWidth || !img.naturalHeight) throw new Error('EMPTY');
     return { el: img, width: img.naturalWidth, height: img.naturalHeight, close: () => URL.revokeObjectURL(url) };
   } catch {
     URL.revokeObjectURL(url);
-    throw new Error('IMAGE_DECODE_FAILED');
+    return null;
   }
+}
+
+/** نوع الصورة من أول بايتات الملف (مش من الاسم) */
+export function sniffImageType(b: Uint8Array): string {
+  if (b[0] === 0xff && b[1] === 0xd8) return 'image/jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png';
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'image/gif';
+  const ascii = String.fromCharCode(...Array.from(b.slice(0, 16)));
+  if (ascii.startsWith('RIFF') && ascii.slice(8, 12) === 'WEBP') return 'image/webp';
+  if (ascii.slice(4, 8) === 'ftyp') {
+    const brand = ascii.slice(8, 12);
+    if (/^(heic|heix|hevc|hevx|heim|heis|mif1|msf1)$/.test(brand)) return 'image/heic';
+    if (/^avi[fs]$/.test(brand)) return 'image/avif';
+  }
+  return '';
+}
+
+async function decode(file: Blob): Promise<Source> {
+  const first = await tryDecode(file);
+  if (first) return first;
+  // ساعات الموبايل بيدي الملف من غير نوع أو لسه متحمّلش: نقرا البايتات بنفسنا ونجرب تاني
+  let buf: ArrayBuffer;
+  try {
+    buf = await file.arrayBuffer();
+  } catch {
+    throw new ImageError('IMAGE_EMPTY');
+  }
+  if (!buf.byteLength) throw new ImageError('IMAGE_EMPTY');
+  const type = sniffImageType(new Uint8Array(buf.slice(0, 32)));
+  const second = await tryDecode(new Blob([buf], { type: type || file.type || 'image/jpeg' }));
+  if (second) return second;
+  throw new ImageError(type === 'image/heic' ? 'IMAGE_HEIC' : 'IMAGE_DECODE_FAILED');
 }
 
 /** أبعاد جديدة بحيث أطول ضلع ميزدش عن maxSide (ومنكبّرش الصورة الصغيرة) */

@@ -71,7 +71,7 @@ export function MyPhotos() {
       setPending(null); setNote(''); setShare(true);
       refresh();
     },
-    onError: (e) => toast.error(String((e as { message?: string })?.message ?? '').includes('TOO_MANY')
+    onError: (e) => toast.error(e instanceof Error && e.name === 'ImageError' ? e.message : String((e as { message?: string })?.message ?? '').includes('TOO_MANY')
       ? L('عندك صور كتير مستنية موافقة — استنى شوية', 'You have many photos waiting for approval')
       : L('مقدرناش نرفع الصورة، جرّب تاني', 'Could not upload, try again')),
   });
