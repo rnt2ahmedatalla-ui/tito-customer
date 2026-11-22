@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Logo } from '@/components/brand/Logo';
 import { CustomerNotificationsBell } from './CustomerNotificationsBell';
+import { NotificationDetailHost } from './NotificationDetail';
 import { InstallButton } from './InstallButton';
 import { isStandalone } from '@/lib/install';
 import { setLanguage } from '@/i18n';
@@ -99,6 +100,7 @@ export function Header({ dark = false }: HeaderProps) {
         <div className="flex shrink-0 items-center gap-2">
           <InstallButton dark={dark} />
           <CustomerNotificationsBell dark={dark} />
+          <NotificationDetailHost />
           <button
             type="button"
             onClick={() => setLanguage(i18n.language === 'ar' ? 'en' : 'ar')}

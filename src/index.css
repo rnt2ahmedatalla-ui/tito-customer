@@ -148,3 +148,8 @@
 @media (prefers-reduced-motion: reduce) {
   [class*='animate-[wiggle'] { animation: none !important; }
 }
+
+/* كارت اتفتح من إشعار */
+@keyframes tito-focus-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(204, 149, 66, 0) } 30%, 70% { box-shadow: 0 0 0 4px rgba(204, 149, 66, 0.85) } }
+.tito-focus { animation: tito-focus-glow 1.6s ease-in-out 2; }
+@media (prefers-reduced-motion: reduce) { .tito-focus { animation: none; box-shadow: 0 0 0 3px rgba(204, 149, 66, 0.9) } }

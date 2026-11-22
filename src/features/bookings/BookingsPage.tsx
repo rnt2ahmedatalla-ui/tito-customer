@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Star as StarIcon } from 'lucide-react';
 import { SpecialRequestsButton } from '@/features/extras/SpecialRequest';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PageShell } from '@/components/layout/PageShell';
 import { Button } from '@/components/ui/Button';
@@ -229,6 +229,29 @@ export default function BookingsPage() {
 
   const list = tab === 'upcoming' ? upcoming : past;
 
+  // جاي من إشعار: نفتح التاب اللي فيه الحجز ونوصله وننوّره
+  const [focusParams, setFocusParams] = useSearchParams();
+  const focusId = focusParams.get('focus');
+  useEffect(() => {
+    if (!focusId || !bookings.data) return;
+    const inPast = past.some((b) => b.id === focusId);
+    const inUp = upcoming.some((b) => b.id === focusId);
+    if (!inPast && !inUp) return;
+    setTab(inPast ? 'past' : 'upcoming');
+    const t = window.setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-focus="${focusId}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('tito-focus');
+        window.setTimeout(() => el.classList.remove('tito-focus'), 3200);
+      }
+      const next = new URLSearchParams(focusParams);
+      next.delete('focus');
+      setFocusParams(next, { replace: true });
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [focusId, bookings.data, past, upcoming, focusParams, setFocusParams]);
+
   if (authLoading) {
     return (
       <PageShell>
@@ -346,7 +369,7 @@ export default function BookingsPage() {
               booking.status === 'pending_payment' && !awaitingShop && !isRejected && !booking.pay_at_shop;
 
             return (
-              <article key={booking.id} className="rounded-card border border-default bg-cream p-4 shadow-warm">
+              <article key={booking.id} data-focus={booking.id} className="rounded-card border border-default bg-cream p-4 shadow-warm">
                 <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-lg font-bold text-espresso font-latin">

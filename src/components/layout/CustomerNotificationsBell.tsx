@@ -7,6 +7,7 @@ import { Bell, CheckCircle2, XCircle, CalendarClock, BellRing, AlertTriangle, Ch
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
 import { cn } from '@/lib/cn';
+import { openNotificationDetail } from './NotificationDetail';
 
 export type CustomerNotification = {
   id: string;
@@ -179,9 +180,8 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
   const openItem = (n: CustomerNotification) => {
     setOpen(false);
     if (!n.is_read) void markOne.mutate(n.id);
-    // كوبون عيد الميلاد: نوديه على الحجز على طول عشان يستخدم الكود
-    // إشعارات صاحب المحل (campaign) بتفتح الرئيسية، وعيد الميلاد بيفتح الحجز
-    navigate(n.kind === 'birthday' ? '/book' : n.kind === 'campaign' ? '/' : n.kind === 'product' ? '/products' : '/bookings');
+    // بيفتح تفاصيل الإشعار نفسه (الحجز / الطلب / الكوبون) مش صفحة عامة
+    openNotificationDetail(n);
   };
 
   const panel = (
@@ -243,7 +243,7 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
                       {body ? <span className="mt-1 block break-words text-sm leading-relaxed text-ink">{body}</span> : null}
                       {rejected ? (
                         <span className="mt-2 inline-flex items-center gap-1 rounded-btn bg-danger px-3 py-1.5 text-xs font-semibold text-white">
-                          {isAr ? 'افتح حجوزاتي' : 'Open my bookings'}
+                          {isAr ? 'افتح التفاصيل' : 'Open details'}
                           <ChevronRight className="size-3.5 rtl:-scale-x-100" aria-hidden />
                         </span>
                       ) : null}
