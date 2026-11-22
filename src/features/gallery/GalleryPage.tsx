@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+import { useFeatureFlags } from '@/features/extras/useExtras';
 import { useTranslation } from 'react-i18next';
 import { Images } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
@@ -10,6 +11,9 @@ export default function GalleryPage() {
   const { i18n } = useTranslation();
   const isAr = !!i18n.language?.startsWith('ar');
   const q = useGallery(120);
+  const flags = useFeatureFlags();
+  // لو صاحب المحل قفل صفحة «شغلنا» من لوحة التحكم، نرجّع الزائر للرئيسية
+  if (flags.data && !flags.data.gallery) return <Navigate to="/" replace />;
   const photos = q.data ?? [];
   return (
     <PageShell>

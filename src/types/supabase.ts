@@ -858,6 +858,7 @@ export type Database = {
       feature_settings: {
         Row: {
           auto_complete_hours: number
+          gallery_enabled: boolean
           id: number
           inactive_after_days: number
           inactive_banner_enabled: boolean
@@ -869,6 +870,7 @@ export type Database = {
         }
         Insert: {
           auto_complete_hours?: number
+          gallery_enabled?: boolean
           id?: number
           inactive_after_days?: number
           inactive_banner_enabled?: boolean
@@ -880,6 +882,7 @@ export type Database = {
         }
         Update: {
           auto_complete_hours?: number
+          gallery_enabled?: boolean
           id?: number
           inactive_after_days?: number
           inactive_banner_enabled?: boolean

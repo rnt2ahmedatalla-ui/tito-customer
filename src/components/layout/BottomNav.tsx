@@ -5,6 +5,7 @@ import { Calendar, Home, Images, User, Scissors, MessageCircle } from 'lucide-re
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
 import { buildWhatsAppUrl } from '@/lib/urls';
+import { useFeatureFlags } from '@/features/extras/useExtras';
 
 const items = [
   { to: '/', icon: Home, labelKey: 'nav.home', primary: false },
@@ -17,6 +18,9 @@ const items = [
 export function BottomNav() {
   const { t } = useTranslation();
   const location = useLocation();
+  // «شغلنا» بيظهر بس لو صاحب المحل مشغّله من لوحة التحكم
+  const showGallery = useFeatureFlags().data?.gallery === true;
+  const visible = items.filter((i) => i.to !== '/gallery' || showGallery);
 
   const settings = useQuery({
     queryKey: ['settings', 'nav-whatsapp'],
@@ -56,8 +60,8 @@ export function BottomNav() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label={t('a11y.mainNav')}
       >
-        <div className="grid grid-cols-5 items-center px-1">
-          {items.map((item) => {
+        <div className={cn('grid items-center', visible.length === 5 ? 'grid-cols-5 px-1' : 'grid-cols-4 px-2')}>
+          {visible.map((item) => {
             const Icon = item.icon;
             const active =
               location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));

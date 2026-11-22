@@ -4,15 +4,15 @@ import { useAuth } from '@/features/profile/useAuth';
 
 const db = supabase;
 
-export type FeatureFlags = { waitlist: boolean; packages: boolean; waitEstimate: boolean; waitWindowHours: number };
+export type FeatureFlags = { waitlist: boolean; packages: boolean; waitEstimate: boolean; waitWindowHours: number; gallery: boolean };
 
 export function useFeatureFlags() {
   return useQuery({
     queryKey: ['feature-settings'],
     queryFn: async (): Promise<FeatureFlags> => {
       const { data, error } = await db.from('feature_settings').select('*').eq('id', 1).maybeSingle();
-      if (error || !data) return { waitlist: false, packages: false, waitEstimate: false, waitWindowHours: 3 };
-      return { waitlist: !!data.waitlist_enabled, packages: !!data.packages_enabled, waitEstimate: !!data.wait_estimate_enabled, waitWindowHours: Number(data.wait_window_hours ?? 3) || 3 };
+      if (error || !data) return { waitlist: false, packages: false, waitEstimate: false, waitWindowHours: 3, gallery: true };
+      return { waitlist: !!data.waitlist_enabled, packages: !!data.packages_enabled, waitEstimate: !!data.wait_estimate_enabled, waitWindowHours: Number(data.wait_window_hours ?? 3) || 3, gallery: data.gallery_enabled !== false };
     },
     staleTime: 60_000,
     retry: false,

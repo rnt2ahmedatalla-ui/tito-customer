@@ -7,6 +7,7 @@ import { InstallButton } from './InstallButton';
 import { isStandalone } from '@/lib/install';
 import { setLanguage } from '@/i18n';
 import { cn } from '@/lib/cn';
+import { useFeatureFlags } from '@/features/extras/useExtras';
 
 const navItems = [
   { to: '/', labelKey: 'nav.home' },
@@ -22,6 +23,7 @@ interface HeaderProps {
 
 export function Header({ dark = false }: HeaderProps) {
   const { t, i18n } = useTranslation();
+  const showGallery = useFeatureFlags().data?.gallery === true;
   const location = useLocation();
   const navigate = useNavigate();
   const isAr = !!i18n.language?.startsWith('ar');
@@ -68,7 +70,7 @@ export function Header({ dark = false }: HeaderProps) {
         </div>
 
         <nav className="hidden items-center gap-1 sm:flex" aria-label={t('a11y.mainNav')}>
-          {navItems.map(({ to, labelKey }) => {
+          {navItems.filter((n) => n.to !== '/gallery' || showGallery).map(({ to, labelKey }) => {
             const active = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
             return (
               <Link
