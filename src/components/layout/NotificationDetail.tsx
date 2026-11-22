@@ -165,7 +165,7 @@ export function NotificationDetailHost() {
           <p className="text-lg font-bold leading-snug text-espresso">{title}</p>
           <p className="mt-0.5 text-xs text-ink">{when}</p>
         </div>
-        {body ? <p className="whitespace-pre-line break-words leading-relaxed text-ink">{body}</p> : null}
+        {body ? <p className="whitespace-pre-line break-words leading-relaxed text-ink">{linkify(body)}</p> : null}
         {code ? (
           <button
             type="button"
@@ -184,4 +184,22 @@ export function NotificationDetailHost() {
       </div>
     </Sheet>
   );
+}
+
+/** أي لينك في نص الإشعار يبقى قابل للضغط */
+function linkify(text: string): React.ReactNode[] {
+  const parts = text.split(/(https?:\/\/[^\s<>"']+)/g);
+  return parts.map((part, i) => {
+    if (!/^https?:\/\//.test(part)) return part;
+    const clean = part.replace(/[.,،!?؟)]+$/, '');
+    const rest = part.slice(clean.length);
+    return (
+      <span key={i}>
+        <a href={clean} target="_blank" rel="noopener noreferrer" dir="ltr" className="font-medium text-bark underline underline-offset-2 [overflow-wrap:anywhere]">
+          {clean}
+        </a>
+        {rest}
+      </span>
+    );
+  });
 }
