@@ -232,9 +232,13 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
                       rejected ? 'border-s-4 border-danger bg-danger/5' : !n.is_read && 'bg-gold/10',
                     )}
                   >
-                    <span className={cn('mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full', badge)}>
-                      <Icon className="size-[18px]" aria-hidden />
-                    </span>
+                    {tone === 'info' ? (
+                      <img src={`${import.meta.env.BASE_URL}tito-icon-192.png`} alt="" className="mt-0.5 size-9 shrink-0 rounded-full object-cover ring-1 ring-gold/40" />
+                    ) : (
+                      <span className={cn('mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full', badge)}>
+                        <Icon className="size-[18px]" aria-hidden />
+                      </span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className="flex items-start justify-between gap-2">
                         <span className={cn('text-sm font-bold', rejected ? 'text-danger' : 'text-espresso')}>{title}</span>
