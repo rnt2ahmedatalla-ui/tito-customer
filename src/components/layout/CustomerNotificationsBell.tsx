@@ -180,7 +180,8 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
     setOpen(false);
     if (!n.is_read) void markOne.mutate(n.id);
     // كوبون عيد الميلاد: نوديه على الحجز على طول عشان يستخدم الكود
-    navigate(n.kind === 'birthday' ? '/book' : '/bookings');
+    // إشعارات صاحب المحل (campaign) بتفتح الرئيسية، وعيد الميلاد بيفتح الحجز
+    navigate(n.kind === 'birthday' ? '/book' : n.kind === 'campaign' ? '/' : '/bookings');
   };
 
   const panel = (
