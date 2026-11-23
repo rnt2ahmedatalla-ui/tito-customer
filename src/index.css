@@ -71,7 +71,7 @@ html.theme-anim * {
 
 @layer base {
   html {
-    @apply bg-cream text-espresso scroll-smooth;
+    @apply bg-cream text-espresso;
     overflow-x: clip;
   }
 
@@ -133,19 +133,19 @@ html.theme-anim * {
   }
 
   .animate-rise {
-    animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
 
   .animate-rise-delay-1 {
-    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) 0.12s both;
+    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) 0.12s backwards;
   }
 
   .animate-rise-delay-2 {
-    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) 0.24s both;
+    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) 0.24s backwards;
   }
 
   .animate-fade {
-    animation: fade 0.8s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    animation: fade 0.8s cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
   }
 }
 
@@ -212,9 +212,9 @@ html.theme-anim * {
 @keyframes sheet-up { from { transform: translateY(40px); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes pop { from { transform: scale(.96); opacity: 0 } to { transform: none; opacity: 1 } }
 @keyframes page-in { from { opacity: 0 } to { opacity: 1 } }
-.animate-sheet { animation: sheet-up .5s cubic-bezier(.22,1,.36,1) both; }
-.animate-pop { animation: pop .35s cubic-bezier(.22,1,.36,1) both; }
-.animate-page { animation: page-in .3s ease-out both; }
+.animate-sheet { animation: sheet-up .5s cubic-bezier(.22,1,.36,1) backwards; }
+.animate-pop { animation: pop .35s cubic-bezier(.22,1,.36,1) backwards; }
+.animate-page { animation: page-in .3s ease-out backwards; }
 @media (prefers-reduced-motion: reduce) { .animate-sheet, .animate-pop, .animate-page { animation: none !important; } }
 
 /* الدهبي في الوضع الليلي: الكلام اللي فوقه يفضل غامق وواضح، واللون نفسه أهدى على العين */

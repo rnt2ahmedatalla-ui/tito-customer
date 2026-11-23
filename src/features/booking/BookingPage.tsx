@@ -580,7 +580,7 @@ export default function BookingPage() {
             ) : null}
             <ProductsPicker value={chosenProducts} onChange={(m) => updateParams({ prods: stringifyProducts(m) })} />
           </div>
-          <div className="sticky bottom-[calc(8.5rem+env(safe-area-inset-bottom))] z-10 mt-6 rounded-card border border-gold/40 bg-cream/95 p-3 shadow-warm backdrop-blur sm:static sm:shadow-none">
+          <div className="sticky bottom-[calc(var(--nav-h,4.5rem)+4.25rem)] z-10 mt-6 rounded-card border border-gold/40 bg-cream p-3 shadow-warm sm:static sm:shadow-none">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm text-ink">
                 {t('booking.price')}

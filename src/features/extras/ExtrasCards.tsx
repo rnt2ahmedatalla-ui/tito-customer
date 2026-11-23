@@ -43,7 +43,7 @@ export function WaitEstimateCard() {
     .sort((x, y) => Number(x.done) - Number(y.done) || (x.at ? new Date(x.at).getTime() : 0) - (y.at ? new Date(y.at).getTime() : 0));
 
   return (
-    <div className="w-full max-w-md rounded-card border border-cream/20 bg-cream/10 p-3 text-cream backdrop-blur-sm">
+    <div className="w-full max-w-md rounded-card border border-cream/20 bg-cream/10 p-3 text-cream">
       <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-gold-soft">
         {L('متاح دلوقتي', 'Available now')}
       </p>

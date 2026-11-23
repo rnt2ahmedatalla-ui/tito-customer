@@ -42,7 +42,7 @@ export function PolicyGate() {
 
   return createPortal(
     <div className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="policy-title">
-      <div className="absolute inset-0 bg-espresso/70 backdrop-blur-xs" />
+      <div className="absolute inset-0 bg-espresso/70" />
       <div className="relative z-10 flex max-h-[calc(100dvh-1rem)] w-full max-w-lg flex-col rounded-t-card bg-cream p-6 shadow-warm-raised sm:rounded-card">
         <div className="flex items-center gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold/20 text-espresso">

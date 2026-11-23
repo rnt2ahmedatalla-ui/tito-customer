@@ -226,7 +226,7 @@ export default function ProductOrderPage() {
                 {pay === 'online' ? <p className="text-xs text-ink">{L('InstaPay أو فودافون كاش، وبعدها تبعت صورة التحويل على واتساب.', 'InstaPay or Vodafone Cash, then send the screenshot on WhatsApp.')}</p> : null}
               </fieldset>
 
-              <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-10 rounded-card border border-gold/40 bg-cream/95 p-3 shadow-warm backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:border-0">
+              <div className="sticky bottom-[calc(var(--nav-h,4.5rem)+0.5rem)] z-10 rounded-card border border-gold/40 bg-cream p-3 shadow-warm sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:border-0">
                 <Button size="lg" fullWidth loading={order.isPending} onClick={() => void reserve()}>
                   {user ? (pay === 'cash' ? L('احجزه', 'Reserve') : L('كمّل للدفع', 'Continue to pay')) : L('سجّل دخول واحجز', 'Sign in & reserve')}
                   <span className="font-latin">· {formatEGP(total)}</span>

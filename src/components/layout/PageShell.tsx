@@ -31,7 +31,8 @@ export function PageShell({
           src={assetUrl('/brand/tito-icon-512.png')}
           alt=""
           aria-hidden
-          className="pointer-events-none fixed end-[-8%] top-[18%] z-0 w-[min(55vw,280px)] opacity-[0.04] select-none"
+          decoding="async"
+          className="pointer-events-none absolute end-[-8%] top-[14rem] z-0 w-[min(55vw,280px)] opacity-[0.04] select-none"
           draggable={false}
         />
       ) : null}
