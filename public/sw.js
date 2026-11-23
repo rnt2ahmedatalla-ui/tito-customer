@@ -95,6 +95,8 @@ self.addEventListener('push', (event) => {
       lang: data.lang || undefined,
       tag: data.tag || undefined,
       renotify: false,
+      timestamp: data.ts || Date.now(),
+      actions: Array.isArray(data.actions) ? data.actions.slice(0, 2) : undefined,
       vibrate: [120, 60, 120],
       data: { url: data.url || '/' },
     }),
