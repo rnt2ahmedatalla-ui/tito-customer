@@ -17,7 +17,7 @@ import { cn } from '@/lib/cn';
 import { ConnectSection, DiscoverSection, OffersSection, ServicesProductsSection } from '@/features/home/Showcase';
 import { openHowToBook, PushFloat } from '@/features/home/HowToBook';
 import { QuickRebook } from '@/features/home/QuickActions';
-import { VisitProgressCard } from '@/features/home/GrowthCards';
+import { PhotoPromptCard, VisitProgressCard } from '@/features/home/GrowthCards';
 import { WaitEstimateCard, InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 
 
@@ -152,6 +152,7 @@ export default function HomePage() {
       {/* للعميل المسجّل: هداياه ونقاطه */}
       <section className="mx-auto max-w-5xl space-y-3 px-5 pt-6 empty:hidden">
         <VisitProgressCard />
+        <PhotoPromptCard />
         <InactiveBanner />
         <RatePrompt />
       </section>

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { BellRing, Copy, Gift } from 'lucide-react';
+import { BellRing, Camera, Copy, Gift } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
 import { cn } from '@/lib/cn';
@@ -152,5 +152,32 @@ export function RebookReminderPicker({ bookingId }: { bookingId: string }) {
       </div>
       {when ? <p className="mt-2 text-xs text-ink">{L(`هيوصلك إشعار ${when} الضهر. دوس تاني على نفس الاختيار عشان تلغيه.`, `You'll get a notification on ${when} at noon. Tap it again to cancel.`)}</p> : null}
     </div>
+  );
+}
+
+/** للعميل اللي حلق قبل كده: ارفع صورة حلاقتك (تظهر في شغلنا وعلى شاشة المحل بعد الموافقة) */
+export function PhotoPromptCard() {
+  const { user } = useAuth();
+  const { i18n } = useTranslation();
+  const ar = !i18n.language?.startsWith('en');
+  const L = (a: string, e: string) => (ar ? a : e);
+  const done = useQuery({
+    queryKey: ['has-completed', user?.id],
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { count } = await supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('user_id', user!.id).eq('status', 'completed');
+      return (count ?? 0) > 0;
+    },
+  });
+  if (!user || !done.data) return null;
+  return (
+    <Link to="/profile#photos" className="flex items-center gap-3 rounded-card border border-default bg-white p-3 shadow-2xs hover:bg-sand/40">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-espresso text-gold"><Camera className="size-5" aria-hidden /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-espresso">{L('ارفع صورة حلاقتك 📸', 'Share a photo of your cut 📸')}</span>
+        <span className="block text-xs text-ink">{L('بعد موافقتنا تظهر في «شغلنا» وعلى شاشة المحل.', 'Once approved it shows in “Our work” and on the shop screen.')}</span>
+      </span>
+    </Link>
   );
 }

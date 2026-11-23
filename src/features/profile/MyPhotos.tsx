@@ -102,7 +102,7 @@ export function MyPhotos() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-espresso"><Camera className="size-5 text-gold" /> {L('صوري', 'My photos')}</h2>
-          <p className="mt-0.5 text-sm text-ink">{L('صور حلاقاتك هنا — وتقدر ترفع صورة للقَصّة اللي عايزها.', 'Your cuts live here — you can also upload a style you want.')}</p>
+          <p className="mt-0.5 text-sm text-ink">{L('صوّر حلاقتك وارفعها هنا 📸 لو اخترت «تظهر للكل» ووافقنا عليها، هتظهر في «شغلنا» وعلى شاشة المحل باسمك. وتقدر كمان ترفع صورة للقَصّة اللي نفسك فيها.', 'Snap your cut and upload it 📸 If you choose “public” and we approve it, it shows in “Our work” and on the shop screen. You can also upload a style you want.')}</p>
         </div>
         <Button size="sm" variant="secondary" onClick={() => fileRef.current?.click()}><ImagePlus className="size-4" /> {L('ارفع', 'Upload')}</Button>
         <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={(e) => { setPending(e.target.files?.[0] ?? null); e.target.value = ''; }} />

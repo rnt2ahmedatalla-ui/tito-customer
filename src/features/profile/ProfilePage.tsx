@@ -44,6 +44,13 @@ export default function ProfilePage() {
     }
   }, [profile.data]);
 
+  // جاي من «ارفع صورة حلاقتك»: ننزل لقسم الصور
+  useEffect(() => {
+    if (window.location.hash !== '#photos' || !profile.data) return;
+    const id = window.setTimeout(() => document.getElementById('photos')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    return () => window.clearTimeout(id);
+  }, [profile.data]);
+
   const whatsappUrl = settings.data?.shop_whatsapp
     ? buildWhatsAppUrl(settings.data.shop_whatsapp)
     : null;
