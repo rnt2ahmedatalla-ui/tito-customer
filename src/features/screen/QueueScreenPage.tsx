@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
-import { CalendarCheck, Clock, Hourglass, ListPlus, Maximize, Minimize, Moon, Scissors, Sparkles, Star } from 'lucide-react';
+import { BellRing, CalendarCheck, Clock, Hourglass, ListPlus, Maximize, Minimize, Moon, Scissors, Sparkles, Star } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatCairoTime } from '@/lib/time';
 import { galleryUrl } from '@/features/gallery/useGallery';
 import { productImg } from '@/features/products/useStore';
 import { appUrl, assetUrl } from '@/lib/urls';
 import { cn } from '@/lib/cn';
+import { PRAYER_NAMES, fmtLeft, nextPrayer, usePrayerTimes } from '@/lib/usePrayer';
 import {
   displayName,
   formatDuration,
@@ -89,6 +90,21 @@ export default function QueueScreenPage() {
   const [now, setNow] = useState(() => Date.now());
   const [isFull, setIsFull] = useState(false);
   const [override, setOverride] = useState<ScreenLayout | null>(null);
+
+  const callQ = useQuery({
+    queryKey: ['queue-called', token],
+    enabled: token.length >= 32 && !preview,
+    refetchInterval: 8_000,
+    refetchIntervalInBackground: true,
+    queryFn: async () => {
+      const r = await (supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>)('queue_called', { p_token: token });
+      if (r.error) return null;
+      return (r.data ?? {}) as { name?: string | null; called_at?: string | null; late_min?: number | null };
+    },
+  });
+  const prayers = usePrayerTimes();
+  const np = nextPrayer(prayers.data, now);
+  const calledName = callQ.data?.called_at && now - Date.parse(callQ.data.called_at) < 45_000 ? (callQ.data.name || '—') : null;
 
   const q = useQuery({
     queryKey: ['queue-board', token],
@@ -190,6 +206,11 @@ export default function QueueScreenPage() {
           <div className="text-end leading-tight">
             <p style={fs(5)} className="font-latin font-semibold tabular-nums text-gold-soft">{clock}</p>
             <p style={fs(2)} className="text-cream/60">{date}</p>
+            {np ? (
+              <p style={fs(2.1)} className="mt-[0.2em] flex items-center justify-end gap-[0.35em] font-semibold text-emerald-300">
+                <Moon style={{ width: '1em', height: '1em' }} />{L(`${PRAYER_NAMES[np.key]![0]} بعد`, `${PRAYER_NAMES[np.key]![1]} in`)} <span className="font-latin tabular-nums" dir="ltr">{fmtLeft(np.at - now)}</span>
+              </p>
+            ) : null}
           </div>
           {!preview ? (
             <button type="button" onClick={toggleFull} aria-label={L('شاشة كاملة', 'Full screen')} className="rounded-full bg-white/5 p-[calc(var(--u)*1.2)] text-cream/40 transition hover:bg-white/15 hover:text-cream">
@@ -232,7 +253,23 @@ export default function QueueScreenPage() {
         </main>
       )}
 
+      {callQ.data?.late_min ? (
+        <div style={fs(2.4)} className="relative shrink-0 bg-amber-500/15 py-[0.35em] text-center font-semibold text-amber-200">
+          {L(`⏱️ الشغل متأخر حوالي ${callQ.data.late_min} دقيقة — شكراً لصبركم`, `⏱️ Running about ${callQ.data.late_min} min late — thanks for your patience`)}
+        </div>
+      ) : null}
       {board ? <Ticker board={board} layout={layout} now={now} ar={ar} /> : null}
+      {calledName ? (
+        <div className="absolute inset-0 z-50 flex animate-[tito-fade_.4s_ease-out] flex-col items-center justify-center gap-[calc(var(--u)*2)] bg-espresso/95 backdrop-blur">
+          <span className="relative flex items-center justify-center" style={{ width: 'calc(var(--u)*22)', height: 'calc(var(--u)*22)' }}>
+            <span className="absolute inset-0 animate-ping rounded-full bg-gold/25" />
+            <span className="relative flex size-full items-center justify-center rounded-full bg-gold text-espresso shadow-[0_0_80px_rgba(204,149,66,.55)]"><BellRing style={{ width: '45%', height: '45%' }} /></span>
+          </span>
+          <p style={fs(5)} className="text-cream/80">{L('الدور على', 'Now serving')}</p>
+          <p style={fs(11)} className="font-black text-gold">{calledName === '—' ? L('العميل التالي', 'Next customer') : calledName}</p>
+          <p style={fs(3)} className="text-cream/70">{L('اتفضل على الكرسي 💈', 'Please take the chair 💈')}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

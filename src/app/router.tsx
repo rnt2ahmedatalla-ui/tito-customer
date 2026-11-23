@@ -18,6 +18,7 @@ const ProfilePage = lazy(() => import('@/features/profile/ProfilePage'));
 const NotFoundPage = lazy(() => import('@/features/NotFoundPage'));
 const GalleryPage = lazy(() => import('@/features/gallery/GalleryPage'));
 const QueueScreenPage = lazy(() => import('@/features/screen/QueueScreenPage'));
+const TurnScreenPage = lazy(() => import('@/features/screen/TurnScreenPage'));
 
 // بعد ما الموقع يفتح: نحمّل باقي الصفحات في الخلفية علشان التنقل يبقى فوري من غير تقطيع
 const PRELOAD = [
@@ -86,6 +87,8 @@ const router = createBrowserRouter(
     { path: '/profile', element: withSuspense(ProfilePage) },
     { path: '/gallery', element: withSuspense(GalleryPage) },
     { path: '/screen/:token', element: withSuspense(QueueScreenPage) },
+    { path: '/turn', element: withSuspense(TurnScreenPage) },
+    { path: '/turn/:id', element: withSuspense(TurnScreenPage) },
     { path: '*', element: withSuspense(NotFoundPage) },
   ],
   { basename },

@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { formatCairoDate, formatCairoTime, isWithinCancelWindow } from '@/lib/time';
 import { formatEGP } from '@/lib/money';
 import { cn } from '@/lib/cn';
+import { LiveTurn } from './LiveTurn';
 import { AttendanceAsk } from './AttendanceAsk';
 import { BookingProductsLine } from '@/features/products/HomeProducts';
 import { AddToCalendar } from '@/components/booking/AddToCalendar';
@@ -426,6 +427,9 @@ export default function BookingsPage() {
                     asked={!!booking.attendance_asked_at}
                     attendance={booking.attendance ?? null}
                   />
+                ) : null}
+                {booking.status === 'confirmed' && new Date(booking.end_at) > new Date() ? (
+                  <LiveTurn bookingId={booking.id} startAt={booking.start_at} endAt={booking.end_at} />
                 ) : null}
                 {booking.status === 'confirmed' && new Date(booking.end_at) > new Date() ? (
                   <div className="mt-3 empty:hidden">

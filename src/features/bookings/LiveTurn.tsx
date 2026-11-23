@@ -1,0 +1,146 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { ArrowLeftRight, Clock, MonitorSmartphone, Hourglass, Radio, Timer, Users, Zap } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { cn } from '@/lib/cn';
+
+type Rpc = (fn: string, a?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
+type Turn = { status: string; start_at: string; ahead: number; busy_now: boolean; eta: string; late_min: number; called_at: string | null; my_eta_minutes: number | null };
+
+const fmtTime = (iso: string, ar: boolean) => new Intl.DateTimeFormat(ar ? 'ar-EG-u-nu-latn' : 'en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+const cairoDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(d);
+
+/** كارت الدور اللايف + «هتأخر / بدري» + «بدّل معادي» — بيظهر يوم الحجز بس */
+export function LiveTurn({ bookingId, startAt, endAt }: { bookingId: string; startAt: string; endAt: string }) {
+  const { i18n } = useTranslation();
+  const ar = !!i18n.language?.startsWith('ar');
+  const L = (a: string, e: string) => (ar ? a : e);
+  const qc = useQueryClient();
+  const isToday = cairoDay(new Date(startAt)) === cairoDay(new Date());
+  const active = new Date(endAt).getTime() > Date.now();
+  const q = useQuery({
+    queryKey: ['my-turn', bookingId],
+    enabled: isToday && active,
+    refetchInterval: 20_000,
+    queryFn: async () => {
+      const r = await rpc('my_turn', { p_booking_id: bookingId });
+      if (r.error) throw new Error(r.error.message);
+      return r.data as Turn;
+    },
+  });
+  const eta = useMutation({
+    mutationFn: async (m: number) => {
+      const r = await rpc('set_eta', { p_booking_id: bookingId, p_minutes: m });
+      if (r.error) throw new Error(r.error.message);
+      return m;
+    },
+    onSuccess: (m) => {
+      toast.success(m > 0 ? L(`تمام، بلّغنا الحلاق إنك هتتأخر ${m} دقيقة`, `Told the barber you'll be ${m} min late`) : m < 0 ? L('تمام، الحلاق عرف إنك تقدر تيجي بدري', 'The barber knows you can come early') : L('تمام، مستنينك في معادك ✂️', 'See you on time ✂️'));
+      void qc.invalidateQueries({ queryKey: ['my-turn', bookingId] });
+      void qc.invalidateQueries({ queryKey: ['bookings'] });
+    },
+    onError: () => toast.error(L('معرفناش نسجّل ده، جرّب تاني', 'Could not save, try again')),
+  });
+  const [swapOpen, setSwapOpen] = useState(false);
+  if (!active) return null;
+  const t = q.data;
+  const called = t?.called_at && Date.now() - Date.parse(t.called_at) < 10 * 60_000;
+  return (
+    <div className="mt-3 space-y-2">
+      {isToday && t ? (
+        <div className={cn('relative overflow-hidden rounded-card border p-3', called ? 'border-success bg-success/10' : 'border-gold/40 bg-gold/5')}>
+          {called ? (
+            <p className="flex items-center gap-2 text-base font-bold text-success"><Radio className="size-5 animate-pulse" />{L('دورك! اتفضل 💈', "It's your turn! 💈")}</p>
+          ) : (
+            <>
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-bark"><span className="relative flex size-2"><span className="absolute inset-0 animate-ping rounded-full bg-red-500/60" /><span className="relative size-2 rounded-full bg-red-500" /></span>{L('دورك لايف', 'Live turn')}</p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-center">
+                <div className="rounded-btn bg-white p-2"><p className="flex items-center justify-center gap-1 text-[11px] text-ink"><Users className="size-3.5" />{L('قدامك', 'Ahead of you')}</p><p className="font-latin text-xl font-bold text-espresso">{t.ahead}</p></div>
+                <div className="rounded-btn bg-white p-2"><p className="flex items-center justify-center gap-1 text-[11px] text-ink"><Hourglass className="size-3.5" />{L('معادك المتوقع', 'Expected time')}</p><p className="font-latin text-xl font-bold text-espresso">{fmtTime(t.eta, ar)}</p></div>
+              </div>
+              {t.late_min > 0 ? <p className="mt-2 text-xs text-warning">{L(`الشغل متأخر حوالي ${t.late_min} دقيقة النهارده — معلش 🙏`, `Running about ${t.late_min} min late today`)}</p> : null}
+            </>
+          )}
+        </div>
+      ) : null}
+      {!called ? (
+        <div className="flex flex-wrap gap-1.5">
+          {[10, 20].map((m) => (
+            <button key={m} type="button" disabled={eta.isPending} onClick={() => eta.mutate(m)} className={cn('inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold transition-transform active:scale-95', t?.my_eta_minutes === m ? 'border-warning bg-warning/15 text-warning' : 'border-default bg-white text-espresso')}><Timer className="size-3.5" />{L(`هتأخر ${m} د`, `${m} min late`)}</button>
+          ))}
+          <button type="button" disabled={eta.isPending} onClick={() => eta.mutate(-15)} className={cn('inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold transition-transform active:scale-95', (t?.my_eta_minutes ?? 0) < 0 ? 'border-success bg-success/10 text-success' : 'border-default bg-white text-espresso')}><Zap className="size-3.5" />{L('أقدر آجي بدري', 'Can come early')}</button>
+          <button type="button" disabled={eta.isPending} onClick={() => eta.mutate(0)} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-default bg-white px-3 text-xs font-semibold text-espresso transition-transform active:scale-95"><Clock className="size-3.5" />{L('في معادي', 'On time')}</button>
+          <Link to={`/turn/${bookingId}`} className="inline-flex min-h-9 items-center gap-1 rounded-full bg-espresso px-3 text-xs font-semibold text-cream transition-transform active:scale-95"><MonitorSmartphone className="size-3.5" />{L('افتح شاشة الدور', 'Open turn screen')}</Link>
+          <button type="button" onClick={() => setSwapOpen((v) => !v)} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-default bg-white px-3 text-xs font-semibold text-espresso transition-transform active:scale-95"><ArrowLeftRight className="size-3.5" />{L('بدّل معادي مع حد', 'Swap with someone')}</button>
+        </div>
+      ) : null}
+      {swapOpen ? <SwapPicker bookingId={bookingId} startAt={startAt} onDone={() => setSwapOpen(false)} /> : null}
+    </div>
+  );
+}
+
+function SwapPicker({ bookingId, startAt, onDone }: { bookingId: string; startAt: string; onDone: () => void }) {
+  const { i18n } = useTranslation();
+  const ar = !!i18n.language?.startsWith('ar');
+  const L = (a: string, e: string) => (ar ? a : e);
+  const days = useMemo(() => Array.from({ length: 7 }, (_, i) => cairoDay(new Date(Date.now() + i * 86400000))), []);
+  const [day, setDay] = useState(cairoDay(new Date(startAt)) >= days[0]! ? cairoDay(new Date(startAt)) : days[0]!);
+  useEffect(() => { if (!days.includes(day)) setDay(days[0]!); }, [day, days]);
+  const q = useQuery({
+    queryKey: ['swap-candidates', bookingId, day],
+    queryFn: async () => {
+      const r = await rpc('swap_candidates', { p_booking_id: bookingId, p_date: day });
+      if (r.error) throw new Error(r.error.message);
+      return ((r.data ?? []) as Array<{ start_at: string }>).map((x) => x.start_at).filter((x) => x !== startAt);
+    },
+  });
+  const req = useMutation({
+    mutationFn: async (target: string) => {
+      const r = await rpc('request_swap', { p_booking_id: bookingId, p_target_start: target });
+      if (r.error) throw new Error(r.error.message);
+    },
+    onSuccess: () => { toast.success(L('بعتنا الطلب 🔄 — هنبلغك لما يرد', 'Request sent 🔄 — we’ll let you know')); onDone(); },
+    onError: (e) => toast.error((e as Error).message.includes('PENDING') ? L('فيه طلب تبديل مستني رد بالفعل', 'A swap request is already pending') : L('المعاد ده مش متاح للتبديل', 'That time is not available to swap')),
+  });
+  const wd = (d: string) => new Intl.DateTimeFormat(ar ? 'ar-EG' : 'en-US', { weekday: 'short', timeZone: 'UTC' }).format(new Date(d + 'T12:00:00Z'));
+  return (
+    <div className="animate-rise rounded-card border border-default bg-white p-3">
+      <p className="text-sm font-semibold text-espresso">{L('اختار معاد محجوز عايز تبدّل معاه', 'Pick a booked time to swap with')}</p>
+      <p className="text-[11px] text-ink">{L('هنبعت لصاحب المعاد طلب من غير ما نقوله اسمك، ولو وافق المعادين بيتبدّلوا لوحدهم.', 'We ask the other customer anonymously; if they accept, times swap automatically.')}</p>
+      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]">
+        {days.map((d) => <button key={d} type="button" onClick={() => setDay(d)} className={cn('min-h-9 shrink-0 rounded-full border px-3 text-xs font-semibold', day === d ? 'border-gold bg-gold text-espresso' : 'border-default text-ink')}>{wd(d)} {d.slice(8)}</button>)}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {q.isLoading ? <span className="text-xs text-ink">…</span> : (q.data ?? []).length === 0 ? <span className="text-xs text-ink">{L('مفيش مواعيد مناسبة للتبديل في اليوم ده', 'No swappable times that day')}</span>
+          : q.data!.map((s) => <button key={s} type="button" disabled={req.isPending} onClick={() => req.mutate(s)} className="min-h-9 rounded-btn border border-gold/50 bg-gold/10 px-3 font-latin text-sm font-semibold text-espresso transition-transform active:scale-95">{fmtTime(s, ar)}</button>)}
+      </div>
+    </div>
+  );
+}
+
+/** الرد على طلب تبديل (من الإشعار) */
+export function SwapRespond({ swapId, onDone }: { swapId: string; onDone?: () => void }) {
+  const { i18n } = useTranslation();
+  const ar = !!i18n.language?.startsWith('ar');
+  const L = (a: string, e: string) => (ar ? a : e);
+  const qc = useQueryClient();
+  const m = useMutation({
+    mutationFn: async (accept: boolean) => {
+      const r = await rpc('respond_swap', { p_swap_id: swapId, p_accept: accept });
+      if (r.error) throw new Error(r.error.message);
+      return accept;
+    },
+    onSuccess: (a) => { toast.success(a ? L('اتبدّل المعاد ✅', 'Swapped ✅') : L('تمام، معادك زي ما هو', 'OK, your time stays')); void qc.invalidateQueries({ queryKey: ['bookings'] }); onDone?.(); },
+    onError: () => toast.error(L('الطلب ده خلص أو اتلغى', 'This request is no longer available')),
+  });
+  return (
+    <div className="mt-3 flex gap-2">
+      <button type="button" disabled={m.isPending} onClick={() => m.mutate(true)} className="min-h-11 flex-1 rounded-btn bg-gold font-semibold text-espresso">{L('موافق أبدّل', 'Accept')}</button>
+      <button type="button" disabled={m.isPending} onClick={() => m.mutate(false)} className="min-h-11 flex-1 rounded-btn border border-default bg-white font-semibold text-espresso">{L('لا شكراً', 'Decline')}</button>
+    </div>
+  );
+}

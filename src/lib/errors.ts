@@ -11,6 +11,8 @@ export type ErrorCode =
   | 'PREPAY_REQUIRED'
   | 'COUPON_INVALID'
   | 'COUPON_USED'
+  | 'COUPON_GAP'
+  | 'DAY_FULL'
   | 'UNKNOWN';
 
 const CODE_PATTERNS: { pattern: RegExp; code: ErrorCode }[] = [
@@ -23,6 +25,8 @@ const CODE_PATTERNS: { pattern: RegExp; code: ErrorCode }[] = [
   { pattern: /BOOKING_CLOSED/i, code: 'BOOKING_CLOSED' },
   { pattern: /PREPAY_REQUIRED/i, code: 'PREPAY_REQUIRED' },
   { pattern: /COUPON_USED/i, code: 'COUPON_USED' },
+  { pattern: /COUPON_GAP/i, code: 'COUPON_GAP' },
+  { pattern: /DAY_FULL/i, code: 'DAY_FULL' },
   { pattern: /COUPON_INVALID/i, code: 'COUPON_INVALID' },
 ];
 

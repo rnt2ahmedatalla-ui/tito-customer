@@ -29,5 +29,30 @@
       "type": "image/png",
       "purpose": "maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "دوري لايف",
+      "short_name": "دوري",
+      "description": "شاشة الدور بتاعتك لايف",
+      "url": "./turn",
+      "icons": [
+        {
+          "src": "tito-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "احجز دورك",
+      "short_name": "احجز",
+      "url": "./book",
+      "icons": [
+        {
+          "src": "tito-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

@@ -184,7 +184,9 @@
     "rateLimited": "Please wait before trying again",
     "PREPAY_REQUIRED": "Prepayment is required for this booking",
     "COUPON_INVALID": "This coupon is not valid for you",
-    "COUPON_USED": "This coupon was already used"
+    "COUPON_USED": "This coupon was already used",
+    "COUPON_GAP": "You can’t use coupons on two bookings within 48 hours — you can still book without a coupon",
+    "DAY_FULL": "This day is fully booked — please pick another day"
   },
   "common": {
     "back": "Back",

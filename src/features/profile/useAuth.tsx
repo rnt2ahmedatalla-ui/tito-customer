@@ -67,7 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cancelled) return;
       setSession(next);
       setLoading(false);
-      if (next) stripOAuthParamsFromUrl();
+      if (next) {
+        stripOAuthParamsFromUrl();
+        // متابعة اللينك القديم/الجديد (عشان نعرف إمتى نقفل القديم)
+        try {
+          const rpc = supabase.rpc.bind(supabase) as unknown as (f: string, a: Record<string, unknown>) => PromiseLike<unknown>;
+          void Promise.resolve(rpc('touch_origin', { p_origin: window.location.origin })).catch(() => undefined);
+        } catch {
+          /* tracking only — never block sign-in */
+        }
+      }
     };
 
     void supabase.auth

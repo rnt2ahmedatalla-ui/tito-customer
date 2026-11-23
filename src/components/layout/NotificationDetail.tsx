@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SwapRespond } from '@/features/bookings/LiveTurn';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -146,6 +147,8 @@ export function NotificationDetailHost() {
   } else if (entity === 'product_request') {
     const r = request.data;
     action = { label: L('احجزه دلوقتي', 'Reserve it now'), path: r?.product_id ? `/products/${r.product_id}` : '/products' };
+  } else if (entity === 'swap' && eid && n.kind === 'swap_request') {
+    related = <SwapRespond swapId={eid} onDone={close} />;
   } else if (entity === 'customer_photo') {
     action = { label: L('شوف شغلنا', 'See our work'), path: '/gallery' };
   } else if (n.kind === 'reward') {
