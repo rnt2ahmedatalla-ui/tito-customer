@@ -924,12 +924,12 @@ export default function BookingPage() {
       {/* Navigation */}
       {step !== 'success' && step !== 'payment' ? (
         <StickyBottomBar>
-          <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:items-stretch">
+          <div className={cn('flex gap-2', step === 'review' ? 'flex-col min-[420px]:flex-row min-[420px]:items-stretch' : 'flex-row items-stretch')}>
             {stepIndex > 0 ? (
               <Button
                 variant="secondary"
                 onClick={() => goToStep(STEPS[stepIndex - 1])}
-                className="w-full min-[420px]:w-auto min-[420px]:flex-1"
+                className={step === 'review' ? 'w-full min-[420px]:w-auto min-[420px]:flex-1' : 'w-auto shrink-0 px-4'}
               >
                 {i18n.language === 'ar' ? (
                   <ChevronRight className="size-4" aria-hidden />
@@ -985,7 +985,7 @@ export default function BookingPage() {
               </div>
             ) : (
               <Button
-                className="w-full min-[420px]:flex-1"
+                className="min-w-0 flex-1"
                 disabled={!canProceed()}
                 onClick={() => goToStep(STEPS[stepIndex + 1])}
               >

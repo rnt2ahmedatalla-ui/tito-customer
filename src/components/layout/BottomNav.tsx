@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -19,6 +20,21 @@ const items = [
 export function BottomNav() {
   const { t } = useTranslation();
   const location = useLocation();
+  // ارتفاع الشريط الحقيقي — علشان أي شريط ثابت (زي «التالي» في الحجز) يقعد فوقه بالظبط
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = navRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const set = () => {
+      const h = getComputedStyle(el).display === 'none' ? 0 : el.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--nav-h', `${Math.round(h)}px`);
+    };
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    window.addEventListener('resize', set);
+    return () => { ro.disconnect(); window.removeEventListener('resize', set); };
+  }, []);
   // «منتجاتنا» بيظهر بس لو المتجر شغّال من لوحة التحكم (و«شغلنا» موجود في الرئيسية)
   const showProducts = useFeatureFlags().data?.products !== false;
   const visible = items.filter((i) => i.to !== '/products' || showProducts);
@@ -59,6 +75,7 @@ export function BottomNav() {
       <HowToBookFab hidden={onBookingFlow} />
 
       <nav
+        ref={navRef}
         className="fixed inset-x-0 bottom-0 z-40 rounded-t-[1.25rem] border-t border-default bg-cream/95 shadow-[0_-6px_20px_rgba(52,26,14,0.08)] sm:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label={t('a11y.mainNav')}
