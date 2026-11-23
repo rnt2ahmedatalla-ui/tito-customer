@@ -68,6 +68,8 @@ export type MyPackage = {
   sessions_left: number;
   sessions_total: number;
   expires_at: string;
+  status?: 'active' | 'requested' | 'cancelled';
+  kind?: 'bundle' | 'monthly';
 };
 
 export function useMyPackages(enabled: boolean) {
@@ -78,11 +80,12 @@ export function useMyPackages(enabled: boolean) {
     queryFn: async (): Promise<MyPackage[]> => {
       const { data, error } = await db
         .from('customer_packages')
-        .select('id, name_ar, name_en, sessions_left, sessions_total, expires_at')
-        .gt('sessions_left', 0)
+        .select('id, name_ar, name_en, sessions_left, sessions_total, expires_at, status, kind')
+        .in('status', ['active', 'requested'])
+        .gte('expires_at', new Date().toISOString().slice(0, 10))
         .order('expires_at');
       if (error) return [];
-      return (data ?? []) as MyPackage[];
+      return (data ?? []) as unknown as MyPackage[];
     },
     retry: false,
   });

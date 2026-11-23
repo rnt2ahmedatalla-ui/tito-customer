@@ -39,7 +39,7 @@ export function PageShell({
       <Header dark={darkHeader} />
       <main
         className={cn(
-          'relative z-[1]',
+          'relative z-[1] animate-page',
           marketing ? 'w-full' : 'mx-auto w-full max-w-5xl',
           !marketing &&
             !noPadding &&

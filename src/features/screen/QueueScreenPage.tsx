@@ -330,7 +330,7 @@ function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber
             {/* اللي مش هيلحق يظهر كامل بيتخبى بدل ما يتقص من النص */}
             <ol className="mt-[calc(var(--u)*0.4)] flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden">
               {rest.map((n, i) => (
-                <li key={`${n.at}-${i}`} className="flex w-full items-baseline justify-between gap-[calc(var(--u)*2)] border-b border-white/10 py-[calc(var(--u)*0.7)]">
+                <li key={`${n.at}-${i}`} className="flex w-full items-baseline justify-between gap-[calc(var(--u)*2)] border-b border-[#fff]/10 py-[calc(var(--u)*0.7)]">
                   <span className="min-w-0">
                     <span style={fs(3.3 * k)} className="block truncate">
                       <span className="font-latin text-gold-soft">{i + 2}.</span> {displayName(n.name, ar)}
@@ -551,7 +551,7 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
         <div key={`r-${i}`} className="tito-fade flex h-full flex-col items-center justify-center gap-[calc(var(--u)*2.4)] p-[calc(var(--u)*4)] text-center">
           <div className="flex gap-[calc(var(--u)*0.6)]" aria-label={`${s.rating}/5`}>
             {Array.from({ length: 5 }).map((_, n) => (
-              <Star key={n} className={n < s.rating ? 'fill-gold text-gold' : 'text-white/20'} style={{ width: 'calc(var(--u)*4.4)', height: 'calc(var(--u)*4.4)' }} aria-hidden />
+              <Star key={n} className={n < s.rating ? 'fill-gold text-gold' : 'text-[#fff]/20'} style={{ width: 'calc(var(--u)*4.4)', height: 'calc(var(--u)*4.4)' }} aria-hidden />
             ))}
           </div>
           <blockquote style={fs(4.6)} className="font-bold leading-snug">“{s.comment}”</blockquote>

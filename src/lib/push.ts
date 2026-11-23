@@ -55,3 +55,23 @@ export async function resyncPush(lang: string): Promise<void> {
     if (sub) await saveToServer(sub, lang);
   } catch { /* ignore */ }
 }
+
+/**
+ * أول زيارة (حتى قبل تسجيل الدخول): ناخد إذن الإشعارات ونجهّز الجهاز.
+ * لو العميل داخل بحسابه بيتسجّل على طول، ولو لأ بيتسجّل أول ما يدخل (resyncPush).
+ */
+export async function preparePush(lang: string, loggedIn: boolean): Promise<boolean> {
+  if (!pushSupported()) return false;
+  if (loggedIn) {
+    try { return await enablePush(lang); } catch { return false; }
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (!(await reg.pushManager.getSubscription())) {
+      await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBuffer(VAPID_PUBLIC_KEY) });
+    }
+  } catch { /* بيتعمل تاني بعد الدخول */ }
+  return true;
+}

@@ -98,7 +98,7 @@ export function MyPhotos() {
   const photos = q.data ?? [];
 
   return (
-    <section id="photos" className="mt-8 rounded-card border border-default bg-white p-4 shadow-warm">
+    <section id="photos" className="animate-rise rounded-card border border-default bg-white p-4 shadow-warm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-bold text-espresso"><Camera className="size-5 text-gold" /> {L('صوري', 'My photos')}</h2>

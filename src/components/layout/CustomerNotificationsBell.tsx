@@ -246,7 +246,7 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
                       </span>
                       {body ? <span className="mt-1 block break-words text-sm leading-relaxed text-ink">{body}</span> : null}
                       {rejected ? (
-                        <span className="mt-2 inline-flex items-center gap-1 rounded-btn bg-danger px-3 py-1.5 text-xs font-semibold text-white">
+                        <span className="mt-2 inline-flex items-center gap-1 rounded-btn bg-danger px-3 py-1.5 text-xs font-semibold text-[#fff]">
                           {isAr ? 'افتح التفاصيل' : 'Open details'}
                           <ChevronRight className="size-3.5 rtl:-scale-x-100" aria-hidden />
                         </span>

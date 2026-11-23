@@ -25,6 +25,8 @@ export function AddToCalendar({
   const isAr = i18n.language?.startsWith('ar');
   const settings = useSettings();
   const shop = settings.data?.shop_name || 'tito';
+  // مقفول افتراضياً — بيتفتح من إعدادات الأدمن («زرار ضيف للتقويم»)
+  const enabled = (settings.data as { show_add_to_calendar?: boolean } | null | undefined)?.show_add_to_calendar === true;
   const event: IcsEvent = {
     uid: id,
     title: `${shop} — ${serviceName}`,
@@ -35,6 +37,7 @@ export function AddToCalendar({
     alarmsMinutes: [120, 1440],
   };
   const phone = isAndroid() || isIOS();
+  if (!enabled) return null;
   return (
     <div className="flex items-center justify-between gap-3 rounded-btn border border-gold/40 bg-gold/10 px-3 py-2.5">
       <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-espresso">

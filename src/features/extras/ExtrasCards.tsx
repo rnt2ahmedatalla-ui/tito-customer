@@ -1,3 +1,4 @@
+import { cn } from '@/lib/cn';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -108,29 +109,43 @@ export function MyPackagesCard() {
   const isAr = i18n.language?.startsWith('ar');
   const flags = useFeatureFlags();
   const pk = useMyPackages(!!flags.data?.packages);
-  if (!flags.data?.packages || !pk.data || pk.data.length === 0) return null;
+  const list = (pk.data ?? []).filter((p) => p.status === 'requested' || p.sessions_left > 0);
+  if (!flags.data?.packages || list.length === 0) return null;
   return (
-    <div className="mt-8">
-      <p className="mb-2 text-sm font-medium text-espresso">{isAr ? 'باقاتي' : 'My packages'}</p>
+    <section className="animate-rise rounded-card border border-default bg-white p-4 shadow-warm">
+      <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-espresso">
+        <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><Ticket className="size-4" /></span>
+        {isAr ? 'باقاتي واشتراكاتي' : 'My packages'}
+      </h2>
       <div className="space-y-2">
-        {pk.data.map((p) => (
-          <div key={p.id} className="flex min-w-0 items-center justify-between gap-3 rounded-card border border-gold/40 bg-gold/10 p-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <Ticket className="size-5 shrink-0 text-gold" aria-hidden />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-espresso">{isAr ? p.name_ar : p.name_en || p.name_ar}</p>
-                <p className="text-xs text-ink">
-                  {isAr ? 'صالحة لحد' : 'Valid until'} <span className="font-latin">{p.expires_at}</span>
-                </p>
+        {list.map((p) => {
+          const pending = p.status === 'requested';
+          const pct = p.sessions_total ? (p.sessions_left / p.sessions_total) * 100 : 0;
+          return (
+            <div key={p.id} className={cn('rounded-card border p-3', pending ? 'border-dashed border-gold/60 bg-gold/5' : 'border-gold/40 bg-gold/10')}>
+              <div className="flex min-w-0 items-center justify-between gap-3">
+                <p className="min-w-0 truncate text-sm font-semibold text-espresso">{isAr ? p.name_ar : p.name_en || p.name_ar}</p>
+                {pending ? (
+                  <span className="shrink-0 rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-semibold text-warning">{isAr ? 'مستني الدفع' : 'Awaiting payment'}</span>
+                ) : (
+                  <span className="shrink-0 font-latin text-sm font-bold text-espresso">{p.sessions_left}/{p.sessions_total}</span>
+                )}
               </div>
+              {pending ? (
+                <p className="mt-1 text-xs text-ink">{isAr ? 'ادفع في المحل في زيارتك الجاية وهتتفعّل على طول.' : 'Pay at the shop on your next visit and it will be activated.'}</p>
+              ) : (
+                <>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sand"><div className="h-full rounded-full bg-gold transition-all duration-700" style={{ width: `${pct}%` }} /></div>
+                  <p className="mt-1 text-xs text-ink">
+                    {isAr ? `فاضلك ${p.sessions_left} زيارة · صالحة لحد ` : `${p.sessions_left} visits left · valid until `}<span className="font-latin">{p.expires_at}</span>
+                  </p>
+                </>
+              )}
             </div>
-            <span className="shrink-0 rounded-full bg-espresso px-3 py-1 font-latin text-sm font-bold text-cream">
-              {p.sessions_left}/{p.sessions_total}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
-    </div>
+    </section>
   );
 }
 

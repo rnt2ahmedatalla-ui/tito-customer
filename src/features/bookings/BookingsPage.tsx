@@ -425,7 +425,7 @@ export default function BookingsPage() {
                   />
                 ) : null}
                 {booking.status === 'confirmed' && new Date(booking.end_at) > new Date() ? (
-                  <div className="mt-3">
+                  <div className="mt-3 empty:hidden">
                     <AddToCalendar id={booking.id} startAt={booking.start_at} endAt={booking.end_at} serviceName={serviceName} />
                   </div>
                 ) : null}

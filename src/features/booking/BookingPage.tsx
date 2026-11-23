@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useQueries } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { BellRing, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
 import { useCancelBooking } from '../bookings/useBookings';
@@ -25,7 +25,8 @@ import { PolicyNote } from './PolicyNote';
 import { SpecialRequestPrompt } from '@/features/extras/SpecialRequest';
 import { useFeatureFlags, usePrepayRequired } from '@/features/extras/useExtras';
 import { AddToCalendar } from '@/components/booking/AddToCalendar';
-import { AddProductCta, ProductsPriceStrip } from '@/features/products/HomeProducts';
+import { AddProductCta, ProductsPicker, parseProductsParam, stringifyProducts, useChosenProducts } from '@/features/products/HomeProducts';
+import { useStoreActions } from '@/features/products/useStore';
 import { HoldTimer } from '@/components/booking/HoldTimer';
 import { PaymentPanel } from '@/components/booking/PaymentPanel';
 import { LeatherPattern } from '@/components/brand/Pattern';
@@ -51,6 +52,37 @@ const STEP_LABELS: Record<string, string> = {
   review: 'booking.stepReview',
   payment: 'booking.stepPayment',
 };
+
+/** «مش لاقي معاد مناسب؟» كارت واحد فيه اختيارين واضحين بدل كارتين مختلفين */
+function NoTimeHelp({ day, serviceId, waitlist, empty }: { day: string; serviceId: string | null; waitlist: boolean; empty: boolean }) {
+  const { i18n } = useTranslation();
+  const ar = i18n.language === 'ar';
+  const L = (a: string, e: string) => (ar ? a : e);
+  const [pick, setPick] = useState<'wait' | 'special' | null>(empty && waitlist ? 'wait' : null);
+  useEffect(() => setPick(empty && waitlist ? 'wait' : null), [day, empty, waitlist]);
+  if (pick === 'wait') return <div className="mt-5 animate-pop"><WaitlistPrompt day={day} serviceId={serviceId} defaultOpen /><button type="button" onClick={() => setPick(null)} className="mt-2 text-xs font-medium text-ink underline-offset-4 hover:underline">{L('رجوع', 'Back')}</button></div>;
+  if (pick === 'special') return <div className="mt-5 animate-pop"><SpecialRequestPrompt day={day} serviceId={serviceId} defaultOpen onClose={() => setPick(null)} /></div>;
+  const tile = 'flex min-h-[5.5rem] flex-col items-start gap-1 rounded-card border border-default bg-white p-3 text-start transition-all hover:border-gold active:scale-[0.98]';
+  return (
+    <div className="mt-6 animate-rise">
+      <p className="mb-2 text-sm font-semibold text-espresso">{L('مش لاقي معاد مناسب؟', "Can't find a good time?")}</p>
+      <div className={cn('grid gap-2', waitlist ? 'grid-cols-2' : 'grid-cols-1')}>
+        {waitlist ? (
+          <button type="button" onClick={() => setPick('wait')} className={tile}>
+            <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><BellRing className="size-4" /></span>
+            <span className="text-sm font-semibold text-espresso">{L('قايمة الانتظار', 'Waiting list')}</span>
+            <span className="text-xs leading-snug text-ink">{L('نبلّغك أول ما يفضى معاد', 'We notify you when a slot frees up')}</span>
+          </button>
+        ) : null}
+        <button type="button" onClick={() => setPick('special')} className={tile}>
+          <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><Star className="size-4" /></span>
+          <span className="text-sm font-semibold text-espresso">{L('معاد خاص', 'Special time')}</span>
+          <span className="text-xs leading-snug text-ink">{L('اطلب وقت برّه مواعيد الشغل', 'Ask for a time outside opening hours')}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function BookingPage() {
   const { t, i18n } = useTranslation();
@@ -136,6 +168,11 @@ export default function BookingPage() {
     anyStaff &&
     eligibleStaff.some((m) => staffServices.some((r) => r.staff_id === m.id && r.price_egp != null && wantedIds.includes(r.service_id)));
   const orderTotal = Math.max(0, orderSubtotal - (coupon?.discount ?? 0));
+  // المنتجات اللي هياخدها معاه (بتتحسب مع السعر وتتدفع في المحل)
+  const chosenProducts = parseProductsParam(params.get('prods'));
+  const prodPick = useChosenProducts(chosenProducts);
+  const storeActions = useStoreActions();
+  const grandTotal = orderTotal + prodPick.total;
   // لو السعر اتغيّر (إضافات اتزادت/اتشالت) الخصم لازم يتحسب تاني
   useEffect(() => {
     setCoupon(null);
@@ -323,10 +360,19 @@ export default function BookingPage() {
         /* ignore */
       }
       setPendingAction(null);
+      if (id && prodPick.lines.length) {
+        for (const l of prodPick.lines) {
+          try {
+            await storeActions.order.mutateAsync({ productId: l.p.id, qty: l.qty, pay: 'cash', bookingId: id, note: '' });
+          } catch {
+            /* المنتج ممكن يكون خلص — الحجز نفسه اتأكد عادي */
+          }
+        }
+      }
       if (payAtShop) {
-        updateParams({ step: 'success', booking: id, service: null, date: null, slot: null, pay_at_shop: '1' });
+        updateParams({ step: 'success', booking: id, service: null, date: null, slot: null, pay_at_shop: '1', prods: null });
       } else {
-        updateParams({ step: 'payment', booking: id, pay_at_shop: null });
+        updateParams({ step: 'payment', booking: id, pay_at_shop: null, prods: null });
       }
     } catch (err) {
       if (extractErrorCode(err) === 'SLOT_TAKEN') {
@@ -493,13 +539,16 @@ export default function BookingPage() {
                 </div>
               </div>
             ) : null}
-            <ProductsPriceStrip />
+            <ProductsPicker value={chosenProducts} onChange={(m) => updateParams({ prods: stringifyProducts(m) })} />
           </div>
           <div className="sticky bottom-[calc(8.5rem+env(safe-area-inset-bottom))] z-10 mt-6 rounded-card border border-gold/40 bg-cream/95 p-3 shadow-warm backdrop-blur sm:static sm:shadow-none">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-ink">{t('booking.price')}</span>
+              <span className="text-sm text-ink">
+                {t('booking.price')}
+                {prodPick.total ? <span className="ms-1 text-xs">{i18n.language === 'ar' ? `(منها منتجات ${formatEGP(prodPick.total)})` : `(incl. products ${formatEGP(prodPick.total)})`}</span> : null}
+              </span>
               <span className="font-latin text-lg font-bold text-espresso">
-                {formatEGP(orderTotal || 0)}
+                {formatEGP(grandTotal || 0)}
               </span>
             </div>
           </div>
@@ -606,15 +655,13 @@ export default function BookingPage() {
                 errorDetail={slots.error ? String((slots.error as { message?: string }).message ?? slots.error).slice(0, 220) : undefined}
                 onRetry={() => slots.refetch()}
               />
-              {featureFlags.data?.waitlist && user && !slots.isLoading && !slots.isError ? (
-                <div className="mt-4">
-                  <WaitlistPrompt day={date} serviceId={serviceId ?? null} defaultOpen={(slots.data ?? []).length === 0} />
-                </div>
-              ) : null}
               {user && !slots.isLoading && !slots.isError ? (
-                <div className="mt-4">
-                  <SpecialRequestPrompt day={date} serviceId={serviceId ?? null} />
-                </div>
+                <NoTimeHelp
+                  day={date}
+                  serviceId={serviceId ?? null}
+                  waitlist={!!featureFlags.data?.waitlist}
+                  empty={(slots.data ?? []).length === 0}
+                />
               ) : null}
             </div>
           ) : null}
@@ -651,6 +698,12 @@ export default function BookingPage() {
                 <span className="font-latin font-medium sm:text-end">{formatEGP(extra.price_egp)}</span>
               </div>
             ))}
+            {prodPick.lines.map((l) => (
+              <div key={l.p.id} className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                <span className="text-sm text-ink">+ {i18n.language === 'ar' ? l.p.name_ar : l.p.name_en || l.p.name_ar}{l.qty > 1 ? ` ×${l.qty}` : ''}</span>
+                <span className="font-latin font-medium sm:text-end">{formatEGP(l.total)}</span>
+              </div>
+            ))}
             {coupon ? (
               <div className="flex items-center justify-between gap-3 text-sm text-success">
                 <span>{i18n.language === 'ar' ? 'الخصم' : 'Discount'}</span>
@@ -659,7 +712,7 @@ export default function BookingPage() {
             ) : null}
             <div className="flex items-center justify-between gap-3 border-t border-default pt-4">
               <span className="text-ink">{t('booking.price')}</span>
-              <span className="text-lg font-bold text-espresso font-latin">{formatEGP(orderTotal)}</span>
+              <span className="text-lg font-bold text-espresso font-latin">{formatEGP(grandTotal)}</span>
             </div>
             {priceMayVary ? (
               <p className="text-xs text-ink">{i18n.language === 'ar' ? 'السعر النهائي بيتحدد حسب الحلاق اللي هيتعيّن لك.' : 'The final price depends on the barber assigned to you.'}</p>
@@ -803,7 +856,7 @@ export default function BookingPage() {
             ) : null}
             <div className="mt-8 flex flex-col gap-3">
               {booking.data && selectedService ? (
-                <div className="rounded-btn bg-white/10 p-3 text-start">
+                <div className="rounded-btn bg-white/10 p-3 text-start empty:hidden">
                   <AddToCalendar
                     id={booking.data.id}
                     startAt={booking.data.start_at}

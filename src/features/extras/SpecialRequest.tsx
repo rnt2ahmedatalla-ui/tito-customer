@@ -31,13 +31,13 @@ const fmtDay = (iso: string, ar: boolean) =>
   new Intl.DateTimeFormat(ar ? 'ar-EG' : 'en-US', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(iso));
 
 /** تحت المواعيد: "مفيش معاد يناسبني؟" → يطلب معاد في وقت مقفول بسعر أعلى والأدمن يقبل أو يرفض */
-export function SpecialRequestPrompt({ day, serviceId }: { day: string; serviceId: string | null }) {
+export function SpecialRequestPrompt({ day, serviceId, defaultOpen = false, onClose }: { day: string; serviceId: string | null; defaultOpen?: boolean; onClose?: () => void }) {
   const { i18n } = useTranslation();
   const isAr = !!i18n.language?.startsWith('ar');
   const L = (ar: string, en: string) => (isAr ? ar : en);
   const qc = useQueryClient();
   const cfg = useCfg();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [d, setD] = useState(day);
   const [slot, setSlot] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -92,7 +92,7 @@ export function SpecialRequestPrompt({ day, serviceId }: { day: string; serviceI
     <div className="rounded-card border border-gold/50 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-semibold text-espresso"><Star className="size-4 text-gold" aria-hidden />{L('طلب معاد خاص', 'Special time request')}</h3>
-        <button type="button" aria-label={L('إغلاق', 'Close')} onClick={() => setOpen(false)} className="p-1 text-ink"><X className="size-5" /></button>
+        <button type="button" aria-label={L('إغلاق', 'Close')} onClick={() => { setOpen(false); onClose?.(); }} className="p-1 text-ink"><X className="size-5" /></button>
       </div>
       <p className="mt-1 text-xs text-ink">{L('المواعيد دي برّه ساعات الشغل العادية. مش مؤكدة غير لما المحل يقبل.', 'These times are outside normal hours. Not confirmed until the shop accepts.')}</p>
       <label className="mt-3 block text-sm font-medium text-espresso">

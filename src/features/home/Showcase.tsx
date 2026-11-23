@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { useAuth } from '@/features/profile/useAuth';
 import {
   ArrowLeft, ArrowRight, Baby, Brush, Clock, Crown, Droplets, Flame, Gift, Images, Package, Palette, Scissors, Share2,
   Sparkles, Spline, Star, Users, Waves, Wind, BookOpen,
@@ -73,6 +75,9 @@ function SectionHead({ eyebrow, title, action }: { eyebrow: string; title: strin
 }
 
 /* ───────── خدماتنا جنب منتجاتنا ───────── */
+// نفس مقاس الكارت للخدمات والمنتجات علشان يبقوا متناسقين
+const TILE = 'group flex h-full min-h-[6.25rem] flex-col items-center justify-start gap-1.5 rounded-btn bg-sand/50 px-1.5 py-2.5 text-center transition-all duration-200 hover:bg-sand active:scale-95';
+
 export function ServicesProductsSection() {
   const { ar, L } = useAr();
   const services = useServices();
@@ -95,11 +100,13 @@ export function ServicesProductsSection() {
         <Skeleton className="h-40" />
       ) : (
         <>
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {mains.map((s) => (
-              <li key={s.id} className="flex flex-col items-center gap-2 rounded-btn bg-sand/50 px-2 py-3 text-center">
-                <span className="flex size-11 items-center justify-center rounded-full bg-espresso text-gold shadow-warm"><ServiceIcon name={`${s.name_ar} ${s.name_en ?? ''}`} className="size-5" /></span>
-                <span className="line-clamp-2 text-sm font-semibold leading-snug text-espresso">{nm(s)}</span>
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {mains.map((s, i) => (
+              <li key={s.id} className="animate-rise" style={{ animationDelay: `${Math.min(i, 9) * 40}ms` }}>
+                <Link to={`/book?service=${s.id}`} className={TILE}>
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-espresso text-gold shadow-warm transition-transform duration-300 group-hover:scale-110"><ServiceIcon name={`${s.name_ar} ${s.name_en ?? ''}`} className="size-5" /></span>
+                  <span className="line-clamp-2 text-[12px] font-semibold leading-tight text-espresso">{nm(s)}</span>
+                </Link>
               </li>
             ))}
           </ul>
@@ -127,14 +134,15 @@ export function ServicesProductsSection() {
   const productsPanel = (
     <div className="h-full rounded-card border border-default bg-white p-4 shadow-warm sm:p-5">
       <p className="mb-3 hidden items-center gap-2 font-semibold text-espresso lg:flex"><Package className="size-4 text-gold" aria-hidden />{L('منتجاتنا', 'Our products')}</p>
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {prods.map((p) => (
-          <li key={p.id}>
-            <Link to={`/products/${p.id}`} className="group block overflow-hidden rounded-btn bg-sand/50">
-              <div className="aspect-square overflow-hidden">
-                <img src={productImg(p.thumb_path ?? p.image_path) ?? ''} alt="" loading="lazy" className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
-              </div>
-              <p className="line-clamp-1 px-2 py-1.5 text-center text-xs font-semibold text-espresso sm:text-sm">{nm(p)}</p>
+      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {prods.map((p, i) => (
+          <li key={p.id} className="animate-rise" style={{ animationDelay: `${Math.min(i, 9) * 40}ms` }}>
+            <Link to={`/products/${p.id}`} className={TILE}>
+              <span className="size-10 overflow-hidden rounded-xl bg-white shadow-warm transition-transform duration-300 group-hover:scale-110">
+                <img src={productImg(p.thumb_path ?? p.image_path) ?? ''} alt="" loading="lazy" className="size-full object-cover" />
+              </span>
+              <span className="line-clamp-2 text-[12px] font-semibold leading-tight text-espresso">{nm(p)}</span>
+              <span className="font-latin text-[11px] font-semibold text-bark">{Math.round(Number(p.price_egp))} {ar ? 'ج' : 'EGP'}</span>
             </Link>
           </li>
         ))}
@@ -172,45 +180,101 @@ export function ServicesProductsSection() {
 /* ───────── العروض والباقات ───────── */
 type Pkg = { id: string; name_ar: string; name_en: string | null; sessions: number; price_egp: number; validity_days: number | null };
 
+type Offer = Pkg & { kind?: 'bundle' | 'monthly'; description_ar?: string | null; description_en?: string | null; service_id?: string | null };
+
 export function OffersSection() {
   const { ar, L } = useAr();
   const flags = useFeatureFlags();
+  const services = useServices();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [done, setDone] = useState<Offer | null>(null);
   const q = useQuery({
     queryKey: ['public-packages'],
     enabled: flags.data?.packages === true,
     staleTime: 60_000,
-    queryFn: async (): Promise<Pkg[]> => {
-      const { data, error } = await supabase.from('packages').select('id, name_ar, name_en, sessions, price_egp, validity_days').eq('is_active', true).order('price_egp');
+    queryFn: async (): Promise<Offer[]> => {
+      const { data, error } = await supabase.from('packages').select('*').eq('is_active', true).order('price_egp');
       if (error) return [];
-      return (data ?? []) as Pkg[];
+      return ((data ?? []) as unknown as Array<Offer & { archived_at?: string | null }>).filter((p) => !p.archived_at);
     },
+  });
+  const ask = useMutation({
+    mutationFn: async (p: Offer) => {
+      const { error } = await supabase.rpc('customer_request_package' as never, { p_package: p.id } as never);
+      if (error) throw error;
+      return p;
+    },
+    onSuccess: (p) => {
+      setDone(p);
+      void qc.invalidateQueries({ queryKey: ['my-packages'] });
+    },
+    onError: () => toast.error(L('حصلت مشكلة، جرّب تاني', 'Something went wrong, try again')),
   });
   const list = q.data ?? [];
   if (flags.data?.packages !== true || !list.length) return null;
+  const svc = (id?: string | null) => (services.data ?? []).find((x) => x.id === id);
+
+  const request = (p: Offer) => {
+    if (!user) {
+      toast(L('سجّل دخولك الأول وبعدين اطلبها', 'Sign in first, then request it'));
+      navigate('/profile');
+      return;
+    }
+    ask.mutate(p);
+  };
+
   return (
     <section className="bg-espresso text-cream">
       <div className="mx-auto max-w-5xl px-5 py-10 sm:py-14">
         <p className="font-latin text-xs font-medium uppercase tracking-[0.25em] text-gold">Offers</p>
-        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{L('العروض والباقات', 'Offers & packages')}</h2>
+        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{L('العروض والاشتراكات', 'Offers & subscriptions')}</h2>
+        <p className="mt-1 text-sm text-cream/70">{L('ادفع مرة واحدة ووفّر — كل حجز للخدمة بيتخصم من باقتك لوحده.', 'Pay once and save — each visit is deducted automatically.')}</p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((p) => (
-            <li key={p.id} className="flex flex-col rounded-card border border-gold/30 bg-cream/5 p-4">
-              <div className="flex items-start gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold text-espresso"><Gift className="size-5" aria-hidden /></span>
-                <div className="min-w-0">
-                  <p className="font-bold">{ar ? p.name_ar : p.name_en || p.name_ar}</p>
-                  <p className="text-sm text-cream/70">
-                    {L(`${p.sessions} جلسات`, `${p.sessions} sessions`)}
-                    {p.validity_days ? L(` · صالحة ${p.validity_days} يوم`, ` · valid ${p.validity_days} days`) : ''}
-                  </p>
+          {list.map((p, i) => {
+            const s = svc(p.service_id);
+            const full = s ? Number(s.price_egp) * p.sessions : 0;
+            const price = Math.round(Number(p.price_egp));
+            const save = full > price ? full - price : 0;
+            const monthly = p.kind === 'monthly';
+            return (
+              <li key={p.id} className="animate-rise flex flex-col rounded-card border border-gold/30 bg-cream/5 p-4 transition-transform duration-300 hover:-translate-y-0.5" style={{ animationDelay: `${i * 80}ms` }}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="rounded-full bg-gold/20 px-2.5 py-0.5 text-[11px] font-semibold text-gold">{monthly ? L('اشتراك شهري', 'Monthly') : L('باقة', 'Bundle')}</span>
+                  {save > 0 ? <span className="rounded-full bg-success/25 px-2.5 py-0.5 text-[11px] font-bold text-[#9BE7BE]">{L(`وفّر ${save} ج`, `Save ${save} EGP`)}</span> : null}
                 </div>
-              </div>
-              <p className="mt-3 font-latin text-2xl font-bold text-gold">{Math.round(Number(p.price_egp))} <span className="text-sm">{L('ج', 'EGP')}</span></p>
-              <Link to="/book" className="mt-3 inline-flex min-h-10 items-center justify-center rounded-btn bg-gold px-4 text-sm font-semibold text-espresso hover:bg-gold-soft">{L('احجز واسأل عليها', 'Book & ask about it')}</Link>
-            </li>
-          ))}
+                <p className="mt-2 text-lg font-bold">{ar ? p.name_ar : p.name_en || p.name_ar}</p>
+                <p className="text-sm text-cream/70">
+                  {s ? `${ar ? s.name_ar : s.name_en || s.name_ar} · ` : ''}
+                  {monthly ? L(`${p.sessions} زيارات في الشهر`, `${p.sessions} visits a month`) : L(`${p.sessions} زيارات · صالحة ${p.validity_days} يوم`, `${p.sessions} visits · ${p.validity_days} days`)}
+                </p>
+                {(ar ? p.description_ar : p.description_en || p.description_ar) ? <p className="mt-1 text-sm text-cream/80">{ar ? p.description_ar : p.description_en || p.description_ar}</p> : null}
+                <div className="mt-3 flex items-end gap-2">
+                  <p className="font-latin text-3xl font-bold text-gold">{price}<span className="ms-1 text-sm">{L('ج', 'EGP')}</span></p>
+                  {full > price ? <p className="pb-1 font-latin text-sm text-cream/50 line-through">{full}</p> : null}
+                  <p className="ms-auto pb-1 text-xs text-cream/60">{L(`الزيارة بـ ${Math.round(price / p.sessions)} ج`, `${Math.round(price / p.sessions)} EGP / visit`)}</p>
+                </div>
+                <Button className="mt-3" loading={ask.isPending && ask.variables?.id === p.id} onClick={() => request(p)}>
+                  {monthly ? L('اشترك', 'Subscribe') : L('اطلب الباقة', 'Get this package')}
+                </Button>
+                {s ? (
+                  <Link to={`/book?service=${s.id}`} className="mt-2 text-center text-xs font-medium text-cream/70 underline-offset-4 hover:underline">{L('أو احجز الخدمة عادي', 'Or just book the service')}</Link>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       </div>
+      <Sheet open={!!done} onClose={() => setDone(null)} title={L('طلبك وصل 🎉', 'Request sent 🎉')}>
+        {done ? (
+          <div className="space-y-3 text-espresso">
+            <p>{L(`طلبت «${done.name_ar}». ادفع ${Math.round(Number(done.price_egp))} ج في المحل في زيارتك الجاية وهتتفعّل على طول، وهيوصلك إشعار.`, `You requested “${done.name_en || done.name_ar}”. Pay ${Math.round(Number(done.price_egp))} EGP at the shop on your next visit and it will be activated — you will be notified.`)}</p>
+            <p className="text-sm text-ink">{L('بعد التفعيل، أي حجز للخدمة دي بيتخصم من الباقة لوحده.', 'After activation, each booking for this service is deducted automatically.')}</p>
+            <Button className="w-full" onClick={() => { setDone(null); navigate(done.service_id ? `/book?service=${done.service_id}` : '/book'); }}>{L('احجز معادك', 'Book your visit')}</Button>
+          </div>
+        ) : null}
+      </Sheet>
     </section>
   );
 }

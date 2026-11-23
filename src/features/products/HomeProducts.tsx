@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Package } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Minus, Package, Plus } from 'lucide-react';
+import { productImg } from './useStore';
+import { cn } from '@/lib/cn';
 import { useFeatureFlags } from '@/features/extras/useExtras';
 import { ProductCard } from './StoreParts';
 import { useLang, useMyStore, useStoreProducts } from './useStore';
@@ -97,6 +99,72 @@ export function BookingProductsLine({ bookingId }: { bookingId: string }) {
         </span>
       ))}
       <AddProductCta bookingId={bookingId} />
+    </div>
+  );
+}
+
+/** "id:qty,id:qty" ⇄ object */
+export function parseProductsParam(v: string | null): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const part of (v ?? '').split(',')) {
+    const [id, q] = part.split(':');
+    const n = Math.max(0, Math.min(9, Math.round(Number(q))));
+    if (id && n > 0) out[id] = n;
+  }
+  return out;
+}
+export function stringifyProducts(m: Record<string, number>): string | null {
+  const s = Object.entries(m).filter(([, n]) => n > 0).map(([id, n]) => `${id}:${n}`).join(',');
+  return s || null;
+}
+
+/** إجمالي المنتجات المختارة + تفاصيلها */
+export function useChosenProducts(m: Record<string, number>) {
+  const q = useStoreProducts();
+  const lines = (q.data ?? []).filter((p) => m[p.id]).map((p) => ({ p, qty: m[p.id]!, total: Number(p.price_egp) * m[p.id]! }));
+  return { lines, total: lines.reduce((s, l) => s + l.total, 0) };
+}
+
+/** وقت الحجز: تختار المنتجات اللي هتاخدها معاك بالكمية، وتتحسب مع السعر وتتدفع في المحل */
+export function ProductsPicker({ value, onChange }: { value: Record<string, number>; onChange: (v: Record<string, number>) => void }) {
+  const { ar, L } = useLang();
+  const flags = useFeatureFlags();
+  const q = useStoreProducts();
+  const list = (q.data ?? []).filter((p) => p.in_stock);
+  if (!list.length || flags.data?.products === false) return null;
+  const set = (id: string, n: number) => onChange({ ...value, [id]: Math.max(0, Math.min(9, n)) });
+  return (
+    <div>
+      <h2 className="mb-1 text-sm font-semibold text-ink">{L('تاخد منتج معاك؟', 'Take a product with you?')}</h2>
+      <p className="mb-2 text-xs text-ink">{L('اختار وهتلاقيه مستنيك، وتدفع تمنه مع الحلاقة.', 'Pick it now — it will be waiting, pay with your cut.')}</p>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {list.map((p) => {
+          const n = value[p.id] ?? 0;
+          const img = productImg(p.thumb_path ?? p.image_path);
+          return (
+            <li key={p.id} className={cn('flex items-center gap-3 rounded-card border bg-white p-2 transition-colors', n ? 'border-gold bg-gold/5' : 'border-default')}>
+              <span className="size-12 shrink-0 overflow-hidden rounded-btn bg-sand">
+                {img ? <img src={img} alt="" className="size-full object-cover" loading="lazy" /> : <Package className="m-3 size-6 text-bark/50" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-espresso">{ar ? p.name_ar : p.name_en || p.name_ar}</span>
+                <span className="font-latin text-sm font-semibold text-bark">{p.price_egp} {ar ? 'ج' : 'EGP'}</span>
+              </span>
+              {n ? (
+                <span className="flex items-center gap-1">
+                  <button type="button" onClick={() => set(p.id, n - 1)} aria-label="-" className="flex size-8 items-center justify-center rounded-full border border-default text-espresso active:scale-90"><Minus className="size-4" /></button>
+                  <span className="w-5 text-center font-latin font-bold text-espresso">{n}</span>
+                  <button type="button" onClick={() => set(p.id, n + 1)} aria-label="+" className="flex size-8 items-center justify-center rounded-full bg-gold text-espresso active:scale-90"><Plus className="size-4" /></button>
+                </span>
+              ) : (
+                <button type="button" onClick={() => set(p.id, 1)} className="inline-flex min-h-9 items-center gap-1 rounded-btn border border-gold/60 px-3 text-sm font-semibold text-espresso active:scale-95">
+                  <Plus className="size-4" />{L('أضف', 'Add')}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

@@ -15,6 +15,57 @@
   --danger: #b42318;
   --info: #2563a8;
   color-scheme: light;
+  /* نفس الألوان كأرقام RGB علشان Tailwind يقدر يعمل شفافية */
+  --c-espresso: 52 26 14;
+  --c-gold: 204 149 66;
+  --c-bark: 94 56 19;
+  --c-cream: 250 246 240;
+  --c-sand: 239 228 212;
+  --c-gold-soft: 227 184 113;
+  --c-ink: 92 70 58;
+  --c-white: 255 255 255;
+  --c-success: 31 122 77;
+  --c-warning: 183 121 31;
+  --c-danger: 180 35 24;
+  --c-info: 37 99 168;
+}
+
+/* الوضع الليلي: خلفية بني غامق دافي، والكلام فاتح، والدهبي زي ما هو */
+html.dark {
+  color-scheme: dark;
+  --espresso: #f3e7d6;
+  --cream: #120b08;
+  --sand: #2c1e15;
+  --ink-70: #cdb8a6;
+  --c-espresso: 243 231 214;
+  --c-gold: 216 164 86;
+  --c-bark: 222 190 150;
+  --c-cream: 18 11 8;
+  --c-sand: 44 30 21;
+  --c-gold-soft: 233 196 133;
+  --c-ink: 205 184 166;
+  --c-white: 30 20 14;
+  --c-success: 74 190 128;
+  --c-warning: 230 168 70;
+  --c-danger: 240 98 84;
+  --c-info: 110 160 230;
+}
+
+/* أجزاء غامقة بطبيعتها (الهيرو، الشاشة): بتفضل بنفس شكلها في الوضعين */
+html.dark .keep-light-tokens,
+html.dark [class*='bg-espresso'],
+html.dark [class*='bg-night'] {
+  --c-espresso: 52 26 14;
+  --c-cream: 250 246 240;
+  --c-sand: 239 228 212;
+  --c-ink: 92 70 58;
+  --c-white: 255 255 255;
+  --c-bark: 94 56 19;
+}
+
+html.theme-anim,
+html.theme-anim * {
+  transition: background-color .35s ease, color .35s ease, border-color .35s ease !important;
 }
 
 @layer base {
@@ -153,3 +204,14 @@
 @keyframes tito-focus-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(204, 149, 66, 0) } 30%, 70% { box-shadow: 0 0 0 4px rgba(204, 149, 66, 0.85) } }
 .tito-focus { animation: tito-focus-glow 1.6s ease-in-out 2; }
 @media (prefers-reduced-motion: reduce) { .tito-focus { animation: none; box-shadow: 0 0 0 3px rgba(204, 149, 66, 0.9) } }
+
+@keyframes spin-in { from { transform: rotate(-90deg) scale(.6); opacity: 0 } to { transform: none; opacity: 1 } }
+
+/* حركة ناعمة للنوافذ والصفحات */
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes pop { from { transform: scale(.96); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes page-in { from { opacity: 0 } to { opacity: 1 } }
+.animate-sheet { animation: sheet-up .38s cubic-bezier(.2,.8,.2,1) both; }
+.animate-pop { animation: pop .25s cubic-bezier(.2,.8,.2,1) both; }
+.animate-page { animation: page-in .35s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { .animate-sheet, .animate-pop, .animate-page { animation: none !important; } }

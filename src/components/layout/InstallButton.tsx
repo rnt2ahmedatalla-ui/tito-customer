@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { detectPlatform, useInstall, type InstallPlatform } from '@/lib/install';
 import { cn } from '@/lib/cn';
 
-const STEPS: Record<InstallPlatform, { ar: string[]; en: string[] }> = {
+export const INSTALL_STEPS: Record<InstallPlatform, { ar: string[]; en: string[] }> = {
   'ios-safari': {
     ar: ['دوس على زرار المشاركة (المربع اللي فيه سهم لفوق) تحت في سفاري', 'انزل واختار "إضافة إلى الشاشة الرئيسية"', 'دوس "إضافة"'],
     en: ['Tap the Share button (square with an arrow) at the bottom of Safari', 'Scroll and choose "Add to Home Screen"', 'Tap "Add"'],
@@ -54,7 +54,7 @@ export function InstallButton({ className, dark = false }: { className?: string;
   if (installed) return null;
 
   const label = isAr ? 'نزّل كتطبيق' : 'Get the app';
-  const steps = STEPS[detectPlatform()][isAr ? 'ar' : 'en'];
+  const steps = INSTALL_STEPS[detectPlatform()][isAr ? 'ar' : 'en'];
 
   const onClick = async () => {
     // لو المتصفح بيدعم التثبيت بضغطة، نثبّت على طول. غير كده نفتح الشرح.

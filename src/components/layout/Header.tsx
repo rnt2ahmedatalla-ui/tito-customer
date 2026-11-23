@@ -1,3 +1,4 @@
+import { ThemeToggle } from './ThemeToggle';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -47,7 +48,7 @@ export function Header({ dark = false }: HeaderProps) {
       className={cn(
         'sticky top-0 z-40 transition-colors duration-brand ease-brand',
         dark
-          ? 'border-b border-white/5 bg-espresso/80 text-cream backdrop-blur-md'
+          ? 'border-b border-[#fff]/5 bg-espresso/80 text-cream backdrop-blur-md'
           : 'border-b border-default bg-cream/90 backdrop-blur-md',
       )}
     >
@@ -99,6 +100,7 @@ export function Header({ dark = false }: HeaderProps) {
 
         <div className="flex shrink-0 items-center gap-2">
           <InstallButton dark={dark} />
+          <ThemeToggle dark={dark} />
           <CustomerNotificationsBell dark={dark} />
           <NotificationDetailHost />
           <button

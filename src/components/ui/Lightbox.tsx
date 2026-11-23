@@ -54,7 +54,7 @@ export function Lightbox({
         go(x < s ? 1 : -1);
       }}
     >
-      <div className="flex items-center justify-between p-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] text-white" dir="ltr">
+      <div className="flex items-center justify-between p-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] text-[#fff]" dir="ltr">
         <span className="font-latin text-sm opacity-80">{index + 1} / {n}</span>
         <button type="button" aria-label="close" onClick={onClose} className="flex size-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20">
           <X className="size-6" />
@@ -64,16 +64,16 @@ export function Lightbox({
         <img src={urls[index]} alt={cap ?? ''} className="max-h-full max-w-full rounded-md object-contain" onClick={(e) => e.stopPropagation()} />
         {n > 1 ? (
           <>
-            <button type="button" aria-label="previous" onClick={(e) => { e.stopPropagation(); go(-1); }} className="absolute left-2 hidden size-12 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 sm:flex">
+            <button type="button" aria-label="previous" onClick={(e) => { e.stopPropagation(); go(-1); }} className="absolute left-2 hidden size-12 items-center justify-center rounded-full bg-white/15 text-[#fff] hover:bg-white/25 sm:flex">
               <ChevronLeft className="size-7" />
             </button>
-            <button type="button" aria-label="next" onClick={(e) => { e.stopPropagation(); go(1); }} className="absolute right-2 hidden size-12 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 sm:flex">
+            <button type="button" aria-label="next" onClick={(e) => { e.stopPropagation(); go(1); }} className="absolute right-2 hidden size-12 items-center justify-center rounded-full bg-white/15 text-[#fff] hover:bg-white/25 sm:flex">
               <ChevronRight className="size-7" />
             </button>
           </>
         ) : null}
       </div>
-      <p className="min-h-12 p-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] text-center text-sm text-white/90">{cap}</p>
+      <p className="min-h-12 p-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] text-center text-sm text-[#fff]/90">{cap}</p>
     </div>,
     document.body,
   );

@@ -15,8 +15,8 @@ export function Sheet({ open, title, onClose, children }: { open: boolean; title
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-espresso/50" onClick={onClose} aria-hidden />
-      <div className="relative flex max-h-[min(85dvh,40rem)] w-full max-w-md flex-col overflow-hidden rounded-card bg-white shadow-warm-raised">
+      <div className="absolute inset-0 animate-fade bg-espresso/50" onClick={onClose} aria-hidden />
+      <div className="relative flex animate-pop max-h-[min(85dvh,40rem)] w-full max-w-md flex-col overflow-hidden rounded-card bg-white shadow-warm-raised">
         <div className="flex items-center justify-between gap-2 border-b border-default px-4 py-3">
           <h2 className="min-w-0 truncate text-lg font-bold text-espresso">{title}</h2>
           <button type="button" aria-label="close" onClick={onClose} className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink hover:bg-sand"><X className="size-5" /></button>
