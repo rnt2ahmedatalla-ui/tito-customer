@@ -72,8 +72,10 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
     if (user) void resyncPush(ar ? 'ar' : 'en');
   }, [user, ar]);
 
-  const start = async (onlyPolicy: boolean) => {
-    if (onlyPolicy) {
+  const start = async (onlyPolicy: boolean | 'notify') => {
+    if (onlyPolicy === 'notify') {
+      setSteps(['notify']);
+    } else if (onlyPolicy) {
       setSteps(['policy']);
     } else {
       const list: Step[] = [];
@@ -93,6 +95,32 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seen, quiet, ready]);
+
+  // اللي منزّل التطبيق ومفعّلش الإشعارات: نفكّره كل مرة يفتح التطبيق (مرة في كل فتحة)
+  useEffect(() => {
+    if (!seen || quiet || !isStandalone() || !pushSupported()) return;
+    if (Notification.permission === 'denied') return;
+    try {
+      if (sessionStorage.getItem('tito.notify.asked')) return;
+    } catch {
+      /* ignore */
+    }
+    let alive = true;
+    const id = window.setTimeout(async () => {
+      if (!alive || (await pushIsOn())) return;
+      try {
+        sessionStorage.setItem('tito.notify.asked', '1');
+      } catch {
+        /* ignore */
+      }
+      void start('notify');
+    }, 1500);
+    return () => {
+      alive = false;
+      window.clearTimeout(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seen, quiet]);
 
   useEffect(() => {
     const on = () => void start(true);

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/features/profile/useAuth';
 import {
-  ArrowLeft, ArrowRight, Baby, Brush, Clock, Crown, Droplets, Flame, Gift, Images, Package, Palette, Scissors, Share2,
+  ArrowLeft, ArrowRight, Baby, CalendarCheck, Brush, Clock, Crown, Droplets, Flame, Gift, Images, Package, Palette, Scissors, Share2,
   Sparkles, Spline, Star, Users, Waves, Wind, BookOpen,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -190,6 +190,7 @@ export function OffersSection() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [done, setDone] = useState<Offer | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const q = useQuery({
     queryKey: ['public-packages'],
     enabled: flags.data?.packages === true,
@@ -225,12 +226,8 @@ export function OffersSection() {
     ask.mutate(p);
   };
 
-  return (
-    <section className="mx-auto max-w-5xl px-5 py-10 sm:py-14">
-      <div>
-        <SectionHead eyebrow="Offers" title={L('العروض والاشتراكات', 'Offers & subscriptions')} />
-        <p className="-mt-3 text-sm text-ink">{L('ادفع مرة واحدة ووفّر — كل حجز للخدمة بيتخصم من باقتك لوحده.', 'Pay once and save — each visit is deducted automatically.')}</p>
-        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+  const fullList = (
+        <ul className="grid gap-3">
           {list.map((p, i) => {
             const s = svc(p.service_id);
             const full = s ? Number(s.price_egp) * p.sessions : 0;
@@ -264,7 +261,42 @@ export function OffersSection() {
             );
           })}
         </ul>
+  );
+
+  return (
+    <section className="mx-auto max-w-5xl px-5 py-10 sm:py-14">
+      <div>
+        <SectionHead eyebrow="Offers" title={L('العروض والاشتراكات', 'Offers & subscriptions')} />
+        <div className="rounded-card border border-default bg-white p-4 shadow-warm sm:p-5">
+          <p className="mb-3 text-xs text-ink">{L('ادفع مرة واحدة ووفّر — كل زيارة بتتخصم من باقتك لوحدها.', 'Pay once and save — each visit is deducted automatically.')}</p>
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {list.slice(0, 6).map((p, i) => {
+              const s = svc(p.service_id);
+              const full = s ? Number(s.price_egp) * p.sessions : 0;
+              const price = Math.round(Number(p.price_egp));
+              const save = full > price ? full - price : 0;
+              return (
+                <li key={p.id} className="animate-rise" style={{ animationDelay: `${Math.min(i, 9) * 40}ms` }}>
+                  <button type="button" onClick={() => setShowAll(true)} className={cn(TILE, 'relative w-full')}>
+                    {save > 0 ? <span className="absolute -top-1.5 start-1 rounded-full bg-success px-1.5 font-latin text-[9px] font-bold text-[#fff]">-{Math.round((save / full) * 100)}%</span> : null}
+                    <span className="flex size-10 items-center justify-center rounded-xl bg-espresso text-gold shadow-warm transition-transform duration-300 group-hover:scale-110">
+                      {p.kind === 'monthly' ? <CalendarCheck className="size-5" /> : <Gift className="size-5" />}
+                    </span>
+                    <span className="line-clamp-2 text-[12px] font-semibold leading-tight text-espresso">{ar ? p.name_ar : p.name_en || p.name_ar}</span>
+                    <span className="font-latin text-[11px] font-semibold text-bark">{price} {ar ? 'ج' : 'EGP'}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <button type="button" onClick={() => setShowAll(true)} className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-btn border border-gold px-4 font-semibold text-espresso hover:bg-gold/10">
+            {L('عرض الكل والاشتراك', 'See all & subscribe')} {ar ? <ArrowLeft className="size-4" aria-hidden /> : <ArrowRight className="size-4" aria-hidden />}
+          </button>
+        </div>
       </div>
+      <Sheet open={showAll} onClose={() => setShowAll(false)} title={L('العروض والاشتراكات', 'Offers & subscriptions')}>
+        {fullList}
+      </Sheet>
       <Sheet open={!!done} onClose={() => setDone(null)} title={L('طلبك وصل 🎉', 'Request sent 🎉')}>
         {done ? (
           <div className="space-y-3 text-espresso">

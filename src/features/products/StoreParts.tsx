@@ -19,15 +19,16 @@ export function CatIcon({ icon, className }: { icon: string | null | undefined; 
 }
 
 /** كارت منتج (شبكة المتجر والشريط الأفقي في الرئيسية) */
-export function ProductCard({ p, bookingId, className }: { p: StoreProduct; bookingId?: string | null; className?: string }) {
+export function ProductCard({ p, bookingId, className, style }: { p: StoreProduct; bookingId?: string | null; className?: string; style?: React.CSSProperties }) {
   const { ar, L } = useLang();
   const src = productImg(p.thumb_path || p.image_path);
   return (
     <Link
       to={`/products/${p.id}${bookingId ? `?booking=${bookingId}` : ''}`}
-      className={cn('group flex flex-col overflow-hidden rounded-card border border-default bg-white shadow-warm transition-transform active:scale-[0.98]', className)}
+      style={style}
+      className={cn('group flex flex-col overflow-hidden rounded-card border border-default bg-white shadow-warm transition-all duration-300 ease-brand hover:-translate-y-0.5 hover:border-gold/50 active:scale-[0.98]', className)}
     >
-      <div className="relative aspect-square overflow-hidden bg-sand">
+      <div className="relative aspect-[4/5] overflow-hidden bg-sand">
         {src ? (
           <img src={src} alt="" loading="lazy" decoding="async" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
         ) : (
@@ -41,7 +42,10 @@ export function ProductCard({ p, bookingId, className }: { p: StoreProduct; book
       </div>
       <div className="flex flex-1 flex-col p-2.5 sm:p-3">
         <p className="line-clamp-2 text-sm font-semibold leading-snug text-espresso">{pName(p, ar)}</p>
-        <p className="mt-auto pt-1.5 font-latin text-base font-bold text-bark">{formatEGP(p.price_egp)}</p>
+        <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+          <p className="font-latin text-base font-bold text-bark">{formatEGP(p.price_egp)}</p>
+          <span className="flex size-8 items-center justify-center rounded-full bg-gold text-espresso transition-transform duration-300 group-hover:scale-110" aria-hidden>+</span>
+        </div>
       </div>
     </Link>
   );

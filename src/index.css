@@ -230,6 +230,14 @@ html.dark [class*='bg-gold/90'] {
 html.dark .bg-gold { background-color: rgb(205 160 92); }
 
 /* الخلفيات الشفافة (ورا النوافذ) في الليلي: أغمق مش أفتح */
-html.dark [class*='bg-espresso/'] { --c-espresso: 8 5 3; }
-html.dark [class*='bg-espresso/'] > * { --c-espresso: 243 231 214; }
-html.dark .bg-espresso\/95 { --c-espresso: 52 26 14; }
+html.dark [class*='bg-espresso/'][class*='inset-0'] { --c-espresso: 8 5 3; }
+html.dark [class*='bg-espresso/'][class*='inset-0'] > * { --c-espresso: 243 231 214; }
+/* شرائط وألواح غامقة شبه شفافة (زي الهيدر فوق الصورة): بتفضل بنفس ألوانها */
+html.dark :is(.bg-espresso\/60, .bg-espresso\/70, .bg-espresso\/75, .bg-espresso\/80, .bg-espresso\/85, .bg-espresso\/90, .bg-espresso\/95):not([class*='inset-0']) {
+  --c-espresso: 52 26 14;
+  --c-cream: 250 246 240;
+  --c-sand: 239 228 212;
+  --c-ink: 92 70 58;
+  --c-white: 255 255 255;
+  --c-bark: 94 56 19;
+}
