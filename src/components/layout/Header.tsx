@@ -48,8 +48,8 @@ export function Header({ dark = false }: HeaderProps) {
       className={cn(
         'sticky top-0 z-40 transition-colors duration-brand ease-brand',
         dark
-          ? 'border-b border-[#fff]/5 bg-espresso/95 text-cream'
-          : 'border-b border-default bg-cream/[0.97]',
+          ? 'border-b border-[#fff]/5 bg-espresso text-cream'
+          : 'border-b border-default bg-cream',
       )}
     >
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">

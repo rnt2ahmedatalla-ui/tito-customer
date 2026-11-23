@@ -26,25 +26,25 @@ export function ProductCard({ p, bookingId, className, style }: { p: StoreProduc
     <Link
       to={`/products/${p.id}${bookingId ? `?booking=${bookingId}` : ''}`}
       style={style}
-      className={cn('group flex flex-col overflow-hidden rounded-card border border-default bg-white shadow-warm transition-all duration-300 ease-brand hover:-translate-y-0.5 hover:border-gold/50 active:scale-[0.98]', className)}
+      className={cn('group flex flex-col overflow-hidden rounded-card border border-default bg-white p-1.5 shadow-warm transition-all duration-300 ease-brand hover:-translate-y-0.5 hover:border-gold/50 active:scale-[0.97]', className)}
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-sand">
+      <div className="relative aspect-square overflow-hidden rounded-[0.9rem] bg-[#f7f2ea]">
         {src ? (
-          <img src={src} alt="" loading="lazy" decoding="async" className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+          <img src={src} alt="" loading="lazy" decoding="async" className="size-full object-contain p-2 mix-blend-multiply transition-transform duration-500 group-hover:scale-[1.06]" />
         ) : (
-          <Package className="absolute inset-0 m-auto size-10 text-gold/50" aria-hidden />
+          <Package className="absolute inset-0 m-auto size-8 text-gold/50" aria-hidden />
         )}
         {!p.in_stock ? (
-          <span className="absolute inset-x-0 bottom-0 bg-espresso/80 py-1 text-center text-xs font-semibold text-cream">{L('خلص — اطلبه', 'Sold out — request it')}</span>
+          <span className="absolute inset-x-0 bottom-0 bg-espresso/85 py-0.5 text-center text-[10px] font-semibold text-cream">{L('خلص — اطلبه', 'Sold out')}</span>
         ) : p.is_featured ? (
-          <span className="absolute start-2 top-2 rounded-pill bg-gold px-2 py-0.5 text-[11px] font-bold text-espresso">{L('مميّز', 'Top pick')}</span>
+          <span className="absolute start-1.5 top-1.5 rounded-pill bg-gold px-1.5 py-px text-[10px] font-bold text-espresso">{L('مميّز', 'Top')}</span>
         ) : null}
       </div>
-      <div className="flex flex-1 flex-col p-2.5 sm:p-3">
-        <p className="line-clamp-2 text-sm font-semibold leading-snug text-espresso">{pName(p, ar)}</p>
-        <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-          <p className="font-latin text-base font-bold text-bark">{formatEGP(p.price_egp)}</p>
-          <span className="flex size-8 items-center justify-center rounded-full bg-gold text-espresso transition-transform duration-300 group-hover:scale-110" aria-hidden>+</span>
+      <div className="flex flex-1 flex-col px-1 pb-0.5 pt-1.5">
+        <p className="line-clamp-2 text-[12.5px] font-semibold leading-tight text-espresso">{pName(p, ar)}</p>
+        <div className="mt-auto flex items-center justify-between gap-1 pt-1.5">
+          <p className="font-latin text-[13px] font-bold text-bark">{Math.round(Number(p.price_egp))} <span className="text-[10px] font-semibold">{ar ? 'ج' : 'EGP'}</span></p>
+          <span className="flex size-6 items-center justify-center rounded-full bg-gold text-sm font-bold leading-none text-espresso transition-transform duration-300 group-hover:scale-110" aria-hidden>+</span>
         </div>
       </div>
     </Link>

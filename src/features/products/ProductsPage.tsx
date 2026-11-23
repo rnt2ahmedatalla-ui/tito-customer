@@ -29,16 +29,16 @@ export default function ProductsPage() {
 
   return (
     <PageShell>
-      <header className="animate-rise relative mb-5 overflow-hidden rounded-card bg-espresso p-5 text-cream shadow-warm sm:p-7">
+      <header className="animate-rise relative mb-4 overflow-hidden rounded-card bg-espresso p-4 text-cream shadow-warm sm:p-6">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(204,149,66,0.28),transparent_60%)]" />
         <div className="relative flex items-center gap-4">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold ring-1 ring-gold/30"><ShoppingBag className="size-6" /></span>
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gold/15 text-gold ring-1 ring-gold/30"><ShoppingBag className="size-5" /></span>
           <div className="min-w-0">
             <p className="font-latin text-[11px] font-medium uppercase tracking-[0.25em] text-gold">Shop</p>
-            <h1 className="text-2xl font-bold sm:text-3xl">{L('منتجاتنا', 'Our products')}</h1>
+            <h1 className="text-xl font-bold sm:text-3xl">{L('منتجاتنا', 'Our products')}</h1>
           </div>
         </div>
-        <p className="relative mt-3 text-sm text-cream/75">{L('احجز المنتج وخده مع حلاقتك — ادفع كاش وإنت بتستلم أو أونلاين.', 'Reserve a product and pick it up with your cut — pay cash on pickup or online.')}</p>
+        <p className="relative mt-2.5 text-[13px] leading-relaxed text-cream/75">{L('احجز المنتج وخده مع حلاقتك — ادفع كاش وإنت بتستلم أو أونلاين.', 'Reserve a product and pick it up with your cut — pay cash on pickup or online.')}</p>
       </header>
 
       {forBooking ? (
@@ -53,13 +53,13 @@ export default function ProductsPage() {
       {usedCats.length > 0 ? <div className="mb-4"><CategoryTabs cats={usedCats} value={cat} onChange={setCat} /></div> : null}
 
       {products.isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4]" />)}
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-card" />)}
         </div>
       ) : list.length === 0 ? (
         <p className="rounded-card border border-dashed border-default bg-white/60 p-8 text-center text-ink">{L('مفيش منتجات هنا دلوقتي', 'No products here yet')}</p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5">
           {list.map((p, i) => <ProductCard key={p.id} p={p} bookingId={bookingId} className="animate-rise" style={{ animationDelay: `${Math.min(i, 10) * 45}ms` }} />)}
         </div>
       )}
