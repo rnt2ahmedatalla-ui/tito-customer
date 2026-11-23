@@ -53,7 +53,7 @@ export function InstallButton({ className, dark = false }: { className?: string;
 
   if (installed) return null;
 
-  const label = isAr ? 'ثبّت التطبيق' : 'Install app';
+  const label = isAr ? 'نزّل كتطبيق' : 'Get the app';
   const steps = STEPS[detectPlatform()][isAr ? 'ar' : 'en'];
 
   const onClick = async () => {
@@ -79,7 +79,7 @@ export function InstallButton({ className, dark = false }: { className?: string;
         )}
       >
         <Download className="size-4" aria-hidden />
-        <span className="hidden lg:inline">{label}</span>
+        <span className="whitespace-nowrap text-xs sm:text-sm">{label}</span>
       </button>
 
       <Sheet open={open} onClose={() => setOpen(false)} title={label}>

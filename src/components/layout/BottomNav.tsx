@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Home, Images, User, Scissors, MessageCircle } from 'lucide-react';
+import { Calendar, Home, ShoppingBag, User, Scissors, MessageCircle } from 'lucide-react';
+import { HowToBookFab } from '@/features/home/HowToBook';
 import { cn } from '@/lib/cn';
 import { supabase } from '@/lib/supabase';
 import { buildWhatsAppUrl } from '@/lib/urls';
@@ -11,16 +12,16 @@ const items = [
   { to: '/', icon: Home, labelKey: 'nav.home', primary: false },
   { to: '/bookings', icon: Calendar, labelKey: 'nav.bookings', primary: false },
   { to: '/book', icon: Scissors, labelKey: 'nav.book', primary: true },
-  { to: '/gallery', icon: Images, labelKey: 'nav.gallery', primary: false },
+  { to: '/products', icon: ShoppingBag, labelKey: 'nav.products', primary: false },
   { to: '/profile', icon: User, labelKey: 'nav.profile', primary: false },
 ] as const;
 
 export function BottomNav() {
   const { t } = useTranslation();
   const location = useLocation();
-  // «شغلنا» بيظهر بس لو صاحب المحل مشغّله من لوحة التحكم
-  const showGallery = useFeatureFlags().data?.gallery === true;
-  const visible = items.filter((i) => i.to !== '/gallery' || showGallery);
+  // «منتجاتنا» بيظهر بس لو المتجر شغّال من لوحة التحكم (و«شغلنا» موجود في الرئيسية)
+  const showProducts = useFeatureFlags().data?.products !== false;
+  const visible = items.filter((i) => i.to !== '/products' || showProducts);
 
   const settings = useQuery({
     queryKey: ['settings', 'nav-whatsapp'],
@@ -54,6 +55,8 @@ export function BottomNav() {
           <MessageCircle className="size-6" aria-hidden />
         </a>
       ) : null}
+
+      <HowToBookFab hidden={onBookingFlow} />
 
       <nav
         className="fixed inset-x-0 bottom-0 z-40 rounded-t-[1.25rem] border-t border-default bg-cream/95 shadow-[0_-6px_20px_rgba(52,26,14,0.08)] backdrop-blur-sm sm:hidden"
