@@ -290,21 +290,11 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
   );
 }
 
-/** «فعّل التذكيرات» كنافذة صغيرة عائمة: بتطلع بعد أول حجز للعميل لو لسه مفعّلهاش */
+/** «فعّل التذكيرات» كنافذة صغيرة عائمة: بتطلع لأي عميل مسجّل لسه مفعّلهاش (في المتصفح أو التطبيق) */
 export function PushFloat() {
   const { user } = useAuth();
   const seen = useSeen();
-  const has = useQuery({
-    queryKey: ['has-booking', user?.id],
-    enabled: !!user && seen,
-    staleTime: 5 * 60_000,
-    queryFn: async () => {
-      const { count, error } = await supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('user_id', user!.id);
-      if (error) return false;
-      return (count ?? 0) > 0;
-    },
-  });
-  if (!user || !seen || !has.data) return null;
+  if (!user || !seen) return null;
   return (
     <div className="pointer-events-none fixed inset-x-3 z-30 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] empty:hidden sm:inset-x-auto sm:bottom-6 sm:start-6 sm:w-[22rem] [&>*]:pointer-events-auto">
       <PushOptIn />
