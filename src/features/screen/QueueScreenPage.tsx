@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
-import { CalendarCheck, Clock, Hourglass, ListPlus, Maximize, Minimize, Moon, Scissors, Sparkles, Star, Users } from 'lucide-react';
+import { CalendarCheck, Clock, Hourglass, ListPlus, Maximize, Minimize, Moon, Scissors, Sparkles, Star } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatCairoTime } from '@/lib/time';
 import { galleryUrl } from '@/features/gallery/useGallery';
@@ -648,7 +648,11 @@ function Ticker({ board, layout, now, ar }: { board: Board; layout: ScreenLayout
   return (
     <footer className="relative flex shrink-0 items-center overflow-hidden border-t border-gold/20 bg-black/30" style={{ height: 'calc(var(--u)*6.5)' }}>
       <span style={fs(2.4)} className="z-10 flex h-full shrink-0 items-center gap-[calc(var(--u)*0.8)] bg-gold px-[calc(var(--u)*2.4)] font-bold text-espresso">
-        <Users className="size-[1.1em]" aria-hidden />
+        <img src={assetUrl('brand/tito-icon-gold-on-dark-512.png')} alt="" className="h-[1.3em] w-[1.3em] rounded-full object-contain" />
+        <span className="flex items-center gap-[0.3em] text-[0.62em] font-bold uppercase tracking-wide">
+          <span className="relative flex size-[0.55em]"><span className="absolute inset-0 animate-ping rounded-full bg-red-600/70" /><span className="relative size-full rounded-full bg-red-600" /></span>
+          {ar ? 'مباشر' : 'LIVE'}
+        </span>
       </span>
       <div className="relative min-w-0 flex-1 overflow-hidden">
         <div

@@ -239,3 +239,11 @@ html.dark :is(.bg-espresso\/60, .bg-espresso\/70, .bg-espresso\/75, .bg-espresso
   --c-white: 255 255 255;
   --c-bark: 94 56 19;
 }
+
+/* أيقونات بحركة ناعمة: transform/opacity بس عشان مفيش أي lag */
+.nav-ico { transition: transform .22s cubic-bezier(.2,.8,.2,1); will-change: auto; }
+a:hover > .nav-ico, a:hover .nav-ico, button:hover > .nav-ico { transform: translateY(-1px) scale(1.08); }
+a:active .nav-ico, button:active .nav-ico { transform: scale(.92); transition-duration: .08s; }
+[aria-current="page"] .nav-ico, .active .nav-ico { animation: nav-ico-pop .38s cubic-bezier(.2,.8,.2,1) 1 both; }
+@keyframes nav-ico-pop { 0% { transform: scale(.82); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .nav-ico { transition: none !important; animation: none !important; } }

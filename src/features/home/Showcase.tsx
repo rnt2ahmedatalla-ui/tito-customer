@@ -1,3 +1,4 @@
+import { ServiceIcon as BaseServiceIcon } from '@/components/ServiceIcon';
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -34,32 +35,9 @@ function useAr() {
 }
 
 /** موس الحلاقة (مش موجود في مكتبة الأيقونات) */
-function RazorIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
-      <path d="M4 15.5 14.5 5a2.1 2.1 0 0 1 3 3L7 18.5Z" />
-      <path d="m7 18.5 1.8 1.8a1.5 1.5 0 0 0 2.1 0l1.6-1.6" />
-      <path d="M15.5 9 19 12.5" />
-    </svg>
-  );
-}
-
-/** أيقونة بسيطة تناسب اسم الخدمة (بالعربي أو الإنجليزي) */
-export function ServiceIcon({ name, className }: { name: string; className?: string }) {
-  const n = name.toLowerCase();
-  const has = (...ws: string[]) => ws.some((w) => n.includes(w));
-  if (has('متكامل', 'تجربة', 'vip', 'full', 'experience', 'package')) return <Crown className={className} aria-hidden />;
-  if (has('طفل', 'أطفال', 'اطفال', 'kid', 'child', 'boy')) return <Baby className={className} aria-hidden />;
-  if (has('لحية', 'لحيه', 'دقن', 'ذقن', 'beard', 'shave')) return <RazorIcon className={className} />;
-  if (has('شمع', 'wax')) return <Flame className={className} aria-hidden />;
-  if (has('خيط', 'thread')) return <Spline className={className} aria-hidden />;
-  if (has('صبغ', 'لون', 'dye', 'color', 'colour')) return <Palette className={className} aria-hidden />;
-  if (has('كيرل', 'curl', 'perm')) return <Waves className={className} aria-hidden />;
-  if (has('فرد', 'بروتين', 'كيراتين', 'straight', 'protein', 'keratin')) return <Brush className={className} aria-hidden />;
-  if (has('سشوار', 'استشوار', 'blow', 'dry')) return <Wind className={className} aria-hidden />;
-  if (has('ماسك', 'mask', 'غسيل', 'wash')) return <Droplets className={className} aria-hidden />;
-  if (has('بشرة', 'تنظيف', 'skin', 'facial', 'clean')) return <Sparkles className={className} aria-hidden />;
-  return <Scissors className={className} aria-hidden />;
+/** أيقونة الخدمة: اللي اختارها صاحب المحل، أو بتتخمّن من الاسم */
+export function ServiceIcon({ name, icon, className }: { name: string; icon?: string | null; className?: string }) {
+  return <BaseServiceIcon name={name} icon={icon} className={className} />;
 }
 
 function SectionHead({ eyebrow, title, action }: { eyebrow: string; title: string; action?: ReactNode }) {
@@ -104,7 +82,7 @@ export function ServicesProductsSection() {
             {mains.map((s, i) => (
               <li key={s.id} className="animate-rise" style={{ animationDelay: `${Math.min(i, 9) * 40}ms` }}>
                 <Link to={`/book?service=${s.id}`} className={TILE}>
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-espresso text-gold shadow-warm transition-transform duration-300 group-hover:scale-110"><ServiceIcon name={`${s.name_ar} ${s.name_en ?? ''}`} className="size-5" /></span>
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-espresso text-gold shadow-warm transition-transform duration-300 group-hover:scale-110"><ServiceIcon name={`${s.name_ar} ${s.name_en ?? ''}`} icon={(s as { icon?: string | null }).icon} className="size-5" /></span>
                   <span className="line-clamp-2 text-[12px] font-semibold leading-tight text-espresso">{nm(s)}</span>
                 </Link>
               </li>
@@ -116,7 +94,7 @@ export function ServicesProductsSection() {
               <ul className="flex flex-wrap gap-1.5">
                 {extras.map((s) => (
                   <li key={s.id} className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 text-xs font-medium text-espresso">
-                    <ServiceIcon name={`${s.name_ar} ${s.name_en ?? ''}`} className="size-3.5 text-bark" />
+                    <ServiceIcon name={`${s.name_ar} ${s.name_en ?? ''}`} icon={(s as { icon?: string | null }).icon} className="size-3.5 text-bark" />
                     {nm(s)}
                   </li>
                 ))}

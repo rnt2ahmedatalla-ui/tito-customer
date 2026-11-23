@@ -542,7 +542,7 @@ export default function BookingPage() {
                     >
                       {on ? <span className="absolute end-2 top-2 flex size-5 animate-pop items-center justify-center rounded-full bg-gold text-espresso"><Check className="size-3" strokeWidth={3} /></span> : null}
                       <span className={cn('flex size-10 items-center justify-center rounded-xl transition-colors duration-300', on ? 'bg-gold text-espresso' : 'bg-espresso text-gold')}>
-                        <ServiceIcon name={`${service.name_ar} ${service.name_en ?? ''}`} className="size-5" />
+                        <ServiceIcon name={`${service.name_ar} ${service.name_en ?? ''}`} icon={(service as { icon?: string | null }).icon} className="size-5" />
                       </span>
                       <span className="line-clamp-2 text-[13px] font-semibold leading-tight text-espresso">{i18n.language === 'ar' ? service.name_ar : service.name_en || service.name_ar}</span>
                       <span className="flex items-center gap-1.5 font-latin text-[11px] text-ink">

@@ -99,7 +99,7 @@ export function BottomNav() {
                     item.primary ? 'bg-gold px-4 text-espresso shadow-warm' : active ? 'bg-gold/20 px-3 text-bark' : 'px-3 text-ink',
                   )}
                 >
-                  <Icon className="size-5" aria-hidden />
+                  <Icon className="nav-ico size-5" aria-hidden />
                 </span>
                 <span
                   className={cn(
