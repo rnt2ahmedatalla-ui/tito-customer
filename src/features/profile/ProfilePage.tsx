@@ -20,6 +20,7 @@ import { useSettings } from '@/features/home/useHomeData';
 import { BellRing, MessageCircle, Palette, UserRound, type LucideIcon } from 'lucide-react';
 import { NotificationsCard } from './NotificationsCard';
 import { ReferralCard } from '@/features/referral/Referral';
+import { RewardsCard } from '@/features/loyalty/Rewards';
 import { ThemePicker } from '@/components/layout/ThemeToggle';
 import { cn } from '@/lib/cn';
 
@@ -153,6 +154,7 @@ export default function ProfilePage() {
           <NotificationsCard />
         </Section>
 
+        <RewardsCard />
         <ReferralCard />
 
         <MyPackagesCard />

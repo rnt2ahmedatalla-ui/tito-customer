@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useQueries } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { BellRing, Check, ChevronLeft, ChevronRight, Plus, Scissors, Sparkles, Star, type LucideIcon } from 'lucide-react';
+import { BellRing, Check, ChevronLeft, ChevronRight, Crown, Plus, Scissors, Sparkles, Star, type LucideIcon } from 'lucide-react';
 import { ServiceIcon } from '@/features/home/Showcase';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
@@ -157,7 +157,11 @@ export default function BookingPage() {
   const booking = useBooking(bookingId);
 
   const catalog = services.data ?? [];
+  type SpecialFields = { is_special?: boolean; special_group?: string | null; location?: string | null; prep_service_id?: string | null };
+  const sp = (x: unknown) => x as SpecialFields;
   const mainServices = catalog.filter((service) => !service.is_extra);
+  const regularServices = mainServices.filter((service) => !sp(service).is_special);
+  const specialGroups = Array.from(new Set(mainServices.filter((x) => sp(x).is_special).map((x) => sp(x).special_group || 'باقات خاصة')));
   const extraServices = catalog.filter((service) => service.is_extra);
   const extraIds = (params.get('extras') ?? '').split(',').filter(Boolean);
   const selectedExtras = extraServices.filter((service) => extraIds.includes(service.id));
@@ -173,6 +177,36 @@ export default function BookingPage() {
     mainServices.find((s) => s.id === serviceId) ??
     (booking.data?.service && !booking.data.service.is_extra ? booking.data.service : null) ??
     null;
+  const needsAddress = !!selectedService && ['home', 'hall'].includes(String(sp(selectedService).location ?? 'shop'));
+  const prepService = selectedService && sp(selectedService).prep_service_id ? mainServices.find((x) => x.id === sp(selectedService).prep_service_id) ?? null : null;
+  const renderServiceCard = (service: (typeof mainServices)[number], i: number) => {
+                  const on = serviceId === service.id;
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => updateParams({ service: service.id })}
+                      style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
+                      className={cn(
+                        'animate-rise relative flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-card border p-2.5 text-center transition-all duration-300 ease-brand active:scale-[0.97]',
+                        on ? 'border-gold bg-gold/10 shadow-warm ring-1 ring-gold' : 'border-default bg-white hover:border-gold/50',
+                      )}
+                    >
+                      {on ? <span className="absolute end-2 top-2 flex size-5 animate-pop items-center justify-center rounded-full bg-gold text-espresso"><Check className="size-3" strokeWidth={3} /></span> : null}
+                      <span className={cn('flex size-10 items-center justify-center rounded-xl transition-colors duration-300', on ? 'bg-gold text-espresso' : 'bg-espresso text-gold')}>
+                        <ServiceIcon name={`${service.name_ar} ${service.name_en ?? ''}`} icon={(service as { icon?: string | null }).icon} className="size-5" />
+                      </span>
+                      <span className="line-clamp-2 text-[13px] font-semibold leading-tight text-espresso">{i18n.language === 'ar' ? service.name_ar : service.name_en || service.name_ar}</span>
+                      {sp(service).location && sp(service).location !== 'shop' ? (
+                        <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold text-bark">{sp(service).location === 'home' ? (i18n.language === 'ar' ? '🏠 في البيت' : '🏠 At home') : (i18n.language === 'ar' ? '🏛️ في القاعة' : '🏛️ At the venue')}</span>
+                      ) : null}
+                      <span className="flex items-center gap-1.5 font-latin text-[11px] text-ink">
+                        <span className="font-bold text-bark">{formatEGP(Number(service.price_egp))}</span>·<span>{service.duration_minutes}{i18n.language === 'ar' ? 'د' : 'm'}</span>
+                      </span>
+                    </button>
+                  );
+                };
   const extraMinutes = selectedExtras.reduce((sum, e) => sum + Number((e as { duration_minutes?: number | string | null }).duration_minutes ?? 0), 0);
   const durationMin = extraMinutes > 0 && selectedService ? Number(selectedService.duration_minutes) + extraMinutes : null;
   const slots = useAvailableSlots(serviceId, date, staffSel, !noneOffers && (!staffNeeded || !!staffSel), durationMin);
@@ -326,6 +360,12 @@ export default function BookingPage() {
   };
 
   const handleConfirmBooking = async (payAtShop = false) => {
+    // الخدمة في البيت أو القاعة: لازم العنوان
+    if (needsAddress && notes.trim().length < 6) {
+      toast.error(i18n.language === 'ar' ? 'اكتب العنوان بالتفصيل في الملاحظات (المنطقة والشارع وأي علامة)' : 'Please write the full address in the notes');
+      document.getElementById('booking-notes')?.focus();
+      return;
+    }
     setPayAtShopChosen(payAtShop);
     try {
       sessionStorage.setItem('tito_last_pay_mode', payAtShop ? 'pay_at_shop' : 'online');
@@ -526,33 +566,16 @@ export default function BookingPage() {
           <div className="mt-4 space-y-4">
             <BookBlock icon={Scissors} title={t('booking.stepService')}>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {mainServices.map((service, i) => {
-                  const on = serviceId === service.id;
-                  return (
-                    <button
-                      key={service.id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => updateParams({ service: service.id })}
-                      style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
-                      className={cn(
-                        'animate-rise relative flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-card border p-2.5 text-center transition-all duration-300 ease-brand active:scale-[0.97]',
-                        on ? 'border-gold bg-gold/10 shadow-warm ring-1 ring-gold' : 'border-default bg-white hover:border-gold/50',
-                      )}
-                    >
-                      {on ? <span className="absolute end-2 top-2 flex size-5 animate-pop items-center justify-center rounded-full bg-gold text-espresso"><Check className="size-3" strokeWidth={3} /></span> : null}
-                      <span className={cn('flex size-10 items-center justify-center rounded-xl transition-colors duration-300', on ? 'bg-gold text-espresso' : 'bg-espresso text-gold')}>
-                        <ServiceIcon name={`${service.name_ar} ${service.name_en ?? ''}`} icon={(service as { icon?: string | null }).icon} className="size-5" />
-                      </span>
-                      <span className="line-clamp-2 text-[13px] font-semibold leading-tight text-espresso">{i18n.language === 'ar' ? service.name_ar : service.name_en || service.name_ar}</span>
-                      <span className="flex items-center gap-1.5 font-latin text-[11px] text-ink">
-                        <span className="font-bold text-bark">{formatEGP(Number(service.price_egp))}</span>·<span>{service.duration_minutes}{i18n.language === 'ar' ? 'د' : 'm'}</span>
-                      </span>
-                    </button>
-                  );
-                })}
+                {regularServices.map(renderServiceCard)}
               </div>
             </BookBlock>
+            {specialGroups.map((g) => (
+              <BookBlock key={g} icon={Crown} title={g} hint={i18n.language === 'ar' ? 'احجزها بدري — المواعيد بتتفتح قدام أكتر من الخدمات العادية' : 'Book early — these open further ahead'}>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {mainServices.filter((x) => sp(x).is_special && (sp(x).special_group || 'باقات خاصة') === g).map(renderServiceCard)}
+                </div>
+              </BookBlock>
+            ))}
             {extraServices.length > 0 ? (
               <BookBlock icon={Sparkles} title={t('booking.extras')} hint={i18n.language === 'ar' ? 'اختياري — تقدر تختار أكتر من واحدة' : 'Optional — pick any'}>
                 <div className="flex flex-wrap gap-1.5">
@@ -760,8 +783,14 @@ export default function BookingPage() {
           {extrasPicker}
           <CouponBox price={orderSubtotal} applied={coupon} onApply={setCoupon} onClear={() => setCoupon(null)} />
           <div className="mt-4">
+            {prepService ? (
+              <Link to={`/book?service=${prepService.id}`} className="mb-3 flex items-center gap-2 rounded-card border border-gold/40 bg-gold/10 p-3 text-sm text-espresso">
+                <Crown className="size-4 shrink-0 text-gold" />
+                <span className="flex-1">{i18n.language === 'ar' ? `متنساش تحجز «${prepService.name_ar}» قبلها 👌` : `Don't forget to book “${prepService.name_en || prepService.name_ar}” before it 👌`}</span>
+              </Link>
+            ) : null}
             <label className="mb-1 block text-sm text-ink" htmlFor="booking-notes">
-              {t('booking.notes')}
+              {needsAddress ? (i18n.language === 'ar' ? 'العنوان بالتفصيل (مطلوب) 📍' : 'Full address (required) 📍') : t('booking.notes')}
             </label>
             <textarea
               id="booking-notes"
