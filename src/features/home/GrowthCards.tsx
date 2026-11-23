@@ -106,13 +106,24 @@ const WEEKS = [2, 3, 4, 6] as const;
 const wkAr = (w: number) => (w === 1 ? 'أسبوع' : w === 2 ? 'أسبوعين' : `${w} أسابيع`);
 
 /** «فكّرني بالحلاقة الجاية»: العميل يختار بعد كام أسبوع ويوصله إشعار فيه زرار الحجز */
-export function RebookReminderPicker({ bookingId }: { bookingId: string }) {
+export function RebookReminderPicker({ bookingId, upcoming = false }: { bookingId: string; upcoming?: boolean }) {
   const { i18n } = useTranslation();
   const ar = !i18n.language?.startsWith('en');
   const L = (a: string, e: string) => (ar ? a : e);
   const qc = useQueryClient();
   const key = ['rebook-reminder', bookingId];
 
+  const cfg = useQuery({
+    queryKey: ['rebook-cfg'],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from('settings').select('rebook_enabled, rebook_weeks, rebook_hour').limit(1).maybeSingle();
+      return (data ?? null) as { rebook_enabled?: boolean; rebook_weeks?: number[]; rebook_hour?: number } | null;
+    },
+  });
+  const weeksList = cfg.data?.rebook_weeks?.length ? cfg.data.rebook_weeks : [...WEEKS];
+  const hour = cfg.data?.rebook_hour ?? 12;
+  const hourLabel = `${hour % 12 === 0 ? 12 : hour % 12}${hour < 12 ? (ar ? ' الصبح' : ' AM') : ar ? (hour < 17 ? ' الضهر' : ' بالليل') : ' PM'}`;
   const cur = useQuery({
     queryKey: key,
     retry: false,
@@ -140,15 +151,15 @@ export function RebookReminderPicker({ bookingId }: { bookingId: string }) {
   const when = cur.data?.remind_at && chosen
     ? new Intl.DateTimeFormat(ar ? 'ar-EG' : 'en-GB', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(cur.data.remind_at))
     : null;
-  if (cur.data?.sent_at) return null;
+  if (cur.data?.sent_at || cfg.data?.rebook_enabled === false) return null;
 
   return (
     <div className="mt-3 rounded-btn bg-sand/50 p-3">
       <p className="flex items-center gap-1.5 text-sm font-semibold text-espresso">
-        <BellRing className="size-4 text-gold" aria-hidden /> {L('فكّرني بالحلاقة الجاية بعد:', 'Remind me of my next cut in:')}
+        <BellRing className="size-4 text-gold" aria-hidden /> {upcoming ? L('فكّرني بالحلاقة اللي بعدها بعد:', 'After this cut, remind me in:') : L('فكّرني بالحلاقة الجاية بعد:', 'Remind me of my next cut in:')}
       </p>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {WEEKS.map((w) => (
+        {weeksList.map((w) => (
           <button
             key={w}
             type="button"
@@ -164,7 +175,7 @@ export function RebookReminderPicker({ bookingId }: { bookingId: string }) {
           </button>
         ))}
       </div>
-      {when ? <p className="mt-2 text-xs text-ink">{L(`هيوصلك إشعار ${when} الضهر. دوس تاني على نفس الاختيار عشان تلغيه.`, `You'll get a notification on ${when} at noon. Tap it again to cancel.`)}</p> : null}
+      {when ? <p className="mt-2 text-xs text-ink">{L(`هيوصلك إشعار ${when} الساعة ${hourLabel}. دوس تاني على نفس الاختيار عشان تلغيه.`, `You'll get a notification on ${when} at ${hourLabel}. Tap it again to cancel.`)}</p> : null}
     </div>
   );
 }

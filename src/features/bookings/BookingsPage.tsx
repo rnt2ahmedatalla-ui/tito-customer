@@ -230,8 +230,11 @@ export default function BookingsPage() {
 
   const list = tab === 'upcoming' ? upcoming : past;
   // آخر حلاقة خلصت: عليها «فكّرني بالحلاقة الجاية» (لو مفيش حجز جاي)
+  // «فكّرني بالحلاقة الجاية»: على أقرب حجز جاي مؤكد، ولو مفيش فعلى آخر حلاقة خلصت
   const latestCompletedId = useMemo(() => {
-    if (upcoming.some((b) => b.status === 'confirmed' || b.status === 'pending_payment')) return null;
+    const next = upcoming.filter((b) => b.status === 'confirmed').sort((a, b) => +new Date(a.start_at) - +new Date(b.start_at))[0];
+    if (next) return next.id;
+    if (upcoming.some((b) => b.status === 'pending_payment')) return null;
     const done = past.filter((b) => b.status === 'completed').sort((a, b) => +new Date(b.start_at) - +new Date(a.start_at));
     return done[0]?.id ?? null;
   }, [upcoming, past]);
@@ -440,7 +443,7 @@ export default function BookingsPage() {
                     <Button size="sm" variant="secondary">{isAr ? 'احجز نفس الحلاقة تاني' : 'Book the same again'}</Button>
                   </Link>
                 ) : null}
-                {booking.id === latestCompletedId ? <RebookReminderPicker bookingId={booking.id} /> : null}
+                {booking.id === latestCompletedId ? <RebookReminderPicker bookingId={booking.id} upcoming={booking.status === 'confirmed'} /> : null}
                 {booking.status === 'completed' && booking.rate_token ? (
                   <Link to={`/rate/${booking.rate_token}`} className="mt-3 inline-flex text-sm font-medium text-espresso underline">
                     {t('bookings.rateOffer')}
