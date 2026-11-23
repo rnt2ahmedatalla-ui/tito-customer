@@ -119,6 +119,7 @@ export type BoardPerson = { name: string | null; at: string; end: string | null;
 export type BoardBarber = {
   id: string;
   name: string;
+  name_en?: string | null;
   photo: string | null;
   state: BarberState;
   open: string | null;
@@ -180,6 +181,7 @@ export function parseBoard(data: Json | null): Board | null {
     return {
       id: str(b.id),
       name: str(b.name),
+      name_en: strOrNull(b.name_en),
       photo: strOrNull(b.photo),
       // البيانات القديمة (قبل التحديث) مكانش فيها state
       state: STATES.includes(st) ? st : now ? 'busy' : 'open',

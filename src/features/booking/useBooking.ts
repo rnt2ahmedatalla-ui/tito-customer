@@ -25,17 +25,23 @@ export interface StaffMember {
 
 /** الحلاقين الشغالين (فاضية لو الجدول لسه مش موجود أو مفيش طاقم) */
 export function useActiveStaff() {
+  const { i18n } = useTranslation();
+  const en = !i18n.language?.startsWith('ar');
   return useQuery({
-    queryKey: ['staff-active'],
+    queryKey: ['staff-active', en],
     queryFn: async (): Promise<StaffMember[]> => {
       const db = supabase;
       const { data, error } = await db
         .from('staff')
-        .select('id, name, bio, bio_en, socials, experience_years, photo')
+        .select('id, name, name_en, bio, bio_en, socials, experience_years, photo')
         .eq('is_active', true)
         .order('sort');
       if (error) return [];
-      return (data ?? []) as StaffMember[];
+      // الاسم بالإنجليزي (لو متكتب) لما الموقع يبقى إنجليزي
+      return ((data ?? []) as unknown as Array<StaffMember & { name_en?: string | null }>).map((m) => ({
+        ...m,
+        name: en && m.name_en?.trim() ? m.name_en.trim() : m.name,
+      }));
     },
     staleTime: 5 * 60_000,
     retry: false,

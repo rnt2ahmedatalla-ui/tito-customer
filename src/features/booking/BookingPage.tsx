@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useQueries } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { BellRing, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { BellRing, Check, ChevronLeft, ChevronRight, Plus, Scissors, Sparkles, Star, type LucideIcon } from 'lucide-react';
+import { ServiceIcon } from '@/features/home/Showcase';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
 import { useCancelBooking } from '../bookings/useBookings';
@@ -14,7 +15,6 @@ import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { GoogleIcon } from '@/components/auth/GoogleIcon';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { Button } from '@/components/ui/Button';
-import { ServiceCard } from '@/components/booking/ServiceCard';
 import { ExtraCard } from '@/components/booking/ExtraCard';
 import { DateStrip } from '@/components/booking/DateStrip';
 import { SeasonNotice } from '@/components/booking/SeasonNotice';
@@ -81,6 +81,20 @@ function NoTimeHelp({ day, serviceId, waitlist, empty }: { day: string; serviceI
         </button>
       </div>
     </div>
+  );
+}
+
+/** قسم في صفحة الحجز بنفس شكل أقسام الرئيسية */
+function BookBlock({ icon: Icon, title, hint, children }: { icon: LucideIcon; title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="animate-rise rounded-card border border-default bg-white/60 p-3 shadow-warm sm:p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex size-7 items-center justify-center rounded-full bg-gold/15 text-gold"><Icon className="size-4" /></span>
+        <h2 className="font-semibold text-espresso">{title}</h2>
+        {hint ? <span className="ms-auto text-[11px] text-ink">{hint}</span> : null}
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -503,41 +517,66 @@ export default function BookingPage() {
       {/* Step 1: Service + extras side by side */}
       {step === 'service' ? (
         <section>
-          <h1 className="text-2xl font-bold text-espresso">{t('booking.selectService')}</h1>
-          <Link
-            to="/book/group"
-            className="mt-2 inline-flex items-center gap-2 rounded-btn border border-gold/50 bg-gold/10 px-3 py-2 text-sm font-medium text-espresso hover:bg-gold/20"
-          >
-            {i18n.language === 'ar' ? 'عايز تحجز لأكتر من شخص؟ اضغط هنا' : 'Booking for more than one person? Tap here'}
-          </Link>
-          <div className="mt-4 space-y-6">
-            <div>
-              <h2 className="mb-2 text-sm font-semibold text-ink">{t('booking.stepService')}</h2>
-              <div className="grid gap-2.5 md:grid-cols-2">
-                {mainServices.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    selected={serviceId === service.id}
-                    onSelect={() => updateParams({ service: service.id })}
-                  />
-                ))}
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <h1 className="text-2xl font-bold text-espresso">{t('booking.selectService')}</h1>
+            <Link to="/book/group" className="text-xs font-medium text-bark underline-offset-4 hover:underline">
+              {i18n.language === 'ar' ? 'حجز لأكتر من شخص؟' : 'Booking for a group?'}
+            </Link>
+          </div>
+          <div className="mt-4 space-y-4">
+            <BookBlock icon={Scissors} title={t('booking.stepService')}>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {mainServices.map((service, i) => {
+                  const on = serviceId === service.id;
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => updateParams({ service: service.id })}
+                      style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
+                      className={cn(
+                        'animate-rise relative flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-card border p-2.5 text-center transition-all duration-300 ease-brand active:scale-[0.97]',
+                        on ? 'border-gold bg-gold/10 shadow-warm ring-1 ring-gold' : 'border-default bg-white hover:border-gold/50',
+                      )}
+                    >
+                      {on ? <span className="absolute end-2 top-2 flex size-5 animate-pop items-center justify-center rounded-full bg-gold text-espresso"><Check className="size-3" strokeWidth={3} /></span> : null}
+                      <span className={cn('flex size-10 items-center justify-center rounded-xl transition-colors duration-300', on ? 'bg-gold text-espresso' : 'bg-espresso text-gold')}>
+                        <ServiceIcon name={`${service.name_ar} ${service.name_en ?? ''}`} className="size-5" />
+                      </span>
+                      <span className="line-clamp-2 text-[13px] font-semibold leading-tight text-espresso">{i18n.language === 'ar' ? service.name_ar : service.name_en || service.name_ar}</span>
+                      <span className="flex items-center gap-1.5 font-latin text-[11px] text-ink">
+                        <span className="font-bold text-bark">{formatEGP(Number(service.price_egp))}</span>·<span>{service.duration_minutes}{i18n.language === 'ar' ? 'د' : 'm'}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            </div>
+            </BookBlock>
             {extraServices.length > 0 ? (
-              <div>
-                <h2 className="mb-2 text-sm font-semibold text-ink">{t('booking.extras')}</h2>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {extraServices.map((extra) => (
-                    <ExtraCard
-                      key={extra.id}
-                      extra={extra}
-                      selected={extraIds.includes(extra.id)}
-                      onToggle={() => toggleExtra(extra.id)}
-                    />
-                  ))}
+              <BookBlock icon={Sparkles} title={t('booking.extras')} hint={i18n.language === 'ar' ? 'اختياري — تقدر تختار أكتر من واحدة' : 'Optional — pick any'}>
+                <div className="flex flex-wrap gap-1.5">
+                  {extraServices.map((extra) => {
+                    const on = extraIds.includes(extra.id);
+                    return (
+                      <button
+                        key={extra.id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleExtra(extra.id)}
+                        className={cn(
+                          'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-all duration-300 ease-brand active:scale-95',
+                          on ? 'border-gold bg-gold font-semibold text-espresso shadow-warm' : 'border-default bg-white text-espresso hover:border-gold/60',
+                        )}
+                      >
+                        {on ? <Check className="size-3.5" strokeWidth={3} /> : <Plus className="size-3.5 text-bark" />}
+                        {i18n.language === 'ar' ? extra.name_ar : extra.name_en || extra.name_ar}
+                        <span className={cn('font-latin text-xs', on ? 'text-espresso/80' : 'text-bark')}>+{Number(extra.price_egp)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
+              </BookBlock>
             ) : null}
             <ProductsPicker value={chosenProducts} onChange={(m) => updateParams({ prods: stringifyProducts(m) })} />
           </div>

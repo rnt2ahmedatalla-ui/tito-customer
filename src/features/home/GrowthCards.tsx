@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { BellRing, Camera, Copy, Gift } from 'lucide-react';
+import { BellRing, Camera, Check, Copy, Gift } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
 import { cn } from '@/lib/cn';
@@ -49,9 +49,9 @@ export function VisitProgressCard({ compact = false }: { compact?: boolean }) {
     void navigator.clipboard?.writeText(code).then(() => toast.success(L('اتنسخ الكود ✓', 'Code copied ✓'))).catch(() => undefined);
 
   return (
-    <div className={cn('rounded-card border border-gold/50 bg-white p-4 shadow-2xs', compact && 'p-3')}>
+    <div className={cn('animate-rise rounded-card border border-default bg-white p-4 shadow-warm', compact && 'p-3')}>
       <div className="flex items-start gap-3">
-        <Gift className="mt-0.5 size-6 shrink-0 text-gold" aria-hidden />
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-espresso text-gold"><Gift className="size-5" aria-hidden /></span>
         <div className="min-w-0 flex-1">
           {p.coupon ? (
             <>
@@ -68,10 +68,24 @@ export function VisitProgressCard({ compact = false }: { compact?: boolean }) {
           )}
         </div>
       </div>
-      <div className="mt-3 flex gap-1.5" aria-label={L(`${done} من ${every}`, `${done} of ${every}`)}>
-        {Array.from({ length: every }, (_, i) => (
-          <span key={i} className={cn('h-2.5 flex-1 rounded-full', i < done || p.coupon ? 'bg-gold' : 'bg-sand')} />
-        ))}
+      {/* كارت أختام: كل زيارة ختم */}
+      <div className="mt-3 flex items-center justify-between gap-1" aria-label={L(`${done} من ${every}`, `${done} of ${every}`)}>
+        {Array.from({ length: every }, (_, i) => {
+          const on = i < done || !!p.coupon;
+          const last = i === every - 1;
+          return (
+            <span
+              key={i}
+              style={{ animationDelay: `${i * 60}ms` }}
+              className={cn(
+                'animate-pop flex aspect-square w-full max-w-11 items-center justify-center rounded-full border-2 font-latin text-xs font-bold transition-colors',
+                on ? 'border-gold bg-gold text-espresso' : 'border-dashed border-bark/25 text-ink',
+              )}
+            >
+              {on ? <Check className="size-4" strokeWidth={3} /> : last ? <Gift className="size-4 text-gold" /> : i + 1}
+            </span>
+          );
+        })}
       </div>
       {p.coupon ? (
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">

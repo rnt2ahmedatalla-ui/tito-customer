@@ -181,7 +181,10 @@ export default function QueueScreenPage() {
 
       {/* الشريط العلوي */}
       <header className="relative flex shrink-0 items-center justify-between gap-[calc(var(--u)*2)] px-[calc(var(--u)*3.5)] py-[calc(var(--u)*1.8)]">
-        <img src={assetUrl('brand/tito-logo-horizontal-gold-on-dark-1200.png')} alt={board?.shop || 'tito'} style={{ height: 'calc(var(--u) * 6.5)' }} className="w-auto" />
+        <div className="flex items-center gap-[calc(var(--u)*1.4)]">
+          <img src={assetUrl('brand/tito-icon-gold-on-dark-512.png')} alt="" style={{ height: 'calc(var(--u) * 6.5)' }} className="w-auto rounded-full" />
+          <span style={fs(5.2)} className="font-latin font-bold lowercase tracking-wide text-gold">tito</span>
+        </div>
         {board ? <ShopStatus board={board} now={now} ar={ar} /> : null}
         <div className="flex items-center gap-[calc(var(--u)*2)]">
           <div className="text-end leading-tight">
@@ -295,7 +298,7 @@ function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber
         ) : (
           <span className="flex items-center justify-center rounded-full bg-gold/20 text-gold" style={{ width: `calc(var(--u)*${7 * k})`, height: `calc(var(--u)*${7 * k})` }}><Scissors className="size-1/2" /></span>
         )}
-        <h2 style={fs(4.2 * k)} className="min-w-0 flex-1 truncate font-bold text-gold">{b.name}</h2>
+        <h2 style={fs(4.2 * k)} className="min-w-0 flex-1 truncate font-bold text-gold">{(!ar && b.name_en) || b.name}</h2>
         <span style={fs(2.2 * k)} className={cn('shrink-0 rounded-full px-[calc(var(--u)*1.8)] py-[calc(var(--u)*0.6)] font-semibold', sCls)}>{ar ? sAr : sEn}</span>
       </div>
 
@@ -646,7 +649,6 @@ function Ticker({ board, layout, now, ar }: { board: Board; layout: ScreenLayout
     <footer className="relative flex shrink-0 items-center overflow-hidden border-t border-gold/20 bg-black/30" style={{ height: 'calc(var(--u)*6.5)' }}>
       <span style={fs(2.4)} className="z-10 flex h-full shrink-0 items-center gap-[calc(var(--u)*0.8)] bg-gold px-[calc(var(--u)*2.4)] font-bold text-espresso">
         <Users className="size-[1.1em]" aria-hidden />
-        {ar ? 'جديد' : 'News'}
       </span>
       <div className="relative min-w-0 flex-1 overflow-hidden">
         <div

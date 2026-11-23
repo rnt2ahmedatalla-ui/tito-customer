@@ -134,37 +134,41 @@ export function ProductsPicker({ value, onChange }: { value: Record<string, numb
   if (!list.length || flags.data?.products === false) return null;
   const set = (id: string, n: number) => onChange({ ...value, [id]: Math.max(0, Math.min(9, n)) });
   return (
-    <div>
-      <h2 className="mb-1 text-sm font-semibold text-ink">{L('تاخد منتج معاك؟', 'Take a product with you?')}</h2>
-      <p className="mb-2 text-xs text-ink">{L('اختار وهتلاقيه مستنيك، وتدفع تمنه مع الحلاقة.', 'Pick it now — it will be waiting, pay with your cut.')}</p>
-      <ul className="grid gap-2 sm:grid-cols-2">
+    <section className="animate-rise rounded-card border border-default bg-white/60 p-3 shadow-warm sm:p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="flex size-7 items-center justify-center rounded-full bg-gold/15 text-gold"><Package className="size-4" /></span>
+        <h2 className="font-semibold text-espresso">{L('تاخد منتج معاك؟', 'Take a product with you?')}</h2>
+        <span className="ms-auto text-[11px] text-ink">{L('بيتدفع مع الحلاقة', 'Pay with your cut')}</span>
+      </div>
+      <ul className="-mx-3 flex snap-x gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:-mx-4 sm:px-4">
         {list.map((p) => {
           const n = value[p.id] ?? 0;
           const img = productImg(p.thumb_path ?? p.image_path);
           return (
-            <li key={p.id} className={cn('flex items-center gap-3 rounded-card border bg-white p-2 transition-colors', n ? 'border-gold bg-gold/5' : 'border-default')}>
-              <span className="size-12 shrink-0 overflow-hidden rounded-btn bg-sand">
-                {img ? <img src={img} alt="" className="size-full object-cover" loading="lazy" /> : <Package className="m-3 size-6 text-bark/50" />}
+            <li key={p.id} className={cn('flex w-[8.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-card border bg-white transition-all duration-300 ease-brand', n ? 'border-gold ring-1 ring-gold' : 'border-default')}>
+              <span className="relative block aspect-[4/3] overflow-hidden bg-sand">
+                {img ? <img src={img} alt="" className="size-full object-cover" loading="lazy" /> : <Package className="m-auto mt-6 size-8 text-bark/50" />}
+                {n ? <span className="absolute end-1.5 top-1.5 flex size-6 animate-pop items-center justify-center rounded-full bg-gold font-latin text-xs font-bold text-espresso">{n}</span> : null}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-espresso">{ar ? p.name_ar : p.name_en || p.name_ar}</span>
-                <span className="font-latin text-sm font-semibold text-bark">{p.price_egp} {ar ? 'ج' : 'EGP'}</span>
+              <span className="flex flex-1 flex-col gap-1 p-2">
+                <span className="line-clamp-1 text-xs font-semibold text-espresso">{ar ? p.name_ar : p.name_en || p.name_ar}</span>
+                <span className="font-latin text-xs font-bold text-bark">{p.price_egp} {ar ? 'ج' : 'EGP'}</span>
+                {n ? (
+                  <span className="mt-auto flex items-center justify-between">
+                    <button type="button" onClick={() => set(p.id, n - 1)} aria-label="-" className="flex size-7 items-center justify-center rounded-full border border-default text-espresso active:scale-90"><Minus className="size-3.5" /></button>
+                    <span className="font-latin text-sm font-bold text-espresso">{n}</span>
+                    <button type="button" onClick={() => set(p.id, n + 1)} aria-label="+" className="flex size-7 items-center justify-center rounded-full bg-gold text-espresso active:scale-90"><Plus className="size-3.5" /></button>
+                  </span>
+                ) : (
+                  <button type="button" onClick={() => set(p.id, 1)} className="mt-auto inline-flex min-h-8 items-center justify-center gap-1 rounded-btn border border-gold/60 text-xs font-semibold text-espresso transition active:scale-95">
+                    <Plus className="size-3.5" />{L('أضف', 'Add')}
+                  </button>
+                )}
               </span>
-              {n ? (
-                <span className="flex items-center gap-1">
-                  <button type="button" onClick={() => set(p.id, n - 1)} aria-label="-" className="flex size-8 items-center justify-center rounded-full border border-default text-espresso active:scale-90"><Minus className="size-4" /></button>
-                  <span className="w-5 text-center font-latin font-bold text-espresso">{n}</span>
-                  <button type="button" onClick={() => set(p.id, n + 1)} aria-label="+" className="flex size-8 items-center justify-center rounded-full bg-gold text-espresso active:scale-90"><Plus className="size-4" /></button>
-                </span>
-              ) : (
-                <button type="button" onClick={() => set(p.id, 1)} className="inline-flex min-h-9 items-center gap-1 rounded-btn border border-gold/60 px-3 text-sm font-semibold text-espresso active:scale-95">
-                  <Plus className="size-4" />{L('أضف', 'Add')}
-                </button>
-              )}
             </li>
           );
         })}
       </ul>
-    </div>
+    </section>
   );
 }

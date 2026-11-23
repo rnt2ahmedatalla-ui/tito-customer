@@ -162,7 +162,7 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
 
   return createPortal(
     <div className="fixed inset-0 z-[115] flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="howto-title">
-      <div className="absolute inset-0 animate-fade bg-espresso/60 backdrop-blur-xs" onClick={() => (seen ? setOpen(false) : undefined)} aria-hidden />
+      <div className="absolute inset-0 animate-fade bg-black/75 backdrop-blur-md" onClick={() => (seen ? setOpen(false) : undefined)} aria-hidden />
       <div className="relative z-10 flex max-h-[calc(100dvh-1rem)] w-full max-w-md animate-sheet flex-col overflow-hidden rounded-t-[1.5rem] bg-cream shadow-warm-raised sm:rounded-card">
         <div className="relative bg-espresso px-5 pb-5 pt-6 text-cream">
           {steps.length > 1 ? (

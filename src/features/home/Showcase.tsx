@@ -226,11 +226,10 @@ export function OffersSection() {
   };
 
   return (
-    <section className="bg-espresso text-cream">
-      <div className="mx-auto max-w-5xl px-5 py-10 sm:py-14">
-        <p className="font-latin text-xs font-medium uppercase tracking-[0.25em] text-gold">Offers</p>
-        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{L('العروض والاشتراكات', 'Offers & subscriptions')}</h2>
-        <p className="mt-1 text-sm text-cream/70">{L('ادفع مرة واحدة ووفّر — كل حجز للخدمة بيتخصم من باقتك لوحده.', 'Pay once and save — each visit is deducted automatically.')}</p>
+    <section className="mx-auto max-w-5xl px-5 py-10 sm:py-14">
+      <div>
+        <SectionHead eyebrow="Offers" title={L('العروض والاشتراكات', 'Offers & subscriptions')} />
+        <p className="-mt-3 text-sm text-ink">{L('ادفع مرة واحدة ووفّر — كل حجز للخدمة بيتخصم من باقتك لوحده.', 'Pay once and save — each visit is deducted automatically.')}</p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((p, i) => {
             const s = svc(p.service_id);
@@ -239,27 +238,27 @@ export function OffersSection() {
             const save = full > price ? full - price : 0;
             const monthly = p.kind === 'monthly';
             return (
-              <li key={p.id} className="animate-rise flex flex-col rounded-card border border-gold/30 bg-cream/5 p-4 transition-transform duration-300 hover:-translate-y-0.5" style={{ animationDelay: `${i * 80}ms` }}>
+              <li key={p.id} className="animate-rise flex flex-col rounded-card border border-default bg-white p-4 shadow-warm transition-transform duration-300 hover:-translate-y-0.5" style={{ animationDelay: `${i * 80}ms` }}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="rounded-full bg-gold/20 px-2.5 py-0.5 text-[11px] font-semibold text-gold">{monthly ? L('اشتراك شهري', 'Monthly') : L('باقة', 'Bundle')}</span>
-                  {save > 0 ? <span className="rounded-full bg-success/25 px-2.5 py-0.5 text-[11px] font-bold text-[#9BE7BE]">{L(`وفّر ${save} ج`, `Save ${save} EGP`)}</span> : null}
+                  <span className="rounded-full bg-gold/15 px-2.5 py-0.5 text-[11px] font-semibold text-bark">{monthly ? L('اشتراك شهري', 'Monthly') : L('باقة', 'Bundle')}</span>
+                  {save > 0 ? <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-[11px] font-bold text-success">{L(`وفّر ${save} ج`, `Save ${save} EGP`)}</span> : null}
                 </div>
-                <p className="mt-2 text-lg font-bold">{ar ? p.name_ar : p.name_en || p.name_ar}</p>
-                <p className="text-sm text-cream/70">
+                <p className="mt-2 text-lg font-bold text-espresso">{ar ? p.name_ar : p.name_en || p.name_ar}</p>
+                <p className="text-sm text-ink">
                   {s ? `${ar ? s.name_ar : s.name_en || s.name_ar} · ` : ''}
                   {monthly ? L(`${p.sessions} زيارات في الشهر`, `${p.sessions} visits a month`) : L(`${p.sessions} زيارات · صالحة ${p.validity_days} يوم`, `${p.sessions} visits · ${p.validity_days} days`)}
                 </p>
-                {(ar ? p.description_ar : p.description_en || p.description_ar) ? <p className="mt-1 text-sm text-cream/80">{ar ? p.description_ar : p.description_en || p.description_ar}</p> : null}
+                {(ar ? p.description_ar : p.description_en || p.description_ar) ? <p className="mt-1 text-sm text-ink">{ar ? p.description_ar : p.description_en || p.description_ar}</p> : null}
                 <div className="mt-3 flex items-end gap-2">
-                  <p className="font-latin text-3xl font-bold text-gold">{price}<span className="ms-1 text-sm">{L('ج', 'EGP')}</span></p>
-                  {full > price ? <p className="pb-1 font-latin text-sm text-cream/50 line-through">{full}</p> : null}
-                  <p className="ms-auto pb-1 text-xs text-cream/60">{L(`الزيارة بـ ${Math.round(price / p.sessions)} ج`, `${Math.round(price / p.sessions)} EGP / visit`)}</p>
+                  <p className="font-latin text-3xl font-bold text-espresso">{price}<span className="ms-1 text-sm">{L('ج', 'EGP')}</span></p>
+                  {full > price ? <p className="pb-1 font-latin text-sm text-ink/60 line-through">{full}</p> : null}
+                  <p className="ms-auto pb-1 text-xs text-ink">{L(`الزيارة بـ ${Math.round(price / p.sessions)} ج`, `${Math.round(price / p.sessions)} EGP / visit`)}</p>
                 </div>
                 <Button className="mt-3" loading={ask.isPending && ask.variables?.id === p.id} onClick={() => request(p)}>
                   {monthly ? L('اشترك', 'Subscribe') : L('اطلب الباقة', 'Get this package')}
                 </Button>
                 {s ? (
-                  <Link to={`/book?service=${s.id}`} className="mt-2 text-center text-xs font-medium text-cream/70 underline-offset-4 hover:underline">{L('أو احجز الخدمة عادي', 'Or just book the service')}</Link>
+                  <Link to={`/book?service=${s.id}`} className="mt-2 text-center text-xs font-medium text-bark underline-offset-4 hover:underline">{L('أو احجز الخدمة عادي', 'Or just book the service')}</Link>
                 ) : null}
               </li>
             );

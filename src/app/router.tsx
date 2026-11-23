@@ -1,3 +1,5 @@
+import { useLayoutEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -25,9 +27,19 @@ function PageLoader() {
   );
 }
 
+/** كل صفحة جديدة تبدأ من فوق (مش من نفس مكان الصفحة اللي قبلها) */
+function ScrollTop() {
+  const { pathname } = useLocation();
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [pathname]);
+  return null;
+}
+
 function withSuspense(Component: React.ComponentType) {
   return (
     <Suspense fallback={<PageLoader />}>
+      <ScrollTop />
       <Component />
     </Suspense>
   );

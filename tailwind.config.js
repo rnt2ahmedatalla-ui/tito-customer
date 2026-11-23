@@ -37,10 +37,10 @@ export default {
         default: 'rgb(var(--c-bark) / .14)',
       },
       transitionTimingFunction: {
-        brand: 'cubic-bezier(.2,.7,.3,1)',
+        brand: 'cubic-bezier(.22,1,.36,1)',
       },
       transitionDuration: {
-        brand: '200ms',
+        brand: '320ms',
       },
     },
   },
