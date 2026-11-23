@@ -59,7 +59,7 @@ export function BottomNav() {
       <HowToBookFab hidden={onBookingFlow} />
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 rounded-t-[1.25rem] border-t border-default bg-cream/95 shadow-[0_-6px_20px_rgba(52,26,14,0.08)] backdrop-blur-sm sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 rounded-t-[1.25rem] border-t border-default bg-cream/95 shadow-[0_-6px_20px_rgba(52,26,14,0.08)] sm:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label={t('a11y.mainNav')}
       >

@@ -133,7 +133,7 @@ html.theme-anim * {
   }
 
   .animate-rise {
-    animation: rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .animate-rise-delay-1 {
@@ -152,13 +152,11 @@ html.theme-anim * {
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.985);
-    filter: blur(3px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: none;
   }
 }
 
@@ -216,7 +214,7 @@ html.theme-anim * {
 @keyframes page-in { from { opacity: 0 } to { opacity: 1 } }
 .animate-sheet { animation: sheet-up .5s cubic-bezier(.22,1,.36,1) both; }
 .animate-pop { animation: pop .35s cubic-bezier(.22,1,.36,1) both; }
-.animate-page { animation: page-in .5s cubic-bezier(.22,1,.36,1) both; }
+.animate-page { animation: page-in .3s ease-out both; }
 @media (prefers-reduced-motion: reduce) { .animate-sheet, .animate-pop, .animate-page { animation: none !important; } }
 
 /* الدهبي في الوضع الليلي: الكلام اللي فوقه يفضل غامق وواضح، واللون نفسه أهدى على العين */

@@ -19,6 +19,30 @@ const NotFoundPage = lazy(() => import('@/features/NotFoundPage'));
 const GalleryPage = lazy(() => import('@/features/gallery/GalleryPage'));
 const QueueScreenPage = lazy(() => import('@/features/screen/QueueScreenPage'));
 
+// بعد ما الموقع يفتح: نحمّل باقي الصفحات في الخلفية علشان التنقل يبقى فوري من غير تقطيع
+const PRELOAD = [
+  () => import('@/features/NotFoundPage'),
+  () => import('@/features/attend/AttendPage'),
+  () => import('@/features/booking/BookingPage'),
+  () => import('@/features/booking/GroupBookingPage'),
+  () => import('@/features/bookings/BookingsPage'),
+  () => import('@/features/gallery/GalleryPage'),
+  () => import('@/features/home/HomePage'),
+  () => import('@/features/move/MovePage'),
+  () => import('@/features/products/ProductOrderPage'),
+  () => import('@/features/products/ProductsPage'),
+  () => import('@/features/profile/ProfilePage'),
+  () => import('@/features/rate/RatePage'),
+  () => import('@/features/rate/ReviewPage'),
+  () => import('@/features/screen/QueueScreenPage'),
+];
+if (typeof window !== 'undefined') {
+  const run = () => PRELOAD.forEach((f, i) => window.setTimeout(() => void f().catch(() => undefined), i * 120));
+  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  window.addEventListener('load', () => (w.requestIdleCallback ? w.requestIdleCallback(run, { timeout: 4000 }) : window.setTimeout(run, 2500)), { once: true });
+}
+
+
 function PageLoader() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-cream p-8">
