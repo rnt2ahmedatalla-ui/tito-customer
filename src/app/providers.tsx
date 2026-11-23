@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { supabase, getSupabaseOrigin } from '@/lib/supabase';
 import { AuthProvider } from '@/features/profile/useAuth';
 import { reloadOnceForNewVersion } from './ErrorBoundary';
+import { startFreshnessWatch } from './freshness';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,6 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       reloadOnceForNewVersion();
     };
     window.addEventListener('vite:preloadError', onPreloadError);
+    const stopFresh = startFreshnessWatch();
     const origin = getSupabaseOrigin();
     const link = document.createElement('link');
     link.rel = 'preconnect';
@@ -72,6 +74,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       .subscribe();
 
     return () => {
+      stopFresh();
       window.removeEventListener('vite:preloadError', onPreloadError);
       void supabase.removeChannel(channel);
     };

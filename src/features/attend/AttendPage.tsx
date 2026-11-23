@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { supabase } from '@/lib/supabase';
 import { formatCairoDate, formatCairoTime } from '@/lib/time';
-import { extractErrorCode } from '@/lib/errors';
 
 type Info = {
   ok?: boolean;
@@ -56,8 +55,8 @@ export default function AttendPage() {
     },
     onError: (e) => {
       // NOT_ACTIVE / NOT_FOUND: الحجز اتغيّر أو عدّى. غير كده غالباً النت
-      const code = extractErrorCode(e);
-      if (code === 'NOT_ACTIVE' || code === 'NOT_FOUND') setDone('inactive');
+      const msg = e instanceof Error ? e.message : String((e as { message?: string })?.message ?? e);
+      if (/NOT_ACTIVE|NOT_FOUND/.test(msg)) setDone('inactive');
       else toast.error(L('حصلت مشكلة، اتأكد من النت وجرّب تاني', 'Something went wrong, check your connection and try again'));
     },
   });
