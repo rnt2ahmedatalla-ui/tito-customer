@@ -19,6 +19,7 @@ import { buildWhatsAppUrl } from '@/lib/urls';
 import { useSettings } from '@/features/home/useHomeData';
 import { BellRing, MessageCircle, Palette, UserRound, type LucideIcon } from 'lucide-react';
 import { NotificationsCard } from './NotificationsCard';
+import { ReferralCard } from '@/features/referral/Referral';
 import { ThemePicker } from '@/components/layout/ThemeToggle';
 import { cn } from '@/lib/cn';
 
@@ -151,6 +152,8 @@ export default function ProfilePage() {
         <Section icon={BellRing} title={L('الإشعارات', 'Notifications')} delay={1}>
           <NotificationsCard />
         </Section>
+
+        <ReferralCard />
 
         <MyPackagesCard />
 

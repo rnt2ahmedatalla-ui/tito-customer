@@ -4,6 +4,9 @@ import { Providers } from './providers';
 import { AppRouter } from './router';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useSettings } from '@/features/home/useHomeData';
+import { ReferralClaimer, captureReferral } from '@/features/referral/Referral';
+
+captureReferral();
 
 function DocumentTitle() {
   const { t, i18n } = useTranslation();
@@ -26,6 +29,7 @@ export function App() {
     <ErrorBoundary>
       <Providers>
         <DocumentTitle />
+        <ReferralClaimer />
         <AppRouter />
       </Providers>
     </ErrorBoundary>
