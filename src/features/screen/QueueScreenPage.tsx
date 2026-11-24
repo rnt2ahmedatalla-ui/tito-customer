@@ -536,15 +536,15 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
     if (out.length < 4) for (const pp of prodPages) if (!out.includes(pp)) out.push(pp);
     return out;
   }, [board, layout, ar]);
-  // آية / حديث بالشرح بعد كل ٣ شرايح
+  // آية / حديث بالشرح
   const slides = useMemo<Slide[]>(() => {
     const f = faithOn ? [0, 1, 2].map((n) => ({ kind: 'faith', n }) as Slide) : [];
     if (!f.length) return slides0;
     if (!slides0.length) return f;
-    const out: Slide[] = [];
-    let k = 0;
-    slides0.forEach((sl, n) => { out.push(sl); if (n % 3 === 2) out.push(f[k++ % f.length]!); });
-    if (k === 0) out.push(f[0]!);
+    // بتبدأ بآية/حديث، وبعدها واحدة كل شريحتين
+    const out: Slide[] = [f[0]!];
+    let k = 1;
+    slides0.forEach((sl, n) => { out.push(sl); if (n % 2 === 1) out.push(f[k++ % f.length]!); });
     return out;
   }, [slides0, faithOn]);
 
