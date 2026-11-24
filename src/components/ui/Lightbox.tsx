@@ -9,12 +9,15 @@ export function Lightbox({
   onClose,
   onIndex,
   caption,
+  videos,
 }: {
   urls: string[];
   index: number | null;
   onClose: () => void;
   onIndex: (i: number) => void;
   caption?: (i: number) => string | null | undefined;
+  /** لو العنصر فيديو: لينك الفيديو (والصورة = الغلاف) */
+  videos?: Array<string | null | undefined>;
 }) {
   const startX = useRef<number | null>(null);
   const n = urls.length;
@@ -61,7 +64,11 @@ export function Lightbox({
         </button>
       </div>
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-2" dir="ltr">
-        <img src={urls[index]} alt={cap ?? ''} className="max-h-full max-w-full rounded-md object-contain" onClick={(e) => e.stopPropagation()} />
+        {videos?.[index] ? (
+          <video key={videos[index]!} src={videos[index]!} poster={urls[index]} controls autoPlay playsInline preload="metadata" className="max-h-full max-w-full rounded-md bg-black" onClick={(e) => e.stopPropagation()} onTouchEnd={(e) => e.stopPropagation()} />
+        ) : (
+          <img src={urls[index]} alt={cap ?? ''} className="max-h-full max-w-full rounded-md object-contain" onClick={(e) => e.stopPropagation()} />
+        )}
         {n > 1 ? (
           <>
             <button type="button" aria-label="previous" onClick={(e) => { e.stopPropagation(); go(-1); }} className="absolute left-2 hidden size-12 items-center justify-center rounded-full bg-white/15 text-[#fff] hover:bg-white/25 sm:flex">
