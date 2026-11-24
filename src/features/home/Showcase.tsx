@@ -65,7 +65,10 @@ export function ServicesProductsSection() {
   const Arrow = ar ? ArrowLeft : ArrowRight;
 
   const all = (services.data ?? []).filter((s) => !(s as { is_archived?: boolean }).is_archived);
-  const mains = all.filter((s) => !s.is_extra);
+  const isSpecial = (x: unknown) => !!(x as { is_special?: boolean }).is_special;
+  const mains = all.filter((s) => !s.is_extra && !isSpecial(s));
+  const specials = all.filter((s) => !s.is_extra && isSpecial(s));
+  const fromPrice = specials.length ? Math.min(...specials.map((x) => Number(x.price_egp))) : 0;
   const extras = all.filter((s) => s.is_extra);
   const prods = flags.data?.products === false ? [] : (products.data ?? []).filter((p) => p.image_path || p.thumb_path).slice(0, 6);
   const nm = (x: { name_ar: string; name_en?: string | null }) => (ar ? x.name_ar : x.name_en || x.name_ar);
@@ -88,6 +91,17 @@ export function ServicesProductsSection() {
               </li>
             ))}
           </ul>
+          {specials.length ? (
+            <Link to={`/book?service=${specials[0]!.id}`} className="keep-light-tokens group relative mt-4 flex items-center gap-3 overflow-hidden rounded-2xl border border-[#C9A24B]/50 bg-gradient-to-l from-[#1c0f08] via-[#3a2112] to-[#1c0f08] p-3 text-[#FAF6F0] shadow-[0_10px_30px_-14px_rgba(28,15,8,.9)] transition-transform duration-300 hover:-translate-y-0.5">
+              <span aria-hidden className="pointer-events-none absolute -end-10 -top-10 size-32 rounded-full bg-[#C9A24B]/25 blur-2xl" />
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[#C9A24B]/60 bg-[#C9A24B]/15 text-[#E6C878]"><Crown className="size-5" /></span>
+              <span className="relative min-w-0 flex-1">
+                <span className="block font-bold text-[#E6C878]">{(specials[0] as { special_group?: string | null }).special_group || L('باقات العريس', 'Groom packages')}</span>
+                <span className="line-clamp-2 block text-xs leading-relaxed text-white/70">{L(`${specials.length} باقات · في المحل، البيت، أو القاعة · تبدأ من ${Math.round(fromPrice)} ج`, `${specials.length} packages · shop, home or venue · from EGP ${Math.round(fromPrice)}`)}</span>
+              </span>
+              <Arrow className="relative size-4 shrink-0 text-[#E6C878] transition-transform group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5" aria-hidden />
+            </Link>
+          ) : null}
           {extras.length ? (
             <>
               <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-ink">{L('والإضافات', 'Add-ons')}</p>

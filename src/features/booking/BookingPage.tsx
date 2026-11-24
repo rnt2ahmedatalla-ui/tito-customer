@@ -85,6 +85,15 @@ function NoTimeHelp({ day, serviceId, waitlist, empty }: { day: string; serviceI
 }
 
 /** قسم في صفحة الحجز بنفس شكل أقسام الرئيسية */
+/** «ساعة / ساعتين / ٣ ساعات / ساعة ونص» بدل «2 ساعة» */
+function arHours(mins: number, ar: boolean) {
+  if (!ar) return mins >= 60 ? `${+(mins / 60).toFixed(1)} h` : `${mins} min`;
+  if (mins < 60) return `${mins} دقيقة`;
+  const h = Math.floor(mins / 60), half = mins % 60 >= 30;
+  const base = h === 1 ? 'ساعة' : h === 2 ? 'ساعتين' : h <= 10 ? `${h} ساعات` : `${h} ساعة`;
+  return half ? `${base} ونص` : base;
+}
+
 function BookBlock({ icon: Icon, title, hint, children }: { icon: LucideIcon; title: string; hint?: string; children: React.ReactNode }) {
   return (
     <section className="animate-rise rounded-card border border-default bg-white/60 p-3 shadow-warm sm:p-4">
@@ -157,12 +166,15 @@ export default function BookingPage() {
   const booking = useBooking(bookingId);
 
   const catalog = services.data ?? [];
-  type SpecialFields = { is_special?: boolean; special_group?: string | null; location?: string | null; prep_service_id?: string | null };
+  type SpecialFields = { is_special?: boolean; special_group?: string | null; location?: string | null; prep_service_id?: string | null; max_days_ahead?: number | null; description_ar?: string | null; description_en?: string | null };
   const sp = (x: unknown) => x as SpecialFields;
   const mainServices = catalog.filter((service) => !service.is_extra);
   const regularServices = mainServices.filter((service) => !sp(service).is_special);
   const specialGroups = Array.from(new Set(mainServices.filter((x) => sp(x).is_special).map((x) => sp(x).special_group || 'باقات خاصة')));
   const extraServices = catalog.filter((service) => service.is_extra);
+  const [svcTabRaw, setSvcTab] = useState<string | null>(null);
+  const chosen = mainServices.find((x) => x.id === params.get('service'));
+  const svcTab = svcTabRaw ?? (chosen && sp(chosen).is_special ? sp(chosen).special_group || 'باقات خاصة' : 'regular');
   const extraIds = (params.get('extras') ?? '').split(',').filter(Boolean);
   const selectedExtras = extraServices.filter((service) => extraIds.includes(service.id));
   const priceOf = (service: { id: string; price_egp: number | string }, forStaff: string | null) => {
@@ -225,7 +237,8 @@ export default function BookingPage() {
   useEffect(() => {
     setCoupon(null);
   }, [orderSubtotal]);
-  const maxDays = settings.data?.max_days_ahead ?? 14;
+  // الباقات الخاصة (زي العريس) ليها مدى حجز أطول من الخدمات العادية
+  const maxDays = (selectedService && sp(selectedService).is_special && sp(selectedService).max_days_ahead) || settings.data?.max_days_ahead || 14;
   const dates = useMemo(() => getDateRange(maxDays), [maxDays]);
 
   const closedDays = useMemo(() => {
@@ -564,18 +577,67 @@ export default function BookingPage() {
             </Link>
           </div>
           <div className="mt-4 space-y-4">
-            <BookBlock icon={Scissors} title={t('booking.stepService')}>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {regularServices.map(renderServiceCard)}
+            {specialGroups.length ? (
+              <div role="tablist" aria-label={i18n.language === 'ar' ? 'نوع الخدمة' : 'Service type'} className="grid grid-cols-2 gap-1 rounded-full border border-default bg-white p-1 shadow-sm">
+                {[{ k: 'regular', label: i18n.language === 'ar' ? 'خدمات المحل' : 'Shop services', icon: Scissors }, ...specialGroups.map((g) => ({ k: g, label: g, icon: Crown }))].slice(0, 2).map((x) => {
+                  const on = svcTab === x.k;
+                  return (
+                    <button key={x.k} type="button" role="tab" aria-selected={on} onClick={() => setSvcTab(x.k)}
+                      className={cn('flex min-h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-all duration-300 ease-brand', on ? (x.k === 'regular' ? 'bg-espresso text-cream shadow' : 'keep-light-tokens bg-gradient-to-l from-[#1c0f08] via-[#3a2112] to-[#1c0f08] text-[#E6C878] shadow-[0_6px_20px_-6px_rgba(201,162,75,.6)]') : 'text-ink hover:text-espresso')}>
+                      <x.icon className="size-4" />{x.label}
+                    </button>
+                  );
+                })}
               </div>
-            </BookBlock>
-            {specialGroups.map((g) => (
-              <BookBlock key={g} icon={Crown} title={g} hint={i18n.language === 'ar' ? 'احجزها بدري — المواعيد بتتفتح قدام أكتر من الخدمات العادية' : 'Book early — these open further ahead'}>
+            ) : null}
+            {svcTab === 'regular' || !specialGroups.length ? (
+              <BookBlock icon={Scissors} title={t('booking.stepService')}>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {mainServices.filter((x) => sp(x).is_special && (sp(x).special_group || 'باقات خاصة') === g).map(renderServiceCard)}
+                  {regularServices.map(renderServiceCard)}
                 </div>
               </BookBlock>
-            ))}
+            ) : (
+              specialGroups.filter((g) => g === svcTab).map((g) => (
+                <section key={g} className="keep-light-tokens animate-rise relative overflow-hidden rounded-[1.4rem] border border-[#C9A24B]/50 bg-gradient-to-b from-[#1c0f08] via-[#2a160b] to-[#1c0f08] p-4 text-[#FAF6F0] shadow-[0_18px_50px_-20px_rgba(28,15,8,.8)]">
+                  <span aria-hidden className="pointer-events-none absolute -top-24 start-1/2 size-64 -translate-x-1/2 rounded-full bg-[#C9A24B]/20 blur-3xl rtl:translate-x-1/2" />
+                  <div className="relative mb-4 text-center">
+                    <span className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full border border-[#C9A24B]/60 bg-[#C9A24B]/15"><Crown className="size-6 text-[#E6C878]" /></span>
+                    <h2 className="text-xl font-bold text-[#E6C878]">{g}</h2>
+                    <p className="mt-1 text-sm text-white/70">{i18n.language === 'ar' ? 'ليلة العمر تستاهل أحسن لوك — احجز بدري، المواعيد مفتوحة لحد شهر قدام' : 'Your big night deserves the best look — book early, open up to a month ahead'}</p>
+                  </div>
+                  <div className="relative space-y-2.5">
+                    {mainServices.filter((x) => sp(x).is_special && (sp(x).special_group || 'باقات خاصة') === g).map((service, i) => {
+                      const on = serviceId === service.id;
+                      const loc = String(sp(service).location ?? 'shop');
+                      const desc = i18n.language === 'ar' ? sp(service).description_ar : sp(service).description_en || sp(service).description_ar;
+                      const mins = Number(service.duration_minutes);
+                      const dur = arHours(mins, i18n.language === 'ar');
+                      return (
+                        <button key={service.id} type="button" aria-pressed={on} onClick={() => updateParams({ service: service.id })} style={{ animationDelay: `${i * 60}ms` }}
+                          className={cn('animate-rise relative flex w-full items-center gap-3 rounded-2xl border p-3 text-start transition-all duration-300 ease-brand active:scale-[0.98]', on ? 'border-[#E6C878] bg-[#C9A24B]/20 shadow-[0_0_0_1px_rgba(230,200,120,.6),0_10px_30px_-12px_rgba(201,162,75,.7)]' : 'border-white/10 bg-white/[0.04] hover:border-[#C9A24B]/50 hover:bg-white/[0.07]')}>
+                          <span className={cn('flex size-12 shrink-0 items-center justify-center rounded-xl transition-colors', on ? 'bg-[#E6C878] text-[#1c0f08]' : 'bg-[#C9A24B]/15 text-[#E6C878]')}>
+                            <ServiceIcon name={`${service.name_ar} ${service.name_en ?? ''}`} icon={(service as { icon?: string | null }).icon} className="size-6" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-bold leading-snug text-white">{i18n.language === 'ar' ? service.name_ar : service.name_en || service.name_ar}</span>
+                            {desc ? <span className="mt-0.5 line-clamp-2 block text-xs leading-relaxed text-white/65">{desc}</span> : null}
+                            <span className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                              <span className="rounded-full bg-white/10 px-2 py-0.5 text-white/80">⏱ {dur}</span>
+                              <span className="rounded-full bg-white/10 px-2 py-0.5 text-white/80">{loc === 'home' ? (i18n.language === 'ar' ? '🏠 في البيت' : '🏠 At home') : loc === 'hall' ? (i18n.language === 'ar' ? '🏛️ في القاعة' : '🏛️ At the venue') : (i18n.language === 'ar' ? '💈 في المحل' : '💈 At the shop')}</span>
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-end">
+                            <span className="block font-latin text-lg font-bold text-[#E6C878]">{formatEGP(Number(service.price_egp))}</span>
+                            {on ? <span className="ms-auto mt-1 flex size-6 animate-pop items-center justify-center rounded-full bg-[#E6C878] text-[#1c0f08]"><Check className="size-3.5" strokeWidth={3} /></span> : null}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="relative mt-3 text-center text-[11px] text-white/55">{i18n.language === 'ar' ? '💡 ننصحك تحجز «البروفة» قبل الفرح بأسبوع عشان نتفق على اللوك' : '💡 Book the rehearsal a week before to agree on the look'}</p>
+                </section>
+              ))
+            )}
             {extraServices.length > 0 ? (
               <BookBlock icon={Sparkles} title={t('booking.extras')} hint={i18n.language === 'ar' ? 'اختياري — تقدر تختار أكتر من واحدة' : 'Optional — pick any'}>
                 <div className="flex flex-wrap gap-1.5">

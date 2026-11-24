@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { PRAYER_NAMES, fmtLeft, nextPrayer, usePrayerTimes } from '@/lib/usePrayer';
+import { stripAyahMarks, useFaithDaily } from '@/lib/useFaith';
 
 type Rpc = (fn: string, a?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
@@ -140,12 +141,52 @@ export default function TurnScreenPage() {
             <p className="text-xs text-white/50">{L('الشاشة بتتحدّث لوحدها وهتنوّر وتهزّ لما ينادوا عليك. ضيفها على الشاشة الرئيسية من «مشاركة ← إضافة للشاشة الرئيسية».', 'Updates live and lights up when you are called. Add it to your home screen from Share → Add to Home Screen.')}</p>
           </>
         )}
+        <FaithCard ar={ar} />
         {np ? (
           <p className="flex items-center justify-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
             <Moon className="size-4" />{L(`صلاة ${PRAYER_NAMES[np.key]![0]} بعد`, `${PRAYER_NAMES[np.key]![1]} in`)} <span className="font-latin font-bold tabular-nums" dir="ltr">{fmtLeft(np.at - now)}</span>
           </p>
         ) : null}
       </main>
+    </div>
+  );
+}
+
+/** آية / حديث اليوم بالشرح — بيتقلّبوا كل ٢٥ ثانية، والشرح يتفتح بلمسة */
+function FaithCard({ ar }: { ar: boolean }) {
+  const q = useFaithDaily();
+  const items = q.data ?? [];
+  const [i, setI] = useState(0);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (items.length < 2 || open) return;
+    const id = window.setTimeout(() => setI((x) => (x + 1) % items.length), 25_000);
+    return () => window.clearTimeout(id);
+  }, [i, items.length, open]);
+  const it = items[i % Math.max(1, items.length)];
+  if (!it) return null;
+  const main = it.kind === 'ayah' ? `﴿${stripAyahMarks(it.text)}﴾` : it.text;
+  const expl = it.kind === 'ayah' ? it.tafsir : it.explanation;
+  return (
+    <div dir="rtl" className="w-full rounded-[1.6rem] border border-emerald-400/25 bg-emerald-500/[0.07] p-4 text-start">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-emerald-300">{it.kind === 'ayah' ? `${it.surah} · ${it.num}` : (ar ? 'حديث شريف' : 'Hadith')}</p>
+        {items.length > 1 ? (
+          <div className="flex gap-1">
+            {items.map((_, n) => <button key={n} type="button" aria-label={`${n + 1}`} onClick={() => { setI(n); setOpen(false); }} className={`h-1.5 rounded-full transition-all ${n === i % items.length ? 'w-5 bg-emerald-300' : 'w-1.5 bg-white/25'}`} />)}
+          </div>
+        ) : null}
+      </div>
+      <p key={i} className="animate-rise mt-2 text-[1.05rem] font-semibold leading-[1.9] text-white/95">{main}</p>
+      {expl ? (
+        <>
+          <button type="button" onClick={() => setOpen((v) => !v)} className="mt-2 min-h-9 text-sm font-semibold text-[#C9A24B]">
+            {open ? (ar ? 'اقفل الشرح' : 'Hide explanation') : it.kind === 'ayah' ? (ar ? 'اقرأ التفسير' : 'Read tafsir') : (ar ? 'اقرأ الشرح' : 'Read explanation')}
+          </button>
+          {open ? <p className="text-sm leading-relaxed text-white/75">{expl}</p> : null}
+        </>
+      ) : null}
+      <p className="mt-2 text-[11px] text-white/45">{it.kind === 'hadith' ? `${it.attribution} · ${it.grade}` : it.source}</p>
     </div>
   );
 }
