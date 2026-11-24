@@ -28,7 +28,7 @@ export function ExtraCard({ extra, selected, onToggle, compact = false }: ExtraC
       aria-pressed={selected}
       onClick={onToggle}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-btn border bg-white text-start transition-all duration-brand ease-brand',
+        'flex w-full items-center gap-2.5 rounded-btn border bg-white text-start transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-brand ease-brand',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-1',
         compact ? 'p-2.5' : 'p-3',
         selected ? 'border-gold bg-gold/10 ring-1 ring-gold' : 'border-default hover:border-gold/60 hover:bg-sand/30',

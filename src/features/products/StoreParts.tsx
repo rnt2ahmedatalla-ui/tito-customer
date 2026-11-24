@@ -26,7 +26,7 @@ export function ProductCard({ p, bookingId, className, style }: { p: StoreProduc
     <Link
       to={`/products/${p.id}${bookingId ? `?booking=${bookingId}` : ''}`}
       style={style}
-      className={cn('group flex flex-col overflow-hidden rounded-card border border-default bg-white p-1.5 shadow-warm transition-all duration-300 ease-brand hover:-translate-y-0.5 hover:border-gold/50 active:scale-[0.97]', className)}
+      className={cn('group flex flex-col overflow-hidden rounded-card border border-default bg-white p-1.5 shadow-warm transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-brand hover:-translate-y-0.5 hover:border-gold/50 active:scale-[0.97]', className)}
     >
       <div className="relative aspect-square overflow-hidden rounded-[0.9rem] bg-[#f7f2ea]">
         {src ? (

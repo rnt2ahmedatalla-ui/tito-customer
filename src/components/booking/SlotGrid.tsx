@@ -62,7 +62,7 @@ export function SlotGrid({ slots, selectedSlot, onSelect, isLoading, isError, er
             aria-selected={isSelected}
             onClick={() => onSelect(slot)}
             className={cn(
-              'min-h-11 rounded-btn border px-1 text-sm font-semibold font-latin transition-all duration-brand',
+              'min-h-11 rounded-btn border px-1 text-sm font-semibold font-latin transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-brand',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
               isSelected ? 'border-gold bg-gold text-espresso' : 'border-default bg-cream text-espresso hover:border-gold',
             )}

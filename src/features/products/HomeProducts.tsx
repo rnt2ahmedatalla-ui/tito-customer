@@ -145,7 +145,7 @@ export function ProductsPicker({ value, onChange }: { value: Record<string, numb
           const n = value[p.id] ?? 0;
           const img = productImg(p.thumb_path ?? p.image_path);
           return (
-            <li key={p.id} className={cn('flex w-[8.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-card border bg-white transition-all duration-300 ease-brand', n ? 'border-gold ring-1 ring-gold' : 'border-default')}>
+            <li key={p.id} className={cn('flex w-[8.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-card border bg-white transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-brand', n ? 'border-gold ring-1 ring-gold' : 'border-default')}>
               <span className="relative block aspect-[4/3] overflow-hidden bg-sand">
                 {img ? <img src={img} alt="" className="size-full object-cover" loading="lazy" /> : <Package className="m-auto mt-6 size-8 text-bark/50" />}
                 {n ? <span className="absolute end-1.5 top-1.5 flex size-6 animate-pop items-center justify-center rounded-full bg-gold font-latin text-xs font-bold text-espresso">{n}</span> : null}

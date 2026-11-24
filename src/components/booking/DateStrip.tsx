@@ -44,7 +44,7 @@ export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, se
             disabled={isClosed}
             onClick={() => onSelect(key)}
             className={cn(
-              'flex w-[4.5rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-btn border px-1 py-2.5 transition-all duration-brand',
+              'flex w-[4.5rem] shrink-0 snap-start flex-col items-center gap-0.5 rounded-btn border px-1 py-2.5 transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-brand',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
               isSelected && 'border-gold bg-gold text-espresso',
               locked && 'cursor-not-allowed border-gold/40 bg-gold/10 text-ink/60',

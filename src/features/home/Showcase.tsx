@@ -54,7 +54,7 @@ function SectionHead({ eyebrow, title, action }: { eyebrow: string; title: strin
 
 /* ───────── خدماتنا جنب منتجاتنا ───────── */
 // نفس مقاس الكارت للخدمات والمنتجات علشان يبقوا متناسقين
-const TILE = 'group flex h-full min-h-[6.25rem] flex-col items-center justify-start gap-1.5 rounded-btn bg-sand/50 px-1.5 py-2.5 text-center transition-all duration-200 hover:bg-sand active:scale-95';
+const TILE = 'group flex h-full min-h-[6.25rem] flex-col items-center justify-start gap-1.5 rounded-btn bg-sand/50 px-1.5 py-2.5 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-200 hover:bg-sand active:scale-95';
 
 export function ServicesProductsSection() {
   const { ar, L } = useAr();

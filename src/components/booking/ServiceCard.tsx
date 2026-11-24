@@ -39,7 +39,7 @@ export function ServiceCard({ service, selected, onSelect }: ServiceCardProps) {
       }}
       aria-pressed={selected}
       className={cn(
-        'group relative flex w-full cursor-pointer items-start gap-3 rounded-card border bg-white p-4 text-start shadow-warm transition-all duration-brand ease-brand',
+        'group relative flex w-full cursor-pointer items-start gap-3 rounded-card border bg-white p-4 text-start shadow-warm transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-brand ease-brand',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
         selected ? 'border-gold bg-gold/10 ring-1 ring-gold' : 'border-default hover:border-gold/60 hover:bg-sand/30',
       )}

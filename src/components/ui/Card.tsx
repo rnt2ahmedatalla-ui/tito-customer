@@ -11,7 +11,7 @@ export function Card({ className, selected, interactive, children, ...props }: C
     <div
       className={cn(
         'rounded-card border border-default bg-cream p-4 shadow-warm',
-        interactive && 'cursor-pointer transition-all duration-brand ease-brand hover:border-gold hover:shadow-warm-raised motion-reduce:transition-none',
+        interactive && 'cursor-pointer transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-brand ease-brand hover:border-gold hover:shadow-warm-raised motion-reduce:transition-none',
         selected && 'border-gold ring-2 ring-gold/30',
         className,
       )}

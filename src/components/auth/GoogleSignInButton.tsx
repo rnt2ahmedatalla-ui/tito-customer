@@ -24,7 +24,7 @@ export function GoogleSignInButton({
       type="button"
       disabled={disabled || loading}
       className={cn(
-        'group relative inline-flex min-h-12 items-center justify-center gap-3 rounded-btn px-5 py-3 font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60',
+        'group relative inline-flex min-h-12 items-center justify-center gap-3 rounded-btn px-5 py-3 font-semibold transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60',
         variant === 'white' &&
           'border-2 border-espresso/15 bg-white text-espresso shadow-xs hover:border-gold hover:bg-sand/30 hover:shadow-warm',
         variant === 'gold' &&

@@ -24,7 +24,7 @@ export function ThemeToggle({ dark }: { dark?: boolean }) {
       aria-label={(ar ? 'الشكل: ' : 'Theme: ') + label}
       title={label}
       className={cn(
-        'inline-flex size-10 items-center justify-center rounded-btn transition-all duration-brand active:scale-90',
+        'inline-flex size-10 items-center justify-center rounded-btn transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-brand active:scale-90',
         dark ? 'border border-cream/20 text-cream/80 hover:bg-cream/10' : 'border border-default text-ink hover:bg-sand',
       )}
     >
@@ -50,7 +50,7 @@ export function ThemePicker() {
           key={k}
           type="button"
           onClick={() => setThemePref(k)}
-          className={cn('flex min-h-11 items-center justify-center gap-1.5 rounded-btn text-sm font-medium transition-all', pref === k ? 'bg-white text-espresso shadow-warm' : 'text-ink')}
+          className={cn('flex min-h-11 items-center justify-center gap-1.5 rounded-btn text-sm font-medium transition-[color,background-color,border-color,box-shadow,transform,opacity]', pref === k ? 'bg-white text-espresso shadow-warm' : 'text-ink')}
         >
           <I className="size-4" aria-hidden />
           {l}

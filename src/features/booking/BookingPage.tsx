@@ -63,7 +63,7 @@ function NoTimeHelp({ day, serviceId, waitlist, empty }: { day: string; serviceI
   useEffect(() => setPick(empty && waitlist ? 'wait' : null), [day, empty, waitlist]);
   if (pick === 'wait') return <div className="mt-5 animate-pop"><WaitlistPrompt day={day} serviceId={serviceId} defaultOpen /><button type="button" onClick={() => setPick(null)} className="mt-2 text-xs font-medium text-ink underline-offset-4 hover:underline">{L('رجوع', 'Back')}</button></div>;
   if (pick === 'special') return <div className="mt-5 animate-pop"><SpecialRequestPrompt day={day} serviceId={serviceId} defaultOpen onClose={() => setPick(null)} /></div>;
-  const tile = 'flex min-h-[5.5rem] flex-col items-start gap-1 rounded-card border border-default bg-white p-3 text-start transition-all hover:border-gold active:scale-[0.98]';
+  const tile = 'flex min-h-[5.5rem] flex-col items-start gap-1 rounded-card border border-default bg-white p-3 text-start transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-gold active:scale-[0.98]';
   return (
     <div className="mt-6 animate-rise">
       <p className="mb-2 text-sm font-semibold text-espresso">{L('مش لاقي معاد مناسب؟', "Can't find a good time?")}</p>
@@ -202,7 +202,7 @@ export default function BookingPage() {
                       onClick={() => updateParams({ service: service.id })}
                       style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
                       className={cn(
-                        'animate-rise relative flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-card border p-2.5 text-center transition-all duration-300 ease-brand active:scale-[0.97]',
+                        'animate-rise relative flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-card border p-2.5 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-brand active:scale-[0.97]',
                         on ? 'border-gold bg-gold/10 shadow-warm ring-1 ring-gold' : 'border-default bg-white hover:border-gold/50',
                       )}
                     >
@@ -584,7 +584,7 @@ export default function BookingPage() {
                   const on = svcTab === x.k;
                   return (
                     <button key={x.k} type="button" role="tab" aria-selected={on} onClick={() => setSvcTab(x.k)}
-                      className={cn('flex min-h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-all duration-300 ease-brand', on ? (x.k === 'regular' ? 'bg-espresso text-cream shadow' : 'keep-light-tokens bg-gradient-to-l from-[#1c0f08] via-[#3a2112] to-[#1c0f08] text-[#E6C878] shadow-[0_6px_20px_-6px_rgba(201,162,75,.6)]') : 'text-ink hover:text-espresso')}>
+                      className={cn('flex min-h-11 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-brand', on ? (x.k === 'regular' ? 'bg-espresso text-cream shadow' : 'keep-light-tokens bg-gradient-to-l from-[#1c0f08] via-[#3a2112] to-[#1c0f08] text-[#E6C878] shadow-[0_6px_20px_-6px_rgba(201,162,75,.6)]') : 'text-ink hover:text-espresso')}>
                       <x.icon className="size-4" />{x.label}
                     </button>
                   );
@@ -615,7 +615,7 @@ export default function BookingPage() {
                       const dur = arHours(mins, i18n.language === 'ar');
                       return (
                         <button key={service.id} type="button" aria-pressed={on} onClick={() => updateParams({ service: service.id })} style={{ animationDelay: `${i * 60}ms` }}
-                          className={cn('animate-rise relative flex w-full items-center gap-3 rounded-2xl border p-3 text-start transition-all duration-300 ease-brand active:scale-[0.98]', on ? 'border-[#E6C878] bg-[#C9A24B]/20 shadow-[0_0_0_1px_rgba(230,200,120,.6),0_10px_30px_-12px_rgba(201,162,75,.7)]' : 'border-white/10 bg-white/[0.04] hover:border-[#C9A24B]/50 hover:bg-white/[0.07]')}>
+                          className={cn('animate-rise relative flex w-full items-center gap-3 rounded-2xl border p-3 text-start transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-brand active:scale-[0.98]', on ? 'border-[#E6C878] bg-[#C9A24B]/20 shadow-[0_0_0_1px_rgba(230,200,120,.6),0_10px_30px_-12px_rgba(201,162,75,.7)]' : 'border-white/10 bg-white/[0.04] hover:border-[#C9A24B]/50 hover:bg-white/[0.07]')}>
                           <span className={cn('flex size-12 shrink-0 items-center justify-center rounded-xl transition-colors', on ? 'bg-[#E6C878] text-[#1c0f08]' : 'bg-[#C9A24B]/15 text-[#E6C878]')}>
                             <ServiceIcon name={`${service.name_ar} ${service.name_en ?? ''}`} icon={(service as { icon?: string | null }).icon} className="size-6" />
                           </span>
@@ -641,7 +641,7 @@ export default function BookingPage() {
                     whatsapp={settings.data?.shop_whatsapp}
                     onSignIn={() => void signIn()}
                   />
-                  <p className="relative mt-3 text-center text-[11px] text-white/55">{i18n.language === 'ar' ? '💡 احجز «البروفة» قبل الفرح بأسبوع نتفق فيها على اللوك · مواعيد الباقات مرنة ومش بتتقيد بأوقات الصلاة' : '💡 Book the rehearsal a week before · package times are flexible'}</p>
+                  <p className="relative mt-3 text-center text-[11px] text-white/55">{i18n.language === 'ar' ? '💡 احجز «البروفة» قبل الفرح بأسبوع نتفق فيها على اللوك' : '💡 Book the rehearsal a week before the wedding to agree on the look'}</p>
                 </section>
               ))
             )}
@@ -657,7 +657,7 @@ export default function BookingPage() {
                         aria-pressed={on}
                         onClick={() => toggleExtra(extra.id)}
                         className={cn(
-                          'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-all duration-300 ease-brand active:scale-95',
+                          'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-brand active:scale-95',
                           on ? 'border-gold bg-gold font-semibold text-espresso shadow-warm' : 'border-default bg-white text-espresso hover:border-gold/60',
                         )}
                       >

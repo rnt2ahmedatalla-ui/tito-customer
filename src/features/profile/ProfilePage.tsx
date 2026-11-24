@@ -168,7 +168,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-1.5 rounded-btn bg-sand/60 p-1">
             {(['ar', 'en'] as const).map((lng) => (
               <button key={lng} type="button" onClick={() => setLanguage(lng)}
-                className={cn('min-h-11 rounded-btn text-sm font-medium transition-all', i18n.language === lng ? 'bg-white text-espresso shadow-warm' : 'text-ink')}>
+                className={cn('min-h-11 rounded-btn text-sm font-medium transition-[color,background-color,border-color,box-shadow,transform,opacity]', i18n.language === lng ? 'bg-white text-espresso shadow-warm' : 'text-ink')}>
                 {lng === 'ar' ? t('profile.arabic') : t('profile.english')}
               </button>
             ))}
