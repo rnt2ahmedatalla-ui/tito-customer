@@ -145,6 +145,7 @@ export default function ProfilePage() {
               className="font-latin"
               inputMode="numeric"
             />
+            <p className="-mt-2 text-xs text-ink-70">{t('profile.phoneWa')}</p>
             <Button onClick={handleSave} loading={updateProfile.isPending}>{t('profile.save')}</Button>
           </div>
           <BirthdayCard />

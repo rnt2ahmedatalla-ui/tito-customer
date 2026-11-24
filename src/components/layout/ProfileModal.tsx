@@ -88,6 +88,7 @@ export function ProfileModal({
           className="font-latin"
           inputMode="numeric"
         />
+        <p className="-mt-2 text-xs text-ink-70">{t('profile.phoneWa')}</p>
         <Button
           type="submit"
           size="lg"

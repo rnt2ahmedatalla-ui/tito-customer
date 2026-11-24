@@ -151,7 +151,8 @@
   "profile": {
     "title": "Profile",
     "fullName": "Full name",
-    "phone": "Mobile number",
+    "phone": "WhatsApp number",
+    "phoneWa": "💬 Use your WhatsApp number so reminders and confirmations reach you",
     "phoneHint": "e.g. 01012345678",
     "save": "Save",
     "language": "Language",
