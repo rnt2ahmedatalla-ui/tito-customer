@@ -5,6 +5,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { egyptianPhoneSchema } from '@/lib/phone';
+import { useWhatsAppPhone, WhatsAppFields } from '@/features/profile/WhatsAppField';
 import { useUpdateProfile } from '@/features/profile/useProfile';
 
 const profileSchema = z.object({
@@ -32,6 +33,7 @@ export function ProfileModal({
   const [phone, setPhone] = useState(initialPhone);
   const [errors, setErrors] = useState<{ fullName?: string; phone?: string }>({});
   const updateProfile = useUpdateProfile();
+  const waPhone = useWhatsAppPhone(open);
 
   useEffect(() => {
     if (open) {
@@ -54,7 +56,9 @@ export function ProfileModal({
     }
     setErrors({});
     try {
+    if (!waPhone.validate()) return;
       await updateProfile.mutateAsync({ fullName, phone });
+    await waPhone.save();
       onComplete();
       onClose();
     } catch {
@@ -88,6 +92,7 @@ export function ProfileModal({
           className="font-latin"
           inputMode="numeric"
         />
+        <WhatsAppFields s={waPhone} />
         <p className="-mt-2 text-xs text-ink-70">{t('profile.phoneWa')}</p>
         <Button
           type="submit"

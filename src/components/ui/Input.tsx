@@ -1,6 +1,9 @@
 import { forwardRef, type InputHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
+// أخطاء الفاليديشن كانت بتظهر كود زي invalid_phone للعميل
+const PHONE_ERR = { ar: 'رقم موبايل مش صحيح — 11 رقم بيبدأ بـ 01', en: 'Invalid mobile number — 11 digits starting with 01' };
+
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
@@ -30,7 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         />
         {error ? (
           <p id={`${inputId}-error`} className="text-sm text-danger" role="alert">
-            {error}
+            {error === 'invalid_phone' ? PHONE_ERR[document.documentElement.lang?.startsWith('en') ? 'en' : 'ar'] : error}
           </p>
         ) : null}
       </div>

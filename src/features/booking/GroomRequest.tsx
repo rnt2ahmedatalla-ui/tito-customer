@@ -7,6 +7,8 @@ import { supabase } from '@/lib/supabase';
 import { buildWhatsAppUrl } from '@/lib/urls';
 import { useAuth } from '@/features/profile/useAuth';
 import { cn } from '@/lib/cn';
+import { fromZonedTime } from 'date-fns-tz';
+import { CAIRO_TZ } from '@/lib/time';
 
 type Rpc = (fn: string, a?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
@@ -25,11 +27,8 @@ export function GroomRequest({ serviceId, serviceName, whatsapp, onSignIn }: { s
   const wa = whatsapp ? buildWhatsAppUrl(whatsapp, L(`أهلاً tito 👋 أنا عريس ومهتم بـ«${serviceName}». عايز أتفق معاكم على التجهيزات والمعاد المناسب.`, `Hi tito 👋 I'm a groom interested in “${serviceName}”. I'd like to agree on the details and timing.`)) : null;
   const m = useMutation({
     mutationFn: async () => {
-      // الوقت بتوقيت القاهرة (مصر +02:00 شتاءً و+03:00 صيفاً)
-      const guess = new Date(`${day}T${time}:00Z`);
-      const cairoH = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', hour12: false }).format(guess));
-      const off = (cairoH - guess.getUTCHours() + 24) % 24;
-      const start = new Date(guess.getTime() - off * 3_600_000).toISOString();
+      // الوقت بتوقيت القاهرة (مصر +02:00 شتاءً و+03:00 صيفاً) — المكتبة بتحسب التوقيت الصيفي صح حتى يوم التغيير
+      const start = fromZonedTime(`${day}T${time}:00`, CAIRO_TZ).toISOString();
       const r = await rpc('request_groom_slot', { p_service_id: serviceId, p_start: start, p_note: note });
       if (r.error) throw new Error(r.error.message);
     },

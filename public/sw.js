@@ -74,7 +74,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
-      });
+      }).catch(() => cached || Response.error()); // من غير نت: منرميش خطأ في الكونسول لكل صورة
       return cached ?? fetchPromise;
     }),
   );

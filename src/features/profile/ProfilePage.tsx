@@ -15,6 +15,7 @@ import { useAuth, useProfile, useSignIn, useSignOut } from './useAuth';
 import { useUpdateProfile } from './useProfile';
 import { setLanguage } from '@/i18n';
 import { egyptianPhoneSchema } from '@/lib/phone';
+import { useWhatsAppPhone, WhatsAppFields } from '@/features/profile/WhatsAppField';
 import { buildWhatsAppUrl } from '@/lib/urls';
 import { useSettings } from '@/features/home/useHomeData';
 import { BellRing, MessageCircle, Palette, UserRound, type LucideIcon } from 'lucide-react';
@@ -55,6 +56,7 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState<{ fullName?: string; phone?: string }>({});
+  const waPhone = useWhatsAppPhone(!!profile.data);
 
   useEffect(() => {
     if (profile.data) {
@@ -112,7 +114,9 @@ export default function ProfilePage() {
       return;
     }
     setErrors({});
+    if (!waPhone.validate()) return;
     await updateProfile.mutateAsync({ fullName, phone });
+    await waPhone.save();
   };
 
   return (
@@ -145,6 +149,7 @@ export default function ProfilePage() {
               className="font-latin"
               inputMode="numeric"
             />
+            <WhatsAppFields s={waPhone} />
             <p className="-mt-2 text-xs text-ink-70">{t('profile.phoneWa')}</p>
             <Button onClick={handleSave} loading={updateProfile.isPending}>{t('profile.save')}</Button>
           </div>

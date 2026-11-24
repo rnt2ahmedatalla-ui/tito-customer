@@ -151,8 +151,8 @@
   "profile": {
     "title": "Profile",
     "fullName": "Full name",
-    "phone": "WhatsApp number",
-    "phoneWa": "💬 Use your WhatsApp number so reminders and confirmations reach you",
+    "phone": "Mobile number (calls)",
+    "phoneWa": "💬 Reminders and confirmations go to your WhatsApp; the shop calls your mobile number",
     "phoneHint": "e.g. 01012345678",
     "save": "Save",
     "language": "Language",
@@ -161,7 +161,9 @@
     "signOut": "Sign out",
     "blocked": "Your account is blocked — contact the shop on WhatsApp",
     "completeProfile": "Complete your profile",
-    "completeProfileDesc": "We need your name and phone to book"
+    "completeProfileDesc": "We need your name and phone to book",
+    "waSame": "My WhatsApp is the same number",
+    "waPhone": "WhatsApp number"
   },
   "status": {
     "pending_payment": "Pending payment",

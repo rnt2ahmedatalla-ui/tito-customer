@@ -215,7 +215,7 @@ export default function BookingPage() {
                         <span className="rounded-full bg-gold/20 px-2 py-0.5 text-[10px] font-semibold text-bark">{sp(service).location === 'home' ? (i18n.language === 'ar' ? '🏠 في البيت' : '🏠 At home') : (i18n.language === 'ar' ? '🏛️ في القاعة' : '🏛️ At the venue')}</span>
                       ) : null}
                       <span className="flex items-center gap-1.5 font-latin text-[11px] text-ink">
-                        <span className="font-bold text-bark">{formatEGP(Number(service.price_egp))}</span>·<span>{service.duration_minutes}{i18n.language === 'ar' ? 'د' : 'm'}</span>
+                        <span className="font-bold text-bark">{formatEGP(priceOf(service, staffId))}</span>·<span>{service.duration_minutes}{i18n.language === 'ar' ? 'د' : 'm'}</span>
                       </span>
                     </button>
                   );
@@ -628,7 +628,7 @@ export default function BookingPage() {
                             </span>
                           </span>
                           <span className="shrink-0 text-end">
-                            <span className="block font-latin text-lg font-bold text-[#E6C878]">{formatEGP(Number(service.price_egp))}</span>
+                            <span className="block font-latin text-lg font-bold text-[#E6C878]">{formatEGP(priceOf(service, staffId))}</span>
                             {on ? <span className="ms-auto mt-1 flex size-6 animate-pop items-center justify-center rounded-full bg-[#E6C878] text-[#1c0f08]"><Check className="size-3.5" strokeWidth={3} /></span> : null}
                           </span>
                         </button>
@@ -663,7 +663,7 @@ export default function BookingPage() {
                       >
                         {on ? <Check className="size-3.5" strokeWidth={3} /> : <Plus className="size-3.5 text-bark" />}
                         {i18n.language === 'ar' ? extra.name_ar : extra.name_en || extra.name_ar}
-                        <span className={cn('font-latin text-xs', on ? 'text-espresso/80' : 'text-bark')}>+{Number(extra.price_egp)}</span>
+                        <span className={cn('font-latin text-xs', on ? 'text-espresso/80' : 'text-bark')}>+{priceOf(extra, staffId)}</span>
                       </button>
                     );
                   })}
@@ -812,7 +812,7 @@ export default function BookingPage() {
           <div className="mt-6 space-y-3 rounded-card border border-default p-4">
             {(
               [
-                [t('booking.service'), i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en],
+                [t('booking.service'), i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en || selectedService.name_ar],
                 [t('booking.date'), date && slot ? formatCairoDate(slot, i18n.language) : '—'],
                 [t('booking.time'), slot ? formatCairoTime(slot, i18n.language) : '—'],
                 ...(chosenStaff ? ([[i18n.language === 'ar' ? 'الحلاق' : 'Barber', chosenStaff.name]] as const) : anyStaff ? ([[i18n.language === 'ar' ? 'الحلاق' : 'Barber', i18n.language === 'ar' ? 'أي حلاق متاح (بيتحدد تلقائي)' : 'Any available (assigned automatically)']] as const) : []),
@@ -825,8 +825,8 @@ export default function BookingPage() {
             ))}
             {selectedExtras.map((extra) => (
               <div key={extra.id} className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                <span className="text-sm text-ink">+ {i18n.language === 'ar' ? extra.name_ar : extra.name_en}</span>
-                <span className="font-latin font-medium sm:text-end">{formatEGP(extra.price_egp)}</span>
+                <span className="text-sm text-ink">+ {i18n.language === 'ar' ? extra.name_ar : extra.name_en || extra.name_ar}</span>
+                <span className="font-latin font-medium sm:text-end">{formatEGP(priceOf(extra, staffId))}</span>
               </div>
             ))}
             {prodPick.lines.map((l) => (

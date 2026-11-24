@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { nullableArg, supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
+import { formatInTimeZone } from 'date-fns-tz';
+import { CAIRO_TZ } from '@/lib/time';
 
 const db = supabase;
 
@@ -82,7 +84,7 @@ export function useMyPackages(enabled: boolean) {
         .from('customer_packages')
         .select('id, name_ar, name_en, sessions_left, sessions_total, expires_at, status, kind')
         .in('status', ['active', 'requested'])
-        .gte('expires_at', new Date().toISOString().slice(0, 10))
+        .gte('expires_at', formatInTimeZone(new Date(), CAIRO_TZ, 'yyyy-MM-dd'))
         .order('expires_at');
       if (error) return [];
       return (data ?? []) as unknown as MyPackage[];
