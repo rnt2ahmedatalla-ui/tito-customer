@@ -10,7 +10,7 @@ import { productImg } from '@/features/products/useStore';
 import { appUrl, assetUrl } from '@/lib/urls';
 import { cn } from '@/lib/cn';
 import { PRAYER_NAMES, fmtLeft, nextPrayer, usePrayerTimes } from '@/lib/usePrayer';
-import { stripAyahMarks, useFaithDaily, type FaithItem } from '@/lib/useFaith';
+import { stripAyahMarks, useFaithRotator } from '@/lib/useFaith';
 import {
   displayName,
   formatDuration,
@@ -500,11 +500,12 @@ type Slide =
   | { kind: 'review'; name: string; rating: number; comment: string }
   | { kind: 'offers'; lines: string[] }
   | { kind: 'products'; items: Board['products'] }
-  | { kind: 'faith'; item: FaithItem };
+  | { kind: 'faith'; n: number };
 
 /** العمود الجانبي: صور الشغل والتقييمات والعروض بتتقلّب لوحدها */
 function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; ar: boolean }) {
-  const faith = useFaithDaily();
+  const faithCfg = useFaithRotator({ auto: false, fetch: false });
+  const faithOn = faithCfg.enabled;
   const slides0 = useMemo<Slide[]>(() => {
     const photos: Slide[] = layout.side.gallery ? board.gallery.map((g) => ({ kind: 'photo', src: galleryUrl(g.full), caption: (ar ? g.caption_ar : g.caption_en) ?? null })) : [];
     const reviews: Slide[] = layout.side.reviews ? board.reviews.filter((r) => r.rating >= layout.reviews_min).map((r) => ({ kind: 'review', ...r })) : [];
@@ -537,7 +538,7 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
   }, [board, layout, ar]);
   // آية / حديث بالشرح بعد كل ٣ شرايح
   const slides = useMemo<Slide[]>(() => {
-    const f = (faith.data ?? []).map((item) => ({ kind: 'faith', item }) as Slide);
+    const f = faithOn ? [0, 1, 2].map((n) => ({ kind: 'faith', n }) as Slide) : [];
     if (!f.length) return slides0;
     if (!slides0.length) return f;
     const out: Slide[] = [];
@@ -545,13 +546,13 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
     slides0.forEach((sl, n) => { out.push(sl); if (n % 3 === 2) out.push(f[k++ % f.length]!); });
     if (k === 0) out.push(f[0]!);
     return out;
-  }, [slides0, faith.data]);
+  }, [slides0, faithOn]);
 
   const [i, setI] = useState(0);
   const count = slides.length;
   const s = slides[i % Math.max(1, count)];
   // الآية/الحديث بياخدوا وقت أطول عشان الشرح يتقري
-  const dwell = s?.kind === 'faith' ? Math.max(layout.slide_seconds * 2, 22) : layout.slide_seconds;
+  const dwell = s?.kind === 'faith' ? faithCfg.interval : layout.slide_seconds;
   useEffect(() => {
     if (count < 2) return;
     const id = setTimeout(() => setI((x) => (x + 1) % count), dwell * 1000);
@@ -604,7 +605,7 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
           </ul>
         </div>
       ) : s.kind === 'faith' ? (
-        <FaithSlide key={`f-${i}`} item={s.item} ar={ar} />
+        <FaithSlide key={`f-${i}`} ar={ar} />
       ) : s.kind === 'review' ? (
         <div key={`r-${i}`} className="tito-fade flex h-full flex-col items-center justify-center gap-[calc(var(--u)*2.4)] p-[calc(var(--u)*4)] text-center">
           <div className="flex gap-[calc(var(--u)*0.6)]" aria-label={`${s.rating}/5`}>
@@ -637,7 +638,10 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
   );
 }
 
-function FaithSlide({ item, ar }: { item: FaithItem; ar: boolean }) {
+/** كل ما الشريحة تظهر بتجيب آية/حديث جديد من المخزن (من غير تكرار، وحسب المناسبة الهجرية) */
+function FaithSlide({ ar }: { ar: boolean }) {
+  const { item } = useFaithRotator({ auto: false });
+  if (!item) return <div className="h-full" />;
   const main = item.kind === 'ayah' ? stripAyahMarks(item.text) : item.text;
   const expl = item.kind === 'ayah' ? item.tafsir : item.explanation;
   const big = main.length > 220 ? 3 : main.length > 130 ? 3.6 : 4.4;

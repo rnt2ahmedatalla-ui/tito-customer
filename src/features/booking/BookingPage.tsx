@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { GroomRequest } from './GroomRequest';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -634,7 +635,13 @@ export default function BookingPage() {
                       );
                     })}
                   </div>
-                  <p className="relative mt-3 text-center text-[11px] text-white/55">{i18n.language === 'ar' ? '💡 ننصحك تحجز «البروفة» قبل الفرح بأسبوع عشان نتفق على اللوك' : '💡 Book the rehearsal a week before to agree on the look'}</p>
+                  <GroomRequest
+                    serviceId={selectedService && sp(selectedService).is_special ? selectedService.id : null}
+                    serviceName={selectedService && sp(selectedService).is_special ? (i18n.language === 'ar' ? selectedService.name_ar : selectedService.name_en || selectedService.name_ar) : g}
+                    whatsapp={settings.data?.shop_whatsapp}
+                    onSignIn={() => void signIn()}
+                  />
+                  <p className="relative mt-3 text-center text-[11px] text-white/55">{i18n.language === 'ar' ? '💡 احجز «البروفة» قبل الفرح بأسبوع نتفق فيها على اللوك · مواعيد الباقات مرنة ومش بتتقيد بأوقات الصلاة' : '💡 Book the rehearsal a week before · package times are flexible'}</p>
                 </section>
               ))
             )}

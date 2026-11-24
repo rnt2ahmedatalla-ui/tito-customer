@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/profile/useAuth';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { PRAYER_NAMES, fmtLeft, nextPrayer, usePrayerTimes } from '@/lib/usePrayer';
-import { stripAyahMarks, useFaithDaily } from '@/lib/useFaith';
+import { stripAyahMarks, useFaithRotator } from '@/lib/useFaith';
 
 type Rpc = (fn: string, a?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
@@ -152,18 +152,10 @@ export default function TurnScreenPage() {
   );
 }
 
-/** آية / حديث اليوم بالشرح — بيتقلّبوا كل ٢٥ ثانية، والشرح يتفتح بلمسة */
+/** آية / حديث متجددين — «التالي» بيجيب واحد جديد من غير تكرار، والشرح يتفتح بلمسة */
 function FaithCard({ ar }: { ar: boolean }) {
-  const q = useFaithDaily();
-  const items = q.data ?? [];
-  const [i, setI] = useState(0);
   const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (items.length < 2 || open) return;
-    const id = window.setTimeout(() => setI((x) => (x + 1) % items.length), 25_000);
-    return () => window.clearTimeout(id);
-  }, [i, items.length, open]);
-  const it = items[i % Math.max(1, items.length)];
+  const { item: it, next, loading } = useFaithRotator({ intervalSec: 35, auto: !open });
   if (!it) return null;
   const main = it.kind === 'ayah' ? `﴿${stripAyahMarks(it.text)}﴾` : it.text;
   const expl = it.kind === 'ayah' ? it.tafsir : it.explanation;
@@ -171,19 +163,17 @@ function FaithCard({ ar }: { ar: boolean }) {
     <div dir="rtl" className="w-full rounded-[1.6rem] border border-emerald-400/25 bg-emerald-500/[0.07] p-4 text-start">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold text-emerald-300">{it.kind === 'ayah' ? `${it.surah} · ${it.num}` : (ar ? 'حديث شريف' : 'Hadith')}</p>
-        {items.length > 1 ? (
-          <div className="flex gap-1">
-            {items.map((_, n) => <button key={n} type="button" aria-label={`${n + 1}`} onClick={() => { setI(n); setOpen(false); }} className={`h-1.5 rounded-full transition-all ${n === i % items.length ? 'w-5 bg-emerald-300' : 'w-1.5 bg-white/25'}`} />)}
-          </div>
-        ) : null}
+        <button type="button" disabled={loading} onClick={() => { setOpen(false); next(); }} className="min-h-9 rounded-full border border-emerald-400/30 px-3 text-xs font-semibold text-emerald-200 transition active:scale-95 disabled:opacity-50">
+          {ar ? 'التالي ↻' : 'Next ↻'}
+        </button>
       </div>
-      <p key={i} className="animate-rise mt-2 text-[1.05rem] font-semibold leading-[1.9] text-white/95">{main}</p>
+      <p key={it.text.slice(0, 24)} className="animate-rise mt-2 text-[1.05rem] font-semibold leading-[1.9] text-white/95">{main}</p>
       {expl ? (
         <>
           <button type="button" onClick={() => setOpen((v) => !v)} className="mt-2 min-h-9 text-sm font-semibold text-[#C9A24B]">
-            {open ? (ar ? 'اقفل الشرح' : 'Hide explanation') : it.kind === 'ayah' ? (ar ? 'اقرأ التفسير' : 'Read tafsir') : (ar ? 'اقرأ الشرح' : 'Read explanation')}
+            {open ? (ar ? 'اقفل الشرح' : 'Hide') : it.kind === 'ayah' ? (ar ? 'اقرأ التفسير' : 'Read tafsir') : (ar ? 'اقرأ الشرح' : 'Read explanation')}
           </button>
-          {open ? <p className="text-sm leading-relaxed text-white/75">{expl}</p> : null}
+          {open ? <p className="animate-rise text-sm leading-relaxed text-white/75">{expl}</p> : null}
         </>
       ) : null}
       <p className="mt-2 text-[11px] text-white/45">{it.kind === 'hadith' ? `${it.attribution} · ${it.grade}` : it.source}</p>

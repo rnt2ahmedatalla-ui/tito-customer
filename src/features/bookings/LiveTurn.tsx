@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn';
 
 type Rpc = (fn: string, a?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
-type Turn = { status: string; start_at: string; ahead: number; busy_now: boolean; eta: string; late_min: number; called_at: string | null; my_eta_minutes: number | null };
+type Turn = { status: string; start_at: string; ahead: number; busy_now: boolean; eta: string; late_min: number; called_at: string | null; my_eta_minutes: number | null; eta_request?: number | null; eta_status?: 'pending' | 'approved' | 'declined' | null };
 
 const fmtTime = (iso: string, ar: boolean) => new Intl.DateTimeFormat(ar ? 'ar-EG-u-nu-latn' : 'en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 const cairoDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo' }).format(d);
@@ -39,7 +39,7 @@ export function LiveTurn({ bookingId, startAt, endAt }: { bookingId: string; sta
       return m;
     },
     onSuccess: (m) => {
-      toast.success(m > 0 ? L(`تمام، بلّغنا الحلاق إنك هتتأخر ${m} دقيقة`, `Told the barber you'll be ${m} min late`) : m < 0 ? L('تمام، الحلاق عرف إنك تقدر تيجي بدري', 'The barber knows you can come early') : L('تمام، مستنينك في معادك ✂️', 'See you on time ✂️'));
+      toast.success(m === 0 ? L('تمام، مستنينك في معادك ✂️', 'See you on time ✂️') : L('اتبعت طلبك للمحل — هنبلغك أول ما يرد', 'Request sent — we’ll notify you'));
       void qc.invalidateQueries({ queryKey: ['my-turn', bookingId] });
       void qc.invalidateQueries({ queryKey: ['bookings'] });
     },
@@ -62,6 +62,13 @@ export function LiveTurn({ bookingId, startAt, endAt }: { bookingId: string; sta
                 <div className="rounded-btn bg-white p-2"><p className="flex items-center justify-center gap-1 text-[11px] text-ink"><Users className="size-3.5" />{L('قدامك', 'Ahead of you')}</p><p className="font-latin text-xl font-bold text-espresso">{t.ahead}</p></div>
                 <div className="rounded-btn bg-white p-2"><p className="flex items-center justify-center gap-1 text-[11px] text-ink"><Hourglass className="size-3.5" />{L('معادك المتوقع', 'Expected time')}</p><p className="font-latin text-xl font-bold text-espresso">{fmtTime(t.eta, ar)}</p></div>
               </div>
+              {t.eta_status === 'pending' && t.eta_request ? (
+                <p className="mt-2 flex items-center gap-1.5 rounded-btn bg-amber-500/10 px-2 py-1.5 text-xs font-semibold text-warning"><Hourglass className="size-3.5 animate-pulse" />{t.eta_request > 0 ? L(`طلبت تتأخر ${t.eta_request} دقيقة — مستني موافقة المحل`, `Asked for ${t.eta_request} min — waiting for approval`) : L(`طلبت تيجي بدري ${Math.abs(t.eta_request)} دقيقة — مستني موافقة المحل`, `Asked to come ${Math.abs(t.eta_request)} min early — waiting`)}</p>
+              ) : t.eta_status === 'approved' && t.eta_request ? (
+                <p className="mt-2 rounded-btn bg-success/10 px-2 py-1.5 text-xs font-semibold text-success">✅ {t.eta_request > 0 ? L(`المحل وافق — تقدر تيجي متأخر ${t.eta_request} دقيقة`, `Approved — ${t.eta_request} min later`) : L(`المحل وافق — تقدر تيجي بدري ${Math.abs(t.eta_request)} دقيقة`, `Approved — ${Math.abs(t.eta_request)} min early`)}</p>
+              ) : t.eta_status === 'declined' ? (
+                <p className="mt-2 rounded-btn bg-sand px-2 py-1.5 text-xs text-ink">{L('المحل مش هيقدر المرة دي — ياريت تيجي في معادك 🙏', 'Not possible this time — please come on time 🙏')}</p>
+              ) : null}
               {t.late_min > 0 ? <p className="mt-2 text-xs text-warning">{L(`الشغل متأخر حوالي ${t.late_min} دقيقة النهارده — معلش 🙏`, `Running about ${t.late_min} min late today`)}</p> : null}
             </>
           )}
@@ -70,9 +77,9 @@ export function LiveTurn({ bookingId, startAt, endAt }: { bookingId: string; sta
       {!called ? (
         <div className="flex flex-wrap gap-1.5">
           {[10, 20].map((m) => (
-            <button key={m} type="button" disabled={eta.isPending} onClick={() => eta.mutate(m)} className={cn('inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold transition-transform active:scale-95', t?.my_eta_minutes === m ? 'border-warning bg-warning/15 text-warning' : 'border-default bg-white text-espresso')}><Timer className="size-3.5" />{L(`هتأخر ${m} د`, `${m} min late`)}</button>
+            <button key={m} type="button" disabled={eta.isPending} onClick={() => eta.mutate(m)} className={cn('inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold transition-transform active:scale-95', (t?.eta_status === 'pending' ? t?.eta_request : t?.my_eta_minutes) === m ? 'border-warning bg-warning/15 text-warning' : 'border-default bg-white text-espresso')}><Timer className="size-3.5" />{L(`محتاج أتأخر ${m} د`, `Need ${m} min more`)}</button>
           ))}
-          <button type="button" disabled={eta.isPending} onClick={() => eta.mutate(-15)} className={cn('inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold transition-transform active:scale-95', (t?.my_eta_minutes ?? 0) < 0 ? 'border-success bg-success/10 text-success' : 'border-default bg-white text-espresso')}><Zap className="size-3.5" />{L('أقدر آجي بدري', 'Can come early')}</button>
+          <button type="button" disabled={eta.isPending} onClick={() => eta.mutate(-15)} className={cn('inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold transition-transform active:scale-95', ((t?.eta_status === 'pending' ? t?.eta_request : t?.my_eta_minutes) ?? 0) < 0 ? 'border-success bg-success/10 text-success' : 'border-default bg-white text-espresso')}><Zap className="size-3.5" />{L('ممكن آجي بدري؟', 'Can I come early?')}</button>
           <button type="button" disabled={eta.isPending} onClick={() => eta.mutate(0)} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-default bg-white px-3 text-xs font-semibold text-espresso transition-transform active:scale-95"><Clock className="size-3.5" />{L('في معادي', 'On time')}</button>
           <Link to={`/turn/${bookingId}`} className="inline-flex min-h-9 items-center gap-1 rounded-full bg-espresso px-3 text-xs font-semibold text-cream transition-transform active:scale-95"><MonitorSmartphone className="size-3.5" />{L('افتح شاشة الدور', 'Open turn screen')}</Link>
           <button type="button" onClick={() => setSwapOpen((v) => !v)} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-default bg-white px-3 text-xs font-semibold text-espresso transition-transform active:scale-95"><ArrowLeftRight className="size-3.5" />{L('بدّل معادي مع حد', 'Swap with someone')}</button>
