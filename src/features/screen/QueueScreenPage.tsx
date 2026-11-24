@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import QRCode from 'qrcode';
@@ -639,6 +639,20 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
 }
 
 /** كل ما الشريحة تظهر بتجيب آية/حديث جديد من المخزن (من غير تكرار، وحسب المناسبة الهجرية) */
+/** بيصغّر الكلام لحد ما يدخل في المساحة كله (من غير قص) — مهم للأحاديث الطويلة والشاشات الصغيرة */
+function FitBox({ children, dep }: { children: ReactNode; dep: unknown }) {
+  const box = useRef<HTMLDivElement | null>(null);
+  const inner = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    const b = box.current, i = inner.current; if (!b || !i) return;
+    const base = parseFloat(getComputedStyle(b.parentElement ?? b).getPropertyValue('--u')) || 8;
+    let k = 1;
+    i.style.setProperty('--u', `${base}px`);
+    for (let n = 0; n < 12 && i.scrollHeight > b.clientHeight + 2 && k > 0.4; n++) { k *= 0.9; i.style.setProperty('--u', `${base * k}px`); }
+  }, [dep]);
+  return <div ref={box} className="h-full overflow-hidden"><div ref={inner} className="flex min-h-full flex-col justify-center">{children}</div></div>;
+}
+
 function FaithSlide({ ar }: { ar: boolean }) {
   const { item } = useFaithRotator({ auto: false });
   if (!item) return <div className="h-full" />;
@@ -646,7 +660,8 @@ function FaithSlide({ ar }: { ar: boolean }) {
   const expl = item.kind === 'ayah' ? item.tafsir : item.explanation;
   const big = main.length > 220 ? 3 : main.length > 130 ? 3.6 : 4.4;
   return (
-    <div dir="rtl" className="tito-fade flex h-full flex-col justify-center gap-[calc(var(--u)*1.8)] bg-gradient-to-b from-emerald-950/40 to-transparent p-[calc(var(--u)*3.2)] text-center">
+    <FitBox dep={item.text}>
+    <div dir="rtl" className="tito-fade flex flex-col justify-center gap-[calc(var(--u)*1.8)] bg-gradient-to-b from-emerald-950/40 to-transparent p-[calc(var(--u)*3.2)] pb-[calc(var(--u)*4.5)] text-center">
       <p style={fs(2.3)} className="font-semibold tracking-wide text-emerald-300">
         {item.kind === 'ayah' ? `﴿ ${item.surah} · ${item.num} ﴾` : (ar ? 'حديث شريف' : 'Hadith')}
       </p>
@@ -656,11 +671,12 @@ function FaithSlide({ ar }: { ar: boolean }) {
       {expl ? (
         <div className="rounded-[calc(var(--u)*1.6)] bg-white/[0.06] p-[calc(var(--u)*1.8)] text-start">
           <p style={fs(1.9)} className="mb-[calc(var(--u)*0.5)] font-semibold text-gold">{item.kind === 'ayah' ? 'التفسير الميسّر' : 'الشرح'}</p>
-          <p style={fs(2.3)} className="line-clamp-6 leading-relaxed text-cream/85">{expl}</p>
+          <p style={fs(2.3)} className="line-clamp-5 leading-relaxed text-cream/85">{expl}</p>
         </div>
       ) : null}
       <p style={fs(1.8)} className="text-cream/50">{item.kind === 'hadith' ? `${item.attribution} · ${item.grade}` : item.source}</p>
     </div>
+    </FitBox>
   );
 }
 
