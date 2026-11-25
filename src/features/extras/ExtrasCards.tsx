@@ -89,7 +89,12 @@ export function WaitEstimateCard() {
                   { service: null, day: today, note: '' },
                   {
                     onSuccess: () => toast.success(L('اتسجّلت في قايمة الانتظار، هنبلّغك لو فضي معاد', 'Added to the waiting list')),
-                    onError: () => toast.error(L('مقدرناش نسجّلك، جرّب تاني', 'Could not add you, try again')),
+                    onError: (err) =>
+                toast.error(
+                  err instanceof Error && /BLOCKED_USER/i.test(err.message)
+                    ? L('حسابك محظور — تواصل مع المحل', 'Your account is blocked — contact the shop')
+                    : L('مقدرناش نسجّلك، جرّب تاني', 'Could not add you, try again'),
+                ),
                   },
                 );
               }}
