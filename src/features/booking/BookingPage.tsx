@@ -55,7 +55,7 @@ const STEP_LABELS: Record<string, string> = {
 };
 
 /** «مش لاقي معاد مناسب؟» كارت واحد فيه اختيارين واضحين بدل كارتين مختلفين */
-function NoTimeHelp({ day, serviceId, waitlist, authed, onSignIn }: { day: string; serviceId: string | null; waitlist: boolean; authed: boolean; onSignIn: () => void }) {
+function NoTimeHelp({ day, serviceId, waitlist, full, authed, onSignIn }: { day: string; serviceId: string | null; waitlist: boolean; full?: boolean; authed: boolean; onSignIn: () => void }) {
   const { i18n } = useTranslation();
   const ar = i18n.language === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
@@ -76,8 +76,8 @@ function NoTimeHelp({ day, serviceId, waitlist, authed, onSignIn }: { day: strin
   return (
     <div className="mt-6 animate-rise">
       <p className="mb-2 text-sm font-semibold text-espresso">{L('مش لاقي معاد مناسب؟', "Can't find a good time?")}</p>
-      <div className={cn('grid gap-2', waitlist ? 'grid-cols-2' : 'grid-cols-1')}>
-        {waitlist ? (
+      <div className={cn('grid gap-2', waitlist && full ? 'grid-cols-2' : 'grid-cols-1')}>
+        {waitlist && full ? (
           <button type="button" onClick={() => setPick('wait')} className={tile}>
             <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><BellRing className="size-4" /></span>
             <span className="text-sm font-semibold text-espresso">{L('قايمة الانتظار', 'Waiting list')}</span>
@@ -801,6 +801,7 @@ export default function BookingPage() {
                   day={date}
                   serviceId={serviceId ?? null}
                   waitlist={!!featureFlags.data?.waitlist}
+                  full={fullyBookedDays.has(date) || (slots.data ?? []).length === 0}
                   authed={!!user}
                   onSignIn={() => void signIn()}
                 />
