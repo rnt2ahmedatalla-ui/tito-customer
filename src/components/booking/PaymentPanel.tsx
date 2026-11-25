@@ -56,6 +56,7 @@ export function PaymentPanel({
 }: PaymentPanelProps) {
   const { t, i18n } = useTranslation();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [waOpened, setWaOpened] = useState(false);
   const [copied, setCopied] = useState(false);
   const detailsRef = useRef<HTMLDivElement>(null);
 
@@ -71,6 +72,7 @@ export function PaymentPanel({
   const selectMethod = (method: PaymentMethod) => {
     setSelectedMethod(method);
     setCopied(false);
+    setWaOpened(false);
   };
 
   const methodValue =
@@ -208,24 +210,24 @@ export function PaymentPanel({
           <p className="text-xs text-ink">{t('booking.receiptHint')}</p>
 
           {whatsappUrl ? (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleSent}
-              aria-disabled={loading}
-              className={cn('block', loading && 'pointer-events-none opacity-50')}
-            >
-              <span
-                className={cn(
-                  'inline-flex w-full items-center justify-center gap-2 rounded-btn',
-                  'min-h-[52px] bg-espresso px-6 text-lg font-semibold text-cream font-latin',
-                )}
-              >
-                <MessageCircle className="size-5" aria-hidden />
-                {t('booking.sendReceiptWhatsApp')}
-              </span>
-            </a>
+            <div className="space-y-2">
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="block" onClick={() => setWaOpened(true)}>
+                <span
+                  className={cn(
+                    'inline-flex w-full items-center justify-center gap-2 rounded-btn',
+                    'min-h-[52px] bg-espresso px-6 text-lg font-semibold text-cream font-latin',
+                  )}
+                >
+                  <MessageCircle className="size-5" aria-hidden />
+                  {t('booking.sendReceiptWhatsApp')}
+                </span>
+              </a>
+              {waOpened ? (
+                <Button fullWidth size="lg" loading={loading} onClick={handleSent}>
+                  {t('booking.receiptSent')}
+                </Button>
+              ) : null}
+            </div>
           ) : (
             <div className="space-y-2">
               <p className="rounded-btn bg-sand/50 p-3 text-sm text-ink">{t('booking.whatsappMissing')}</p>

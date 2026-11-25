@@ -126,7 +126,8 @@
     "accountHolder": "Account holder",
     "transferNumber": "Transfer number",
     "openInstapay": "Open InstaPay and pay",
-    "receiptHint": "After transferring, tap the button below and send the receipt photo on WhatsApp. The shop will confirm your booking.",
+    "receiptHint": "After transferring, send the receipt photo on WhatsApp, then come back and tap \"I've sent the receipt\". The shop will confirm your booking.",
+    "receiptSent": "I've sent the receipt",
     "sendReceiptWhatsApp": "Send receipt on WhatsApp",
     "markTransferred": "I've transferred",
     "receiptMessage": "Hello {{shop}} 👋\nI've paid for my booking and I'm sending the receipt now 🧾\nBooking: #{{id}}\nService: {{service}}\nWhen: {{when}}\nAmount: {{amount}}\nPayment method: {{method}}"
