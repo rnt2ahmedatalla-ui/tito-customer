@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
+import { BellRing } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { formatDateKey } from '@/lib/time';
 import { seasonFor, seasonLocked, type SeasonPeriod } from '@/features/booking/useSeasons';
@@ -9,11 +10,12 @@ interface DateStripProps {
   selectedDate: string | null;
   closedDays: Set<number>;
   fullyBookedDays?: Set<string>;
+  waitlistEnabled?: boolean;
   seasons?: SeasonPeriod[];
   onSelect: (dateKey: string) => void;
 }
 
-export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, seasons, onSelect }: DateStripProps) {
+export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, waitlistEnabled, seasons, onSelect }: DateStripProps) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -27,8 +29,10 @@ export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, se
         const season = seasonFor(seasons, key);
         const locked = seasonLocked(season);
         const isFull = !locked && (fullyBookedDays?.has(key) ?? false);
-        // اليوم بيتقفل لو إجازة أو مواعيده خلصت (أيام الموسم المفتوحة بتتجاهل الإجازة الأسبوعية)
-        const isClosed = locked || (season ? false : closedDays.has(date.getDay())) || isFull;
+        // اليوم المكتمل يفضل قابل للضغط لو قايمة الانتظار شغالة (العميل يضيف نفسه منها)
+        const fullOpen = isFull && (waitlistEnabled ?? false);
+        // اليوم بيتقفل لو إجازة أو مواعيده خلصت وقايمة الانتظار مقفولة (أيام الموسم المفتوحة بتتجاهل الإجازة الأسبوعية)
+        const isClosed = locked || (season ? false : closedDays.has(date.getDay())) || (isFull && !fullOpen);
         const isSelected = selectedDate === key;
         const isToday = key === formatDateKey(new Date());
         const weekday = new Intl.DateTimeFormat(i18n.language === 'ar' ? 'ar-EG' : 'en', {
@@ -48,7 +52,8 @@ export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, se
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
               isSelected && 'border-gold bg-gold text-espresso',
               locked && 'cursor-not-allowed border-gold/40 bg-gold/10 text-ink/60',
-              !isSelected && !isClosed && 'border-default bg-cream text-espresso hover:border-gold',
+              !isSelected && !isClosed && fullOpen && 'border-gold/50 bg-gold/10 text-espresso hover:border-gold',
+              !isSelected && !isClosed && !fullOpen && 'border-default bg-cream text-espresso hover:border-gold',
               isClosed && !locked && 'cursor-not-allowed border-default bg-sand/50 text-ink/40',
             )}
           >
@@ -57,7 +62,13 @@ export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, se
             {locked ? (
               <span className="text-[10px] font-medium text-gold">{i18n.language === 'ar' ? 'قريباً' : 'Soon'}</span>
             ) : isFull ? (
-              <span className="text-[10px] font-medium">{i18n.language === 'ar' ? 'مكتمل' : 'Full'}</span>
+              fullOpen ? (
+                <span className={cn('flex items-center gap-0.5 text-[10px] font-semibold', isSelected ? 'text-espresso' : 'text-gold')}>
+                  <BellRing className="size-3" aria-hidden />{i18n.language === 'ar' ? 'انتظار' : 'Waitlist'}
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium">{i18n.language === 'ar' ? 'مكتمل' : 'Full'}</span>
+              )
             ) : isToday ? (
               <span className={cn('text-[10px] font-medium', isSelected ? 'text-espresso' : 'text-gold')}>
                 {t('home.today')}

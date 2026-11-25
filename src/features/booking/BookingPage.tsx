@@ -55,19 +55,21 @@ const STEP_LABELS: Record<string, string> = {
 };
 
 /** «مش لاقي معاد مناسب؟» كارت واحد فيه اختيارين واضحين بدل كارتين مختلفين */
-function NoTimeHelp({ day, serviceId, waitlist, empty }: { day: string; serviceId: string | null; waitlist: boolean; empty: boolean }) {
+function NoTimeHelp({ day, serviceId, waitlist, empty, full }: { day: string; serviceId: string | null; waitlist: boolean; empty: boolean; full?: boolean }) {
   const { i18n } = useTranslation();
   const ar = i18n.language === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
+  // اليوم المكتمل: قايمة الانتظار بس. المعاد الخاص للمواعيد المقفولة مش للأيام المكتملة
+  const showSpecial = !full;
   const [pick, setPick] = useState<'wait' | 'special' | null>(empty && waitlist ? 'wait' : null);
   useEffect(() => setPick(empty && waitlist ? 'wait' : null), [day, empty, waitlist]);
   if (pick === 'wait') return <div className="mt-5 animate-pop"><WaitlistPrompt day={day} serviceId={serviceId} defaultOpen /><button type="button" onClick={() => setPick(null)} className="mt-2 text-xs font-medium text-ink underline-offset-4 hover:underline">{L('رجوع', 'Back')}</button></div>;
-  if (pick === 'special') return <div className="mt-5 animate-pop"><SpecialRequestPrompt day={day} serviceId={serviceId} defaultOpen onClose={() => setPick(null)} /></div>;
+  if (pick === 'special' && showSpecial) return <div className="mt-5 animate-pop"><SpecialRequestPrompt day={day} serviceId={serviceId} defaultOpen onClose={() => setPick(null)} /></div>;
   const tile = 'flex min-h-[5.5rem] flex-col items-start gap-1 rounded-card border border-default bg-white p-3 text-start transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-gold active:scale-[0.98]';
   return (
     <div className="mt-6 animate-rise">
       <p className="mb-2 text-sm font-semibold text-espresso">{L('مش لاقي معاد مناسب؟', "Can't find a good time?")}</p>
-      <div className={cn('grid gap-2', waitlist ? 'grid-cols-2' : 'grid-cols-1')}>
+      <div className={cn('grid gap-2', waitlist && showSpecial ? 'grid-cols-2' : 'grid-cols-1')}>
         {waitlist ? (
           <button type="button" onClick={() => setPick('wait')} className={tile}>
             <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><BellRing className="size-4" /></span>
@@ -75,11 +77,13 @@ function NoTimeHelp({ day, serviceId, waitlist, empty }: { day: string; serviceI
             <span className="text-xs leading-snug text-ink">{L('نبلّغك أول ما يفضى معاد', 'We notify you when a slot frees up')}</span>
           </button>
         ) : null}
-        <button type="button" onClick={() => setPick('special')} className={tile}>
-          <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><Star className="size-4" /></span>
-          <span className="text-sm font-semibold text-espresso">{L('معاد خاص', 'Special time')}</span>
-          <span className="text-xs leading-snug text-ink">{L('اطلب وقت برّه مواعيد الشغل', 'Ask for a time outside opening hours')}</span>
-        </button>
+        {showSpecial ? (
+          <button type="button" onClick={() => setPick('special')} className={tile}>
+            <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><Star className="size-4" /></span>
+            <span className="text-sm font-semibold text-espresso">{L('معاد خاص', 'Special time')}</span>
+            <span className="text-xs leading-snug text-ink">{L('اطلب وقت برّه مواعيد الشغل', 'Ask for a time outside opening hours')}</span>
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -769,6 +773,7 @@ export default function BookingPage() {
               selectedDate={date}
               closedDays={closedDays}
               fullyBookedDays={fullyBookedDays}
+              waitlistEnabled={!!featureFlags.data?.waitlist}
               seasons={seasons.data}
               onSelect={(d) => updateParams({ date: d, slot: null })}
             />
@@ -792,6 +797,7 @@ export default function BookingPage() {
                   serviceId={serviceId ?? null}
                   waitlist={!!featureFlags.data?.waitlist}
                   empty={(slots.data ?? []).length === 0}
+                  full={fullyBookedDays.has(date)}
                 />
               ) : null}
             </div>
