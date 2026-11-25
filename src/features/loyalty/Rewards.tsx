@@ -19,6 +19,7 @@ export function RewardsCard() {
   const settings = useLoyaltySettings();
   const ledger = useLoyaltyLedger();
   const balance = (ledger.data ?? []).reduce((a, r) => a + Number(r.points || 0), 0);
+  const minRedeem = settings.data?.min_redeem_points ?? 0;
   const q = useQuery({
     queryKey: ['loyalty-rewards', user?.id],
     enabled: !!user && !!settings.data?.enabled,
@@ -55,6 +56,9 @@ export function RewardsCard() {
         <h2 className="flex items-center gap-2 font-semibold text-espresso"><Gift className="size-4 text-gold" />{L('بدّل نقاطك', 'Redeem your points')}</h2>
         <span className="rounded-full bg-gold/20 px-2.5 py-1 font-latin text-xs font-bold text-bark">{balance} {L('نقطة', 'pts')}</span>
       </div>
+      {balance < minRedeem && q.data.rewards.length > 0 ? (
+        <p className="mb-3 rounded-btn bg-sand/50 px-3 py-2 text-xs text-ink">{L(`لازم رصيدك يوصل ${minRedeem} نقطة عشان تبدّل أي مكافأة، وبعدين بيتخصم منك سعر المكافأة بس`, `You need ${minRedeem} points to redeem any reward, then only the reward cost is deducted`)}</p>
+      ) : null}
       {pending.length ? (
         <ul className="mb-3 space-y-1.5">
           {pending.map((c) => (
@@ -68,12 +72,12 @@ export function RewardsCard() {
       ) : null}
       <ul className="space-y-2">
         {q.data.rewards.map((r) => {
-          const can = balance >= r.points_cost && (r.stock == null || r.stock > 0);
+          const can = balance >= Math.max(r.points_cost, minRedeem) && (r.stock == null || r.stock > 0);
           return (
             <li key={r.id} className="flex items-center gap-2 rounded-btn border border-default p-2.5 text-sm">
               <span className="min-w-0 flex-1"><b className="block truncate text-espresso">{ar ? r.title_ar : r.title_en || r.title_ar}</b><span className="font-latin text-xs text-bark">{r.points_cost} {L('نقطة', 'pts')}</span></span>
               <button type="button" disabled={!can || claim.isPending} onClick={() => claim.mutate(r.id)} className="min-h-9 rounded-btn bg-gold px-3 text-xs font-semibold text-espresso transition-transform active:scale-95 disabled:bg-sand disabled:text-ink">
-                {can ? L('بدّل', 'Redeem') : L(`ناقصك ${Math.max(0, r.points_cost - balance)}`, `${Math.max(0, r.points_cost - balance)} more`)}
+                {can ? L('بدّل', 'Redeem') : L(`ناقصك ${Math.max(0, Math.max(r.points_cost, minRedeem) - balance)}`, `${Math.max(0, Math.max(r.points_cost, minRedeem) - balance)} more`)}
               </button>
             </li>
           );
