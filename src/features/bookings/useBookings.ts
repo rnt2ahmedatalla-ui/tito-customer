@@ -1,3 +1,4 @@
+import { shouldToastConfirmed } from './confirmToast';
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -53,8 +54,11 @@ export function useBookings() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const newStatus = (payload.new as { status?: string }).status;
-          if (newStatus === 'confirmed') {
+          const row = payload.new as { id?: string; status?: string };
+          // التنبيه بس لما الحجز يتأكد فعلاً (كان مش مؤكد في آخر نسخة عندنا).
+          // أي تعديل تاني على حجز مؤكد (طلب تبكير/تأخير، نقل، حضور) مش تأكيد حجز.
+          const cached = queryClient.getQueryData<BookingWithDetails[]>(['bookings', user.id]);
+          if (shouldToastConfirmed(cached, row)) {
             toast.success(t('bookings.confirmedToast'));
           }
           queryClient.invalidateQueries({ queryKey: ['bookings', user.id] });
