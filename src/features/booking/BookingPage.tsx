@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useQueries } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { BellRing, Check, ChevronLeft, ChevronRight, Crown, Plus, Scissors, Sparkles, Star, type LucideIcon } from 'lucide-react';
+import { BellRing, Check, ChevronLeft, ChevronRight, Crown, Info, Plus, Scissors, Sparkles, Star, type LucideIcon } from 'lucide-react';
 import { ServiceIcon } from '@/features/home/Showcase';
 import { PageShell } from '@/components/layout/PageShell';
 import { StickyBottomBar } from '@/components/layout/StickyBottomBar';
@@ -16,6 +16,7 @@ import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 import { GoogleIcon } from '@/components/auth/GoogleIcon';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { Button } from '@/components/ui/Button';
+import { Sheet } from '@/components/ui/Sheet';
 import { ExtraCard } from '@/components/booking/ExtraCard';
 import { DateStrip } from '@/components/booking/DateStrip';
 import { SeasonNotice } from '@/components/booking/SeasonNotice';
@@ -183,6 +184,9 @@ export default function BookingPage() {
   const specialGroups = Array.from(new Set(mainServices.filter((x) => sp(x).is_special).map((x) => sp(x).special_group || 'باقات خاصة')));
   const extraServices = catalog.filter((service) => service.is_extra);
   const [svcTabRaw, setSvcTab] = useState<string | null>(null);
+  const [descSeen, setDescSeen] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('tito_service_desc_seen') || '[]'); } catch { return []; } });
+  const [descService, setDescService] = useState<(typeof mainServices)[number] | null>(null);
+  const [descHintSeen, setDescHintSeen] = useState(() => { try { return localStorage.getItem('tito_service_desc_hint') === '1'; } catch { return true; } });
   const chosen = mainServices.find((x) => x.id === params.get('service'));
   const svcTab = svcTabRaw ?? (chosen && sp(chosen).is_special ? sp(chosen).special_group || 'باقات خاصة' : 'regular');
   const extraIds = (params.get('extras') ?? '').split(',').filter(Boolean);
@@ -203,15 +207,16 @@ export default function BookingPage() {
   const prepService = selectedService && sp(selectedService).prep_service_id ? mainServices.find((x) => x.id === sp(selectedService).prep_service_id) ?? null : null;
   const renderServiceCard = (service: (typeof mainServices)[number], i: number) => {
                   const on = serviceId === service.id;
+                  const descText = (i18n.language === 'ar' ? sp(service).description_ar : sp(service).description_en || sp(service).description_ar)?.trim();
                   return (
+                    <div key={service.id} className="relative flex flex-col">
                     <button
-                      key={service.id}
                       type="button"
                       aria-pressed={on}
                       onClick={() => updateParams({ service: service.id })}
                       style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
                       className={cn(
-                        'animate-rise relative flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-card border p-2.5 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-brand active:scale-[0.97]',
+                        'animate-rise relative flex min-h-[7.5rem] flex-1 flex-col items-center justify-center gap-1.5 rounded-card border p-2.5 text-center transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300 ease-brand active:scale-[0.97]',
                         on ? 'border-gold bg-gold/10 shadow-warm ring-1 ring-gold' : 'border-default bg-white hover:border-gold/50',
                       )}
                     >
@@ -227,6 +232,13 @@ export default function BookingPage() {
                         <span className="font-bold text-bark">{formatEGP(priceOf(service, staffId))}</span>·<span>{service.duration_minutes}{i18n.language === 'ar' ? 'د' : 'm'}</span>
                       </span>
                     </button>
+                    {descText ? (
+                      <button type="button" onClick={() => { setDescService(service); try { localStorage.setItem('tito_service_desc_hint', '1'); } catch { /* ignore */ } setDescHintSeen(true); const nx = descSeen.includes(service.id) ? descSeen : [...descSeen, service.id]; setDescSeen(nx); try { localStorage.setItem('tito_service_desc_seen', JSON.stringify(nx)); } catch { /* ignore */ } }}
+                        className={cn('absolute start-1.5 top-1.5 flex items-center justify-center rounded-full bg-gold/20 text-bark hover:bg-gold/40', descSeen.includes(service.id) ? 'size-5' : 'h-5 gap-0.5 px-1.5 text-[9px] font-semibold')} aria-label={i18n.language === 'ar' ? 'تفاصيل الخدمة' : 'Service details'}>
+                        <Info className="size-3" />{descSeen.includes(service.id) ? null : (i18n.language === 'ar' ? 'تفاصيل' : 'Details')}
+                      </button>
+                    ) : null}
+                    </div>
                   );
                 };
   const extraMinutes = selectedExtras.reduce((sum, e) => sum + Number((e as { duration_minutes?: number | string | null }).duration_minutes ?? 0), 0);
@@ -602,6 +614,11 @@ export default function BookingPage() {
             ) : null}
             {svcTab === 'regular' || !specialGroups.length ? (
               <BookBlock icon={Scissors} title={t('booking.stepService')}>
+                {!descHintSeen && regularServices.some((x) => (sp(x).description_ar ?? '').trim()) ? (
+                  <p className="mb-2 flex items-center gap-1.5 rounded-xl bg-gold/10 px-3 py-2 text-xs text-bark">
+                    <Info className="size-4 shrink-0" />{i18n.language === 'ar' ? 'اضغط على «تفاصيل» في أي خدمة عشان تعرف بتشمل إيه' : 'Tap Details on any service to see what it includes'}
+                  </p>
+                ) : null}
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {regularServices.map(renderServiceCard)}
                 </div>
@@ -810,6 +827,19 @@ export default function BookingPage() {
           ) : null}
         </section>
       ) : null}
+
+      <Sheet open={!!descService} onClose={() => setDescService(null)} title={descService ? (i18n.language === 'ar' ? descService.name_ar : descService.name_en || descService.name_ar) : ''}>
+        {descService ? (
+          <div className="space-y-3">
+            <p className="whitespace-pre-line text-sm leading-relaxed text-ink">{i18n.language === 'ar' ? sp(descService).description_ar : sp(descService).description_en || sp(descService).description_ar}</p>
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-xl bg-sand/50 px-3 py-2"><div className="text-[11px] text-ink">{i18n.language === 'ar' ? 'السعر' : 'Price'}</div><div className="font-latin text-base font-bold text-bark">{formatEGP(priceOf(descService, staffId))}</div></div>
+              <div className="rounded-xl bg-sand/50 px-3 py-2"><div className="text-[11px] text-ink">{i18n.language === 'ar' ? 'المدة' : 'Duration'}</div><div className="text-base font-bold text-bark">{arHours(Number(descService.duration_minutes), i18n.language === 'ar')}</div></div>
+            </div>
+            <Button className="w-full" onClick={() => { updateParams({ service: descService.id }); setDescService(null); }}>{i18n.language === 'ar' ? 'اختار الخدمة دي' : 'Choose this service'}</Button>
+          </div>
+        ) : null}
+      </Sheet>
 
       <StaffDetailsSheet
         member={staffInfo}
