@@ -55,21 +55,28 @@ const STEP_LABELS: Record<string, string> = {
 };
 
 /** «مش لاقي معاد مناسب؟» كارت واحد فيه اختيارين واضحين بدل كارتين مختلفين */
-function NoTimeHelp({ day, serviceId, waitlist, empty, full }: { day: string; serviceId: string | null; waitlist: boolean; empty: boolean; full?: boolean }) {
+function NoTimeHelp({ day, serviceId, waitlist, authed, onSignIn }: { day: string; serviceId: string | null; waitlist: boolean; authed: boolean; onSignIn: () => void }) {
   const { i18n } = useTranslation();
   const ar = i18n.language === 'ar';
   const L = (a: string, e: string) => (ar ? a : e);
-  // اليوم المكتمل: قايمة الانتظار بس. المعاد الخاص للمواعيد المقفولة مش للأيام المكتملة
-  const showSpecial = !full;
-  const [pick, setPick] = useState<'wait' | 'special' | null>(empty && waitlist ? 'wait' : null);
-  useEffect(() => setPick(empty && waitlist ? 'wait' : null), [day, empty, waitlist]);
+  const [pick, setPick] = useState<'wait' | 'special' | null>(null);
+  useEffect(() => setPick(null), [day]);
+  if (pick && !authed) {
+    return (
+      <div className="mt-5 animate-pop rounded-card border border-gold/50 bg-white p-4 text-center">
+        <p className="text-sm font-semibold text-espresso">{L('سجّل دخولك الأول عشان نقدر نبلّغك', 'Sign in first so we can notify you')}</p>
+        <div className="mt-3 flex justify-center"><GoogleSignInButton variant="gold" label={L('الدخول بجوجل', 'Sign in with Google')} onClick={onSignIn} className="max-w-md" /></div>
+        <button type="button" onClick={() => setPick(null)} className="mt-2 text-xs font-medium text-ink underline-offset-4 hover:underline">{L('رجوع', 'Back')}</button>
+      </div>
+    );
+  }
   if (pick === 'wait') return <div className="mt-5 animate-pop"><WaitlistPrompt day={day} serviceId={serviceId} defaultOpen /><button type="button" onClick={() => setPick(null)} className="mt-2 text-xs font-medium text-ink underline-offset-4 hover:underline">{L('رجوع', 'Back')}</button></div>;
-  if (pick === 'special' && showSpecial) return <div className="mt-5 animate-pop"><SpecialRequestPrompt day={day} serviceId={serviceId} defaultOpen onClose={() => setPick(null)} /></div>;
+  if (pick === 'special') return <div className="mt-5 animate-pop"><SpecialRequestPrompt day={day} serviceId={serviceId} defaultOpen onClose={() => setPick(null)} /></div>;
   const tile = 'flex min-h-[5.5rem] flex-col items-start gap-1 rounded-card border border-default bg-white p-3 text-start transition-[color,background-color,border-color,box-shadow,transform,opacity] hover:border-gold active:scale-[0.98]';
   return (
     <div className="mt-6 animate-rise">
       <p className="mb-2 text-sm font-semibold text-espresso">{L('مش لاقي معاد مناسب؟', "Can't find a good time?")}</p>
-      <div className={cn('grid gap-2', waitlist && showSpecial ? 'grid-cols-2' : 'grid-cols-1')}>
+      <div className={cn('grid gap-2', waitlist ? 'grid-cols-2' : 'grid-cols-1')}>
         {waitlist ? (
           <button type="button" onClick={() => setPick('wait')} className={tile}>
             <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><BellRing className="size-4" /></span>
@@ -77,13 +84,11 @@ function NoTimeHelp({ day, serviceId, waitlist, empty, full }: { day: string; se
             <span className="text-xs leading-snug text-ink">{L('نبلّغك أول ما يفضى معاد', 'We notify you when a slot frees up')}</span>
           </button>
         ) : null}
-        {showSpecial ? (
-          <button type="button" onClick={() => setPick('special')} className={tile}>
-            <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><Star className="size-4" /></span>
-            <span className="text-sm font-semibold text-espresso">{L('معاد خاص', 'Special time')}</span>
-            <span className="text-xs leading-snug text-ink">{L('اطلب وقت برّه مواعيد الشغل', 'Ask for a time outside opening hours')}</span>
-          </button>
-        ) : null}
+        <button type="button" onClick={() => setPick('special')} className={tile}>
+          <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><Star className="size-4" /></span>
+          <span className="text-sm font-semibold text-espresso">{L('معاد خاص', 'Special time')}</span>
+          <span className="text-xs leading-snug text-ink">{L('اطلب وقت برّه مواعيد الشغل', 'Ask for a time outside opening hours')}</span>
+        </button>
       </div>
     </div>
   );
@@ -791,13 +796,13 @@ export default function BookingPage() {
                 errorDetail={slots.error ? String((slots.error as { message?: string }).message ?? slots.error).slice(0, 220) : undefined}
                 onRetry={() => slots.refetch()}
               />
-              {user && !slots.isLoading && !slots.isError ? (
+              {!slots.isLoading && !slots.isError ? (
                 <NoTimeHelp
                   day={date}
                   serviceId={serviceId ?? null}
                   waitlist={!!featureFlags.data?.waitlist}
-                  empty={(slots.data ?? []).length === 0}
-                  full={fullyBookedDays.has(date)}
+                  authed={!!user}
+                  onSignIn={() => void signIn()}
                 />
               ) : null}
             </div>
