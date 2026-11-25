@@ -68,7 +68,7 @@ export default function HomePage() {
   return (
     <PageShell marketing darkHeader>
       {/* Full-bleed hero — brand first */}
-      <section className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col justify-end overflow-hidden bg-espresso text-cream">
+      <section className="relative flex min-h-[calc(100svh-3.5rem)] flex-col justify-end overflow-hidden bg-espresso text-cream">
         <LeatherPattern />
         <div
           className="pointer-events-none absolute inset-0 animate-fade"
