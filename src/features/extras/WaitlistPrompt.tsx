@@ -18,7 +18,7 @@ export function WaitlistPrompt({ day, serviceId, defaultOpen = false }: { day: s
     return (
       <div className="rounded-card border border-gold/40 bg-gold/10 p-4 text-sm text-espresso">
         <p className="font-semibold">{L('إنت في قايمة الانتظار ليوم ده ✅', 'You are on the waiting list for this day ✅')}</p>
-        <p className="mt-1 text-ink">{L('هنكلمك على واتساب لو فضي معاد.', 'We will message you on WhatsApp if a slot opens.')}</p>
+        <p className="mt-1 text-ink">{L('هيوصلك إشعار على الموبايل لو حد لغى معاده. فعّل الإشعارات من «حسابي» عشان يوصلك.', 'We will send a mobile notification if someone cancels. Turn on notifications in My Account so it reaches you.')}</p>
         <Button size="sm" variant="secondary" className="mt-3" loading={cancel.isPending} onClick={() => cancel.mutate(mine.data!.id)}>
           {L('إلغاء الانتظار', 'Leave the list')}
         </Button>
@@ -41,7 +41,7 @@ export function WaitlistPrompt({ day, serviceId, defaultOpen = false }: { day: s
   return (
     <div className="rounded-card border border-default bg-sand/50 p-4">
       <p className="font-semibold text-espresso">{L('سجّل في قايمة الانتظار', 'Join the waiting list')}</p>
-      <p className="mt-1 text-sm text-ink">{L('لو حد لغى هنبلّغك على واتساب.', 'If someone cancels, we will message you on WhatsApp.')}</p>
+      <p className="mt-1 text-sm text-ink">{L('هيوصلك إشعار على الموبايل لو حد لغى معاده.', 'We will send you a mobile notification if someone cancels.')}</p>
       <input
         value={note}
         onChange={(e) => setNote(e.target.value.slice(0, 120))}
