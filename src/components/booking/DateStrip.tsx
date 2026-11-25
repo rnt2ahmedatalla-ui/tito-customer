@@ -64,7 +64,7 @@ export function DateStrip({ dates, selectedDate, closedDays, fullyBookedDays, wa
             ) : isFull ? (
               fullOpen ? (
                 <span className={cn('flex items-center gap-0.5 text-[10px] font-semibold', isSelected ? 'text-espresso' : 'text-gold')}>
-                  <BellRing className="size-3" aria-hidden />{i18n.language === 'ar' ? 'انتظار' : 'Waitlist'}
+                  <BellRing className="size-3" aria-hidden />{i18n.language === 'ar' ? 'مكتمل' : 'Full'}
                 </span>
               ) : (
                 <span className="text-[10px] font-medium">{i18n.language === 'ar' ? 'مكتمل' : 'Full'}</span>

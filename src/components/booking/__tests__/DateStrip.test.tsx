@@ -36,9 +36,9 @@ describe('DateStrip full-day waitlist', () => {
     await i18n.changeLanguage('ar');
   });
 
-  it('waitlist on: full day stays selectable and shows انتظار invite', () => {
+  it('waitlist on: full day stays selectable and shows مكتمل with waitlist invite', () => {
     const { onSelect } = renderStrip(true);
-    const btn = screen.getByText('انتظار').closest('button')!;
+    const btn = screen.getByText('مكتمل').closest('button')!;
     expect(btn.disabled).toBe(false);
     fireEvent.click(btn);
     expect(onSelect).toHaveBeenCalledWith(FULL_KEY);

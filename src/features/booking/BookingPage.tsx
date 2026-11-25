@@ -81,7 +81,7 @@ function NoTimeHelp({ day, serviceId, waitlist, full, authed, onSignIn }: { day:
           <button type="button" onClick={() => setPick('wait')} className={tile}>
             <span className="flex size-8 items-center justify-center rounded-full bg-gold/15 text-gold"><BellRing className="size-4" /></span>
             <span className="text-sm font-semibold text-espresso">{L('قايمة الانتظار', 'Waiting list')}</span>
-            <span className="text-xs leading-snug text-ink">{L('نبلّغك أول ما يفضى معاد', 'We notify you when a slot frees up')}</span>
+            <span className="text-xs leading-snug text-ink">{L('هيوصلك إشعار لو حد لغى معاده — تسجيلك مش حجز مؤكد', 'We notify you if someone cancels — joining is not a confirmed booking')}</span>
           </button>
         ) : null}
         <button type="button" onClick={() => setPick('special')} className={tile}>
