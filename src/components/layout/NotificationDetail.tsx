@@ -107,6 +107,14 @@ export function NotificationDetailHost() {
       return data;
     },
   });
+  const waitlist = useQuery({
+    queryKey: ['notif-waitlist', eid],
+    enabled: !!n && entity === 'waitlist' && !!eid,
+    queryFn: async () => {
+      const { data } = await supabase.from('waitlist').select('id, day, service_id, status').eq('id', eid!).maybeSingle();
+      return data;
+    },
+  });
 
   if (!n) return null;
   const close = () => setN(null);
@@ -151,6 +159,13 @@ export function NotificationDetailHost() {
     related = <SwapRespond swapId={eid} onDone={close} />;
   } else if (entity === 'customer_photo') {
     action = { label: L('شوف شغلنا', 'See our work'), path: '/gallery' };
+  } else if (entity === 'waitlist' && n.kind === 'waitlist_offer') {
+    // نفس عمق لينك إشعار الموبايل: يفتح اختيار المعاد بنفس اليوم والخدمة المسجّلة في الانتظار
+    const w = waitlist.data;
+    action = {
+      label: L('احجز المعاد', 'Book the slot'),
+      path: w ? `/book?step=datetime&date=${w.day}${w.service_id ? `&service=${w.service_id}` : ''}` : '/book',
+    };
   } else if (n.kind === 'reward') {
     action = { label: L('احجز واستخدم الهدية', 'Book & use your gift'), path: '/book' };
   } else if (entity === 'rebook' || n.kind === 'rebook') {
