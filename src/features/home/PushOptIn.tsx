@@ -3,11 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { BellRing, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/features/profile/useAuth';
-import { enablePush, pushIsOn, pushSupported, resyncPush } from '@/lib/push';
+import { enablePushDetailed, onPushChanged, pushIsOn, pushSupported, resyncPush, withTimeout } from '@/lib/push';
+import { notifySnoozed, snoozeNotify } from '@/lib/notifyPrompt';
 import { IosInstallGuide } from '@/components/layout/IosInstallGuide';
-
-const KEY = 'tito_push_snooze_until';
-const SNOOZE_DAYS = 3;
 
 /** كارت في الرئيسية: فعّل تذكيرات المواعيد على موبايلك (إشعار قبل المعاد) */
 export function PushOptIn() {
@@ -20,8 +18,7 @@ export function PushOptIn() {
   useEffect(() => {
     if (!user) { setState('hidden'); return; }
     // «مش دلوقتي» بيخفيها 3 أيام بس، وبعدين بترجع لحد ما يفعّلها
-    let dismissed = false;
-    try { dismissed = Number(localStorage.getItem(KEY) || 0) > Date.now(); } catch { /* ignore */ }
+    const dismissed = notifySnoozed();
     void (async () => {
       if (!pushSupported()) {
         const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -30,21 +27,23 @@ export function PushOptIn() {
         setState(ios && !standalone ? 'ios' : 'unsupported');
         return;
       }
-      if (await pushIsOn()) { void resyncPush(isAr ? 'ar' : 'en'); setState('hidden'); return; }
+      if (await withTimeout(pushIsOn(), 3000).catch(() => false)) { void resyncPush(isAr ? 'ar' : 'en'); setState('hidden'); return; }
       if (dismissed) { setState('hidden'); return; }
       setState(Notification.permission === 'denied' ? 'denied' : 'ask');
     })();
   }, [user, isAr]);
 
+  useEffect(() => onPushChanged(() => { void withTimeout(pushIsOn(), 3000).then((on) => { if (on) setState('hidden'); }).catch(() => undefined); }), []);
+
   if (state === 'hidden') return null;
-  const hide = () => { try { localStorage.setItem(KEY, String(Date.now() + SNOOZE_DAYS * 86400000)); } catch { /* ignore */ } setState('hidden'); };
+  const hide = () => { snoozeNotify(); setState('hidden'); };
 
   return (
     <div className="relative animate-rise rounded-2xl border border-gold/40 bg-cream p-3.5 pe-11 shadow-warm-raised">
       <div className="flex items-start gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold/25 text-espresso"><BellRing className="size-5" /></span>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-espresso">{isAr ? 'فعّل الإشعارات 🔔' : 'Turn on notifications 🔔'}</p>
+          <p className="font-semibold text-espresso">{isAr ? 'فعّل الإشعارات' : 'Turn on notifications'}</p>
           {state === 'denied' ? (
             <p className="mt-0.5 text-sm text-ink">
               {isAr ? 'الإشعارات مقفولة من المتصفح. اضغط على علامة القفل 🔒 جنب اللينك فوق ← الإشعارات ← «سماح»، وبعدين ارجع هنا. عشان يوصلك تذكير قبل معادك وأي تغيير فيه.' : 'Notifications are blocked in your browser. Tap the 🔒 next to the address → Notifications → Allow, then come back — so you get reminders and updates about your appointment.'}
@@ -72,14 +71,16 @@ export function PushOptIn() {
                 onClick={async () => {
                   setState('busy');
                   try {
-                    const ok = await enablePush(isAr ? 'ar' : 'en');
-                    if (ok) { toast.success(isAr ? 'تمام! هنفكّرك قبل كل معاد 🔔' : 'Done! We will remind you 🔔'); setState('hidden'); }
-                    else { toast.error(isAr ? 'لازم تسمح بالإشعارات من المتصفح' : 'Please allow notifications in your browser'); setState('ask'); }
+                    const r = await enablePushDetailed(isAr ? 'ar' : 'en', true);
+                    if (r === 'ok') { toast.success(isAr ? 'تمام! هنفكّرك قبل كل معاد' : 'Done! We will remind you'); setState('hidden'); }
+                    else if (r === 'denied') { setState('denied'); }
+                    else if (r === 'timeout' || r === 'error') { toast.error(isAr ? 'التفعيل أخد وقت. اتأكد من النت وجرّب تاني' : 'That took too long. Check your connection and try again'); setState('ask'); }
+                    else { setState('ask'); }
                   } catch { toast.error(isAr ? 'حصل خطأ، جرّب تاني' : 'Something went wrong, try again'); setState('ask'); }
                 }}
                 className="mt-2 inline-flex min-h-10 items-center justify-center rounded-btn bg-gold px-4 text-sm font-semibold text-espresso disabled:opacity-60"
               >
-                {isAr ? 'فعّل التذكير' : 'Turn on'}
+                {isAr ? 'فعّل الإشعارات' : 'Turn on'}
               </button>
             </>
           )}

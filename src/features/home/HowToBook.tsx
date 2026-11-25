@@ -11,7 +11,8 @@ import { useAuth } from '@/features/profile/useAuth';
 import { PushOptIn } from '@/features/home/PushOptIn';
 import { detectPlatform, isStandalone, useInstall } from '@/lib/install';
 import { INSTALL_STEPS } from '@/components/layout/InstallButton';
-import { preparePush, pushIsOn, pushSupported, resyncPush } from '@/lib/push';
+import { onPushChanged, preparePushDetailed, pushIsOn, pushSupported, resyncPush, withTimeout, type PushResult } from '@/lib/push';
+import { isHowtoOpen, notifySnoozed, setHowtoOpen, snoozeNotify } from '@/lib/notifyPrompt';
 import { cn } from '@/lib/cn';
 
 const SEEN_KEY = 'tito.howto.seen';
@@ -27,6 +28,17 @@ function readSeen(): boolean {
   } catch {
     return true;
   }
+}
+
+/** الدليل اتشاف: أي ضغطة صريحة (بعدين / التالي / موافق / تفعيل) بتوقف ظهوره تلقائياً. موافقة السياسة منفصلة وبتتسجّل بـ«موافق» بس. */
+function markGuideSeen() {
+  try {
+    if (localStorage.getItem(SEEN_KEY) === '1') return;
+    localStorage.setItem(SEEN_KEY, '1');
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new Event('tito:howto-seen'));
 }
 
 /** يفتح «خطوات الحجز والسياسة» من أي مكان (من لينك تحت في الصفحة) */
@@ -63,6 +75,7 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
   const [i, setI] = useState(0);
   const [busy, setBusy] = useState(false);
   const [notifyDone, setNotifyDone] = useState(false);
+  const [notifyErr, setNotifyErr] = useState<PushResult | null>(null);
   const [installDone, setInstallDone] = useState(false);
   const quiet = QUIET.test(location.pathname);
   const platform = detectPlatform();
@@ -80,11 +93,14 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
     } else {
       const list: Step[] = [];
       if (!installed && !isStandalone()) list.push('install');
-      if (pushSupported() && Notification.permission !== 'denied' && !(await pushIsOn())) list.push('notify');
+      // لو فحص الإشعارات اتأخر منستناش: نعرض الخطوة ومنعطّلش النافذة كلها
+      const on = await withTimeout(pushIsOn(), 2500).catch(() => false);
+      if (pushSupported() && Notification.permission !== 'denied' && !on && !notifySnoozed()) list.push('notify');
       list.push('policy');
       setSteps(list);
     }
     setI(0);
+    setNotifyErr(null);
     setOpen(true);
   };
 
@@ -99,7 +115,7 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
   // اللي منزّل التطبيق ومفعّلش الإشعارات: نفكّره كل مرة يفتح التطبيق (مرة في كل فتحة)
   useEffect(() => {
     if (!seen || quiet || !isStandalone() || !pushSupported()) return;
-    if (Notification.permission === 'denied') return;
+    if (Notification.permission === 'denied' || notifySnoozed()) return;
     try {
       if (sessionStorage.getItem('tito.notify.asked')) return;
     } catch {
@@ -107,7 +123,7 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
     }
     let alive = true;
     const id = window.setTimeout(async () => {
-      if (!alive || (await pushIsOn())) return;
+      if (!alive || (await withTimeout(pushIsOn(), 2500).catch(() => false)) || isHowtoOpen()) return;
       try {
         sessionStorage.setItem('tito.notify.asked', '1');
       } catch {
@@ -130,11 +146,13 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
   }, []);
 
   useEffect(() => {
+    setHowtoOpen(open);
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
+      setHowtoOpen(false);
     };
   }, [open]);
 
@@ -149,10 +167,21 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
     setOpen(false);
   };
 
-  const next = () => (i < steps.length - 1 ? setI(i + 1) : finish());
+  useEffect(() => onPushChanged(() => { void withTimeout(pushIsOn(), 3000).then((on) => { if (on) { setNotifyDone(true); setNotifyErr(null); } }).catch(() => undefined); }), []);
+
+  const next = () => {
+    markGuideSeen();
+    if (i < steps.length - 1) setI(i + 1);
+    else finish();
+  };
+  const laterNotify = () => {
+    snoozeNotify();
+    next();
+  };
   const step = steps[i] ?? 'policy';
 
   const doInstall = async () => {
+    markGuideSeen();
     setBusy(true);
     try {
       if (await promptInstall()) {
@@ -164,11 +193,14 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
     }
   };
   const doNotify = async () => {
+    markGuideSeen();
     setBusy(true);
+    setNotifyErr(null);
     try {
-      const ok = await preparePush(ar ? 'ar' : 'en', !!user);
-      setNotifyDone(ok);
-      window.setTimeout(next, ok ? 700 : 0);
+      const r = await preparePushDetailed(ar ? 'ar' : 'en', !!user);
+      setNotifyDone(r === 'ok');
+      if (r === 'ok') window.setTimeout(next, 700);
+      else setNotifyErr(r);
     } finally {
       setBusy(false);
     }
@@ -182,7 +214,7 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
   const installSteps = INSTALL_STEPS[platform][ar ? 'ar' : 'en'];
   const head = {
     install: [L('نزّل tito على موبايلك', 'Get tito on your phone'), L('بيفتح زي أي تطبيق، أسرع، ومن غير ما تدوّر على اللينك.', 'Opens like any app, faster, no need to find the link.')],
-    notify: [L('فعّل الإشعارات', 'Turn on notifications'), L('علشان يوصلك تذكير قبل معادك، ولو فضي معاد أبدري، وعروضنا أول بأول.', 'Get a reminder before your appointment, earlier slots and offers.')],
+    notify: [L('فعّل الإشعارات', 'Turn on notifications'), L('علشان يوصلك تذكير قبل معادك، ولو فضي معاد أبكر نبلّغك، وعروضنا أول بأول.', 'Get a reminder before your appointment, earlier slots and offers.')],
     policy: [L('احجز إزاي؟', 'How to book'), t('home.howSupport')],
   }[step];
 
@@ -234,11 +266,24 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
             notifyDone ? (
               <p className="flex items-center gap-2 font-semibold text-success"><CheckCircle2 className="size-5" />{L('الإشعارات اشتغلت ✓', 'Notifications are on ✓')}</p>
             ) : (
+              <div>
               <ul className="space-y-2 text-sm text-espresso">
-                {[L('تذكير قبل معادك', 'A reminder before your appointment'), L('لو فضي معاد أبدري نبلّغك', 'Earlier slots when they free up'), L('العروض والهدايا أول بأول', 'Offers and gifts first')].map((x) => (
+                {[L('تذكير قبل معادك', 'A reminder before your appointment'), L('لو فضي معاد أبكر نبلّغك', 'Earlier slots when they free up'), L('العروض والهدايا أول بأول', 'Offers and gifts first')].map((x) => (
                   <li key={x} className="flex items-center gap-2"><BellRing className="size-4 shrink-0 text-gold" />{x}</li>
                 ))}
               </ul>
+              {notifyErr ? (
+                <p role="alert" className="mt-3 rounded-btn border border-gold/40 bg-gold/10 p-2.5 text-sm text-espresso">
+                  {notifyErr === 'denied'
+                    ? L('الإشعارات مقفولة من إعدادات المتصفح. افتح علامة القفل جنب اللينك ← الإشعارات ← سماح، وبعدين جرّب تاني.', 'Notifications are blocked in your browser settings. Tap the lock next to the address, then Notifications, then Allow, and try again.')
+                    : notifyErr === 'dismissed'
+                      ? L('مفيش مشكلة. تقدر تفعّلها في أي وقت من حسابك.', 'No problem. You can turn them on any time from your account.')
+                      : notifyErr === 'unsupported'
+                        ? L('المتصفح ده مش بيدعم الإشعارات. افتح الموقع من Chrome أو Safari.', 'This browser does not support notifications. Open the site in Chrome or Safari.')
+                        : L('التفعيل أخد وقت أكتر من المعتاد. اتأكد من النت وجرّب تاني.', 'This is taking longer than usual. Check your connection and try again.')}
+                </p>
+              ) : null}
+              </div>
             )
           ) : null}
 
@@ -275,8 +320,8 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
             </>
           ) : step === 'notify' && !notifyDone ? (
             <>
-              <Button className="flex-1" loading={busy} onClick={() => void doNotify()}><BellRing className="size-4" />{L('فعّل الإشعارات', 'Turn on')}</Button>
-              <Button variant="ghost" onClick={next}>{L('بعدين', 'Later')}</Button>
+              <Button className="flex-1" loading={busy} onClick={() => void doNotify()}><BellRing className="size-4" />{notifyErr && notifyErr !== 'dismissed' && notifyErr !== 'denied' ? L('جرّب تاني', 'Try again') : L('فعّل الإشعارات', 'Turn on')}</Button>
+              <Button variant="ghost" onClick={laterNotify}>{L('بعدين', 'Later')}</Button>
             </>
           ) : step === 'policy' ? (
             <Button className="flex-1" onClick={finish}>{L('موافق', 'OK')}</Button>
@@ -290,11 +335,21 @@ export function HowToBookFab(_props: { hidden?: boolean }) {
   );
 }
 
-/** «فعّل التذكيرات» كنافذة صغيرة عائمة: بتطلع لأي عميل مسجّل لسه مفعّلهاش (في المتصفح أو التطبيق) */
+/** كارت «فعّل الإشعارات» العايم: لعميل مسجّل لسه مفعّلهاش، ومش بيظهر مع نافذة الخطوات ولا وهو مؤجّل */
 export function PushFloat() {
   const { user } = useAuth();
   const seen = useSeen();
-  if (!user || !seen) return null;
+  const [, force] = useState(0);
+  useEffect(() => {
+    const on = () => force((n) => n + 1);
+    window.addEventListener('tito:howto-visibility', on);
+    window.addEventListener('tito:notify-snoozed', on);
+    return () => {
+      window.removeEventListener('tito:howto-visibility', on);
+      window.removeEventListener('tito:notify-snoozed', on);
+    };
+  }, []);
+  if (!user || !seen || isHowtoOpen() || notifySnoozed()) return null;
   return (
     <div className="pointer-events-none fixed inset-x-3 z-30 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] empty:hidden sm:inset-x-auto sm:bottom-6 sm:start-6 sm:w-[22rem] [&>*]:pointer-events-auto">
       <PushOptIn />

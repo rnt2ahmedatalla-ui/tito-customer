@@ -58,8 +58,8 @@ export function IosInstallGuide({ open, onClose }: { open: boolean; onClose: () 
     },
     {
       icon: BellRing,
-      title: L('فعّل التذكير', 'Turn on reminders'),
-      body: L('سجّل دخول، ودوس «فعّل التذكير» في الرئيسية، ووافق لما يسألك على الإشعارات. كده هيوصلك تذكير قبل معادك.', 'Sign in, tap “Turn on reminders” on the home page and allow notifications. You will now get a reminder before your appointment.'),
+      title: L('فعّل الإشعارات', 'Turn on notifications'),
+      body: L('سجّل دخول، ودوس «فعّل الإشعارات» في الرئيسية، ووافق لما يسألك على الإشعارات. كده هيوصلك تذكير قبل معادك.', 'Sign in, tap “Turn on notifications” on the home page and allow notifications. You will now get a reminder before your appointment.'),
     },
   ];
 

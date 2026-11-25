@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
-import { enablePush, pushIsOn, pushSupported } from '@/lib/push';
+import { enablePush, pushIsOn, pushSupported, withTimeout } from '@/lib/push';
 import { useMyWaitlist, useWaitlistActions } from './useExtras';
 
 /** زر تفعيل الإشعارات جوه تأكيد قايمة الانتظار: يظهر لو الإشعارات مش مفعّلة فعلاً على الجهاز، وغير كده يظهر إنها شغالة */
@@ -12,7 +12,7 @@ function WaitlistPushToggle({ isAr }: { isAr: boolean }) {
   useEffect(() => {
     void (async () => {
       if (!pushSupported()) { setState('unsupported'); return; }
-      setState((await pushIsOn()) ? 'on' : 'off');
+      setState((await withTimeout(pushIsOn(), 3000).catch(() => false)) ? 'on' : 'off');
     })();
   }, []);
   if (state === 'loading' || state === 'unsupported') return null;
