@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Star, Ticket } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { formatInTimeZone } from 'date-fns-tz';
 import { useAuth } from '@/features/profile/useAuth';
 import { useFeatureFlags, useMyPackages, useBarbersNow, useMyWaitlist, useWaitlistActions, type BarberNow, useRateableBooking, useVisitStatus } from './useExtras';
@@ -166,15 +165,15 @@ export function InactiveBanner() {
   if (d.last_service_id && d.last_staff_id) q.set('staff', d.last_staff_id);
   const to = d.last_service_id ? `/book?${q.toString()}` : '/book';
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-card border border-gold/50 bg-gold/15 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="animate-rise flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gradient-to-br from-[#4a2a17] to-[#2b1409] px-3.5 py-2 shadow-warm-raised">
       <div className="min-w-0">
-        <p className="font-semibold text-espresso">
-          {isAr ? `وحشتنا! عدّى ${d.days_since} يوم على آخر حلاقة ✂️` : `We miss you! It's been ${d.days_since} days since your last cut ✂️`}
+        <p className="truncate text-sm font-bold text-cream">
+          {isAr ? `وحشتنا! عدّى ${d.days_since} يوم ✂️` : `We miss you! ${d.days_since} days ✂️`}
         </p>
-        <p className="mt-0.5 text-sm text-ink">{isAr ? 'احجز دلوقتي في ثواني.' : 'Book in seconds.'}</p>
+        <p className="truncate text-[11px] text-cream/65">{isAr ? 'على آخر حلاقة. احجز في ثواني' : 'Since your last cut. Book in seconds'}</p>
       </div>
-      <Link to={to} className="shrink-0">
-        <Button className="w-full sm:w-auto">{isAr ? 'احجز نفس الحلاقة' : 'Book the same again'}</Button>
+      <Link to={to} className="shrink-0 rounded-full bg-gold px-3.5 py-1.5 text-xs font-bold text-espresso transition-transform active:scale-95">
+        {isAr ? 'احجز نفس الحلاقة' : 'Book same again'}
       </Link>
     </div>
   );
