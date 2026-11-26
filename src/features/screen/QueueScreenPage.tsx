@@ -317,13 +317,20 @@ function ScreenStyles() {
   );
 }
 
+function backAt(reopen: string, now: number, ar: boolean): string {
+  const sameDay = cairoYmd(new Date(reopen).getTime()) === cairoYmd(now);
+  const t = formatCairoTime(reopen, ar ? 'ar' : 'en');
+  if (ar) return sameDay ? `هنكون موجودين الساعة ${t}` : `هنكون موجودين ${dayLabel(reopen, now, true)} الساعة ${t}`;
+  return sameDay ? `We'll be back at ${t}` : `We'll be back ${dayLabel(reopen, now, false)} at ${t}`;
+}
+
 function ShopStatus({ board, now, ar }: { board: Board; now: number; ar: boolean }) {
   const open = board.shopState === 'open';
   const text = open
-    ? ar ? 'مفتوحين دلوقتي' : 'Open now'
+    ? ar ? 'مفتوح دلوقتي' : 'Open now'
     : board.reopen
-      ? ar ? `راجعين ${dayLabel(board.reopen, now, true)} ${formatCairoTime(board.reopen, 'ar')}` : `Back ${dayLabel(board.reopen, now, false)} at ${formatCairoTime(board.reopen, 'en')}`
-      : ar ? 'مقفولين دلوقتي' : 'Closed now';
+      ? backAt(board.reopen, now, ar)
+      : ar ? 'مقفول دلوقتي' : 'Closed now';
   return (
     <div style={fs(2.6)} className={cn('hidden items-center gap-[calc(var(--u)*1.2)] rounded-full px-[calc(var(--u)*2.4)] py-[calc(var(--u)*0.9)] font-semibold sm:flex', open ? 'bg-success/25 text-[#9BE7BE]' : 'bg-danger/25 text-[#FFB4AB]')}>
       <span className={cn('inline-block rounded-full', open ? 'tito-pulse bg-[#5EE0A0]' : 'bg-[#FF8A80]')} style={{ width: 'calc(var(--u)*1.3)', height: 'calc(var(--u)*1.3)' }} />
@@ -341,6 +348,22 @@ function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber
   const nk = k * (layout.names_pct / 100);
   const nextUp = b.next[0] ?? null;
   const rest = b.next.slice(1);
+  // لو مفيش ولا صف داخل كامل، منخفيش بس العنوان «بعده» لوحده
+  const restBox = useRef<HTMLDivElement>(null);
+  const [restHidden, setRestHidden] = useState(false);
+  useEffect(() => {
+    const el = restBox.current;
+    if (!el) { setRestHidden(false); return; }
+    const check = () => {
+      const li = el.querySelector('li');
+      if (!li) return;
+      setRestHidden(li.getBoundingClientRect().bottom > el.getBoundingClientRect().bottom + 1);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [rest.length, layout.show_list, now]);
   const away = (b.state === 'closed' || b.state === 'off') && !b.now;
   const stateText: Record<BoardBarber['state'], [string, string, string]> = {
     busy: ['شغّال', 'Busy', 'bg-gold/25 text-gold-soft'],
@@ -393,7 +416,7 @@ function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber
         ) : null}
 
         {layout.show_list && rest.length ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div ref={restBox} className="flex min-h-0 flex-1 flex-col overflow-hidden" style={restHidden ? { visibility: 'hidden' } : undefined}>
             <Label>{ar ? 'بعده' : 'After that'}</Label>
             {/* اللي مش هيلحق يظهر كامل بيتخبى بدل ما يتقص من النص */}
             <ol className="mt-[calc(var(--u)*0.4)] flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden">
@@ -455,20 +478,23 @@ function NowBlock({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLay
 }
 
 function AwayBlock({ b, layout, now, ar, k, nextSlot }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; k: number; nextSlot: string | null }) {
+  const full = k;
+  k = b.next.length > 0 ? k * 0.72 : k;
+  void full;
   const mins = b.reopen ? minutesUntil(b.reopen, now) : 0;
   const sameDay = b.reopen ? cairoYmd(new Date(b.reopen).getTime()) === cairoYmd(now) : false;
   // راجع يوم تاني وهو المفروض شغال النهارده = إجازة مش استراحة
   const vacation = b.state === 'off' && !!b.reopen && !sameDay;
   const title = (ar ? layout.closed_ar : layout.closed_en)
-    || (vacation ? (ar ? 'في إجازة' : 'On leave') : b.state === 'off' ? (ar ? 'في استراحة دلوقتي' : 'On a break') : ar ? 'مقفولين دلوقتي' : 'Closed now');
+    || (vacation ? (ar ? 'في إجازة' : 'On leave') : b.state === 'off' ? (ar ? 'في استراحة دلوقتي' : 'On a break') : ar ? 'مقفول دلوقتي' : 'Closed now');
   return (
-    <div className="flex shrink-0 flex-col items-center justify-center gap-[calc(var(--u)*0.9)] rounded-[calc(var(--u)*1.8)] bg-white/[0.04] p-[calc(var(--u)*2)] text-center">
+    <div className="flex shrink-0 flex-col items-center justify-center gap-[calc(var(--u)*0.9)] rounded-[calc(var(--u)*1.8)] bg-white/[0.04] p-[calc(var(--u)*1.4)] text-center">
       <Moon className="text-gold" style={{ width: `calc(var(--u)*${4.5 * k})`, height: `calc(var(--u)*${4.5 * k})` }} aria-hidden />
       <p style={fs(5 * k)} className="font-bold leading-tight">{title}</p>
       {b.reopen ? (
         <>
           <p style={fs(3.4 * k)} className="text-gold-soft">
-            {ar ? `راجعين ${dayLabel(b.reopen, now, true)} الساعة ${formatCairoTime(b.reopen, 'ar')}` : `Back ${dayLabel(b.reopen, now, false)} at ${formatCairoTime(b.reopen, 'en')}`}
+            {backAt(b.reopen, now, ar)}
           </p>
           {sameDay && mins > 0 ? <p style={fs(2.6 * k)} className="text-cream/60">{ar ? `بعد ${formatDuration(mins, true)}` : `in ${formatDuration(mins, false)}`}</p> : null}
         </>
@@ -672,10 +698,24 @@ function FitBox({ children, dep }: { children: ReactNode; dep: unknown }) {
   const inner = useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     const b = box.current, i = inner.current; if (!b || !i) return;
-    const base = parseFloat(getComputedStyle(b.parentElement ?? b).getPropertyValue('--u')) || 8;
-    let k = 1;
-    i.style.setProperty('--u', `${base}px`);
-    for (let n = 0; n < 12 && i.scrollHeight > b.clientHeight + 2 && k > 0.4; n++) { k *= 0.9; i.style.setProperty('--u', `${base * k}px`); }
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;height:0;width:var(--u)';
+    (b.parentElement ?? b).appendChild(probe);
+    const base = probe.getBoundingClientRect().width || 8;
+    probe.remove();
+    const fit = () => {
+      const apply = (k: number) => i.style.setProperty('--u', `${base * k}px`);
+      apply(1);
+      if (i.scrollHeight <= b.clientHeight + 2) return;
+      // بحث ثنائي عن أكبر حجم يدخل في المساحة (بدل التصغير بخطوات 10%)
+      let lo = 0.3, hi = 1;
+      for (let n = 0; n < 12; n++) { const mid = (lo + hi) / 2; apply(mid); if (i.scrollHeight <= b.clientHeight + 2) lo = mid; else hi = mid; }
+      apply(lo);
+    };
+    fit();
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(b);
+    return () => ro.disconnect();
   }, [dep]);
   return <div ref={box} className="h-full overflow-hidden"><div ref={inner} className="flex min-h-full flex-col justify-center">{children}</div></div>;
 }
