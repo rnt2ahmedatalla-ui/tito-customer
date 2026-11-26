@@ -277,7 +277,8 @@ export function CustomerNotificationsBell({ dark = false }: { dark?: boolean }) 
         aria-expanded={open}
         onClick={toggle}
       >
-        <Bell className={cn('size-5', unread > 0 && 'animate-[wiggle_1.2s_ease-in-out_2]')} />
+        {unread > 0 ? <span className="pointer-events-none absolute inset-0 animate-ping rounded-btn bg-gold/30 motion-reduce:animate-none" aria-hidden /> : null}
+        <Bell className={cn('relative size-5', unread > 0 && 'animate-[wiggle_1.2s_ease-in-out_2]')} />
         {unread > 0 ? (
           <span className="absolute -end-1.5 -top-1.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[11px] font-bold leading-none text-espresso shadow-sm">
             {unread > 9 ? '9+' : unread}
