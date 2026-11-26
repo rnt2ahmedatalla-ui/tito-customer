@@ -29,6 +29,8 @@ export type ScreenLayout = {
   show_ticker: boolean;
   /** QR للحجز */
   show_qr: boolean;
+  show_clock: boolean;
+  show_prayer: boolean;
   ticker_ar: string;
   ticker_en: string;
   closed_ar: string;
@@ -55,6 +57,8 @@ export const DEFAULT_LAYOUT: ScreenLayout = {
   show_activity: true,
   show_ticker: true,
   show_qr: true,
+  show_clock: true,
+  show_prayer: true,
   ticker_ar: '',
   ticker_en: '',
   closed_ar: '',
@@ -98,6 +102,8 @@ export function normalizeLayout(raw: unknown): ScreenLayout {
     show_activity: bool(r.show_activity, d.show_activity),
     show_ticker: bool(r.show_ticker, d.show_ticker),
     show_qr: bool(r.show_qr, d.show_qr),
+    show_clock: bool(r.show_clock, d.show_clock),
+    show_prayer: bool(r.show_prayer, d.show_prayer),
     ticker_ar: str(r.ticker_ar).slice(0, 600),
     ticker_en: str(r.ticker_en).slice(0, 600),
     closed_ar: str(r.closed_ar).slice(0, 120),

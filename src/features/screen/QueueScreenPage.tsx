@@ -205,9 +205,9 @@ export default function QueueScreenPage() {
         {board ? <ShopStatus board={board} now={now} ar={ar} /> : null}
         <div className="flex items-center gap-[calc(var(--u)*2)]">
           <div className="text-end leading-tight">
-            <p style={fs(5)} className="font-latin font-semibold tabular-nums text-gold-soft">{clock}</p>
-            <p style={fs(2)} className="text-cream/60">{date}</p>
-            {np ? (
+            {layout.show_clock ? <p style={fs(5)} className="font-latin font-semibold tabular-nums text-gold-soft">{clock}</p> : null}
+            {layout.show_clock ? <p style={fs(2)} className="text-cream/60">{date}</p> : null}
+            {np && layout.show_prayer ? (
               <p style={fs(2.1)} className="mt-[0.2em] flex items-center justify-end gap-[0.35em] font-semibold text-emerald-300">
                 <Moon style={{ width: '1em', height: '1em' }} />{L(`${PRAYER_NAMES[np.key]![0]} بعد`, `${PRAYER_NAMES[np.key]![1]} in`)} <span className="font-latin tabular-nums" dir="ltr">{fmtLeft(np.at - now)}</span>
               </p>
