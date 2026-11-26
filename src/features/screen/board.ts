@@ -41,6 +41,40 @@ export type ScreenLayout = {
   text_size: TextSize;
   reviews_min: number;
   lang: 'ar' | 'en';
+  /** ترتيب الشاشة: classic = الشكل الحالي، tv = تلفزيون كبير (القايمة تحت الحجوزات والآية أكبر) */
+  arrange: 'classic' | 'tv';
+  /** حجم الأسامي % */
+  names_pct: number;
+  /** حجم الآية/الحديث % */
+  faith_pct: number;
+  /** حجم الشرح % */
+  expl_pct: number;
+  /** عرض عمود الحجوزات % من الشاشة */
+  bookings_pct: number;
+  /** مكان قايمة الانتظار */
+  waitlist_pos: 'side' | 'bookings';
+  /** مكان الـ QR */
+  qr_pos: 'side' | 'bookings' | 'header';
+  /** حجم الـ QR % */
+  qr_pct: number;
+  font: 'plex' | 'tajawal' | 'cairo';
+  text_color: string;
+  accent_color: string;
+  bg_color: string;
+  gap_pct: number;
+  pad_pct: number;
+  /** مكان عمود الحجوزات: بداية السطر (يمين في العربي) أو نهايته */
+  bookings_side: 'start' | 'end';
+  /** حجم الشريط العلوي % */
+  header_pct: number;
+  /** حجم الشريط السفلي % */
+  ticker_pct: number;
+  /** حجم قايمة الانتظار % */
+  wait_pct: number;
+  /** حجم عمود الحجوزات كله % */
+  details_pct: number;
+  show_logo: boolean;
+  show_status: boolean;
 };
 
 export const DEFAULT_LAYOUT: ScreenLayout = {
@@ -69,6 +103,27 @@ export const DEFAULT_LAYOUT: ScreenLayout = {
   text_size: 'l',
   reviews_min: 4,
   lang: 'ar',
+  arrange: 'classic',
+  names_pct: 100,
+  faith_pct: 100,
+  expl_pct: 100,
+  bookings_pct: 58,
+  waitlist_pos: 'side',
+  qr_pos: 'side',
+  qr_pct: 100,
+  font: 'plex',
+  text_color: '',
+  accent_color: '',
+  bg_color: '',
+  gap_pct: 100,
+  pad_pct: 100,
+  bookings_side: 'start',
+  header_pct: 100,
+  ticker_pct: 100,
+  wait_pct: 100,
+  details_pct: 100,
+  show_logo: true,
+  show_status: true,
 };
 
 type Obj = { [k: string]: Json | undefined };
@@ -82,6 +137,8 @@ const bool = (v: unknown, d: boolean): boolean => (typeof v === 'boolean' ? v : 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 /** بيكمّل أي إعداد ناقص بالقيمة الافتراضية */
+const hex = (v: unknown) => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v) ? v.toLowerCase() : '');
+
 export function normalizeLayout(raw: unknown): ScreenLayout {
   const r = isObj(raw) ? raw : {};
   const d = DEFAULT_LAYOUT;
@@ -114,6 +171,27 @@ export function normalizeLayout(raw: unknown): ScreenLayout {
     text_size: ts === 'm' || ts === 'xl' ? ts : 'l',
     reviews_min: clamp(Math.round(num(r.reviews_min) || d.reviews_min), 1, 5),
     lang: str(r.lang) === 'en' ? 'en' : 'ar',
+    arrange: str(r.arrange) === 'tv' ? 'tv' : 'classic',
+    names_pct: clamp(Math.round(Number(r.names_pct) || d.names_pct), 50, 160),
+    faith_pct: clamp(Math.round(Number(r.faith_pct) || d.faith_pct), 70, 300),
+    expl_pct: clamp(Math.round(Number(r.expl_pct) || d.expl_pct), 70, 300),
+    bookings_pct: clamp(Math.round(Number(r.bookings_pct) || d.bookings_pct), 25, 75),
+    waitlist_pos: str(r.waitlist_pos) === 'bookings' ? 'bookings' : 'side',
+    qr_pos: str(r.qr_pos) === 'bookings' ? 'bookings' : str(r.qr_pos) === 'header' ? 'header' : 'side',
+    qr_pct: clamp(Math.round(Number(r.qr_pct) || d.qr_pct), 50, 250),
+    font: str(r.font) === 'tajawal' ? 'tajawal' : str(r.font) === 'cairo' ? 'cairo' : 'plex',
+    text_color: hex(r.text_color),
+    accent_color: hex(r.accent_color),
+    bg_color: hex(r.bg_color),
+    gap_pct: clamp(Math.round(Number(r.gap_pct) || d.gap_pct), 30, 250),
+    pad_pct: clamp(Math.round(Number(r.pad_pct) || d.pad_pct), 30, 250),
+    bookings_side: str(r.bookings_side) === 'end' ? 'end' : 'start',
+    header_pct: clamp(Math.round(Number(r.header_pct) || d.header_pct), 50, 200),
+    ticker_pct: clamp(Math.round(Number(r.ticker_pct) || d.ticker_pct), 50, 250),
+    wait_pct: clamp(Math.round(Number(r.wait_pct) || d.wait_pct), 50, 250),
+    details_pct: clamp(Math.round(Number(r.details_pct) || d.details_pct), 50, 160),
+    show_logo: bool(r.show_logo, d.show_logo),
+    show_status: bool(r.show_status, d.show_status),
   };
 }
 

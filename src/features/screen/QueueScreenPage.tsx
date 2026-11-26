@@ -10,6 +10,12 @@ import { productImg } from '@/features/products/useStore';
 import { appUrl, assetUrl } from '@/lib/urls';
 import { cn } from '@/lib/cn';
 import { PRAYER_NAMES, fmtLeft, nextPrayer, usePrayerTimes } from '@/lib/usePrayer';
+import '@fontsource/tajawal/500.css';
+import '@fontsource/tajawal/700.css';
+import '@fontsource/tajawal/800.css';
+import '@fontsource/cairo/500.css';
+import '@fontsource/cairo/700.css';
+import '@fontsource/cairo/800.css';
 import { stripAyahMarks, useFaithRotator } from '@/lib/useFaith';
 import {
   displayName,
@@ -182,7 +188,24 @@ export default function QueueScreenPage() {
     );
   }
 
-  const rootStyle = { '--f': String(SIZE[layout.text_size]) } as CSSProperties;
+  const wlInBookings = !!board && layout.show_waitlist && board.waitlist.length > 0 && layout.waitlist_pos === 'bookings';
+  const wlInSide = !!board && layout.show_waitlist && board.waitlist.length > 0 && !wlInBookings;
+  const qrInBookings = layout.show_qr && layout.qr_pos === 'bookings';
+  const qrInHeader = layout.show_qr && layout.qr_pos === 'header';
+  const qrInSide = layout.show_qr && layout.qr_pos === 'side';
+  const rgb = (h: string) => `${parseInt(h.slice(1, 3), 16)} ${parseInt(h.slice(3, 5), 16)} ${parseInt(h.slice(5, 7), 16)}`;
+  const lighten = (h: string) => rgb('#' + [1, 3, 5].map((i) => Math.round(parseInt(h.slice(i, i + 2), 16) + (255 - parseInt(h.slice(i, i + 2), 16)) * 0.3).toString(16).padStart(2, '0')).join(''));
+  const FONTS = { plex: '', tajawal: 'Tajawal, "IBM Plex Sans Arabic", system-ui, sans-serif', cairo: 'Cairo, "IBM Plex Sans Arabic", system-ui, sans-serif' } as const;
+  const rootStyle = {
+    '--f': String(SIZE[layout.text_size]),
+    '--gm': String(layout.gap_pct / 100),
+    '--pm': String(layout.pad_pct / 100),
+    ...(layout.bg_color ? { '--c-espresso': rgb(layout.bg_color) } : {}),
+    ...(layout.text_color ? { '--c-cream': rgb(layout.text_color) } : {}),
+    ...(layout.accent_color ? { '--c-gold': rgb(layout.accent_color), '--c-gold-soft': lighten(layout.accent_color) } : {}),
+    ...(FONTS[layout.font] ? { fontFamily: FONTS[layout.font] } : {}),
+  } as CSSProperties;
+  const sc = (pct: number): CSSProperties => (pct === 100 ? {} : ({ '--u': `calc(var(--u0) * ${pct / 100})` } as CSSProperties));
   const clock = new Intl.DateTimeFormat(ar ? 'ar-EG-u-nu-latn' : 'en-US', { timeZone: 'Africa/Cairo', hour: 'numeric', minute: '2-digit' }).format(now);
   const date = new Intl.DateTimeFormat(ar ? 'ar-EG-u-nu-latn' : 'en-US', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long' }).format(now);
 
@@ -197,12 +220,13 @@ export default function QueueScreenPage() {
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(204,149,66,0.22),transparent_60%)]" />
 
       {/* الشريط العلوي */}
-      <header className="relative flex shrink-0 items-center justify-between gap-[calc(var(--u)*2)] px-[calc(var(--u)*3.5)] py-[calc(var(--u)*1.8)]">
-        <div className="flex items-center gap-[calc(var(--u)*1.4)]">
+      <header style={sc(layout.header_pct)} className="relative flex shrink-0 items-center justify-between gap-[calc(var(--u)*2)] px-[calc(var(--u)*3.5)] py-[calc(var(--u)*1.8)]">
+        {layout.show_logo ? <div className="flex items-center gap-[calc(var(--u)*1.4)]">
           <img src={assetUrl('brand/tito-icon-gold-on-dark-512.png')} alt="" style={{ height: 'calc(var(--u) * 6.5)' }} className="w-auto rounded-full" />
           <span style={fs(5.2)} className="font-latin font-bold lowercase tracking-wide text-gold">tito</span>
-        </div>
-        {board ? <ShopStatus board={board} now={now} ar={ar} /> : null}
+        </div> : <span />}
+        {board && layout.show_status ? <ShopStatus board={board} now={now} ar={ar} /> : null}
+        {qrInHeader ? <QrCard ar={ar} pct={layout.qr_pct * 0.55} compact /> : null}
         <div className="flex items-center gap-[calc(var(--u)*2)]">
           <div className="text-end leading-tight">
             {layout.show_clock ? <p style={fs(5)} className="font-latin font-semibold tabular-nums text-gold-soft">{clock}</p> : null}
@@ -224,29 +248,31 @@ export default function QueueScreenPage() {
       {!board ? (
         <div style={fs(4)} className="flex flex-1 items-center justify-center text-cream/70">{L('بيحمّل…', 'Loading…')}</div>
       ) : (
-        <main className="relative flex min-h-0 flex-1 flex-col gap-[calc(var(--u)*2)] px-[calc(var(--u)*3.5)] pb-[calc(var(--u)*2)] landscape:flex-row">
-          <section className={cn('flex min-h-0 flex-col gap-[calc(var(--u)*2)]', layout.show_side ? 'flex-1 landscape:w-[58%] landscape:flex-none' : 'flex-1')}>
-            <div className={cn('grid min-h-0 flex-1 gap-[calc(var(--u)*2)]', board.barbers.length > 1 ? 'landscape:grid-cols-2' : 'grid-cols-1')}>
+        <main style={{ '--bw': `${layout.bookings_pct}%` } as CSSProperties} className="relative flex min-h-0 flex-1 flex-col gap-[calc(var(--u)*2*var(--gm))] px-[calc(var(--u)*3.5)] pb-[calc(var(--u)*2)] landscape:flex-row">
+          <section style={sc(layout.details_pct)} className={cn('flex min-h-0 flex-col gap-[calc(var(--u)*2*var(--gm))]', layout.bookings_side === 'end' && 'landscape:order-2', layout.show_side ? 'flex-1 landscape:w-[var(--bw)] landscape:flex-none' : 'flex-1')}>
+            <div className={cn('grid min-h-0 flex-1 gap-[calc(var(--u)*2*var(--gm))]', board.barbers.length > 1 ? 'landscape:grid-cols-2' : 'grid-cols-1')}>
               {board.barbers.map((b) => (
                 <BarberPanel key={b.id} b={b} layout={layout} now={now} ar={ar} compact={board.barbers.length > 1} nextSlot={board.nextSlot} />
               ))}
             </div>
+            {wlInBookings ? <div style={sc(layout.wait_pct)} className="flex shrink-0"><WaitlistCard board={board} ar={ar} /></div> : null}
+            {qrInBookings ? <QrCard ar={ar} pct={layout.qr_pct} /> : null}
           </section>
 
-          {!layout.show_side && (layout.show_qr || (layout.show_waitlist && board.waitlist.length > 0)) ? (
+          {!layout.show_side && (qrInSide || wlInSide) ? (
             <aside className="flex shrink-0 flex-col justify-end gap-[calc(var(--u)*2)] landscape:w-[28%]">
-              {layout.show_waitlist && board.waitlist.length > 0 ? <div className="flex"><WaitlistCard board={board} ar={ar} /></div> : null}
-              {layout.show_qr ? <QrCard ar={ar} /> : null}
+              {wlInSide ? <div style={sc(layout.wait_pct)} className="flex"><WaitlistCard board={board} ar={ar} /></div> : null}
+              {qrInSide ? <QrCard ar={ar} pct={layout.qr_pct} /> : null}
             </aside>
           ) : null}
 
           {layout.show_side ? (
-            <aside className="flex min-h-0 flex-1 flex-col gap-[calc(var(--u)*2)]">
+            <aside className="flex min-h-0 flex-1 flex-col gap-[calc(var(--u)*2*var(--gm))]">
               <SideShow board={board} layout={layout} ar={ar} />
-              {layout.show_qr || (layout.show_waitlist && board.waitlist.length > 0) ? (
-                <div className="flex shrink-0 gap-[calc(var(--u)*2)]">
-                  {layout.show_waitlist && board.waitlist.length > 0 ? <WaitlistCard board={board} ar={ar} /> : null}
-                  {layout.show_qr ? <QrCard ar={ar} /> : null}
+              {qrInSide || wlInSide ? (
+                <div style={sc(layout.wait_pct)} className="flex shrink-0 gap-[calc(var(--u)*2*var(--gm))]">
+                  {wlInSide ? <WaitlistCard board={board} ar={ar} /> : null}
+                  {qrInSide ? <QrCard ar={ar} pct={layout.qr_pct} /> : null}
                 </div>
               ) : null}
             </aside>
@@ -259,7 +285,7 @@ export default function QueueScreenPage() {
           {L(`⏱️ الشغل متأخر حوالي ${callQ.data.late_min} دقيقة — شكراً لصبركم`, `⏱️ Running about ${callQ.data.late_min} min late — thanks for your patience`)}
         </div>
       ) : null}
-      {board ? <Ticker board={board} layout={layout} now={now} ar={ar} /> : null}
+      {board ? <div style={sc(layout.ticker_pct)} className="contents"><Ticker board={board} layout={layout} now={now} ar={ar} /></div> : null}
       {calledName ? (
         <div className="absolute inset-0 z-50 flex animate-[tito-fade_.4s_ease-out] flex-col items-center justify-center gap-[calc(var(--u)*2)] bg-espresso/95 backdrop-blur">
           <span className="relative flex items-center justify-center" style={{ width: 'calc(var(--u)*22)', height: 'calc(var(--u)*22)' }}>
@@ -282,8 +308,8 @@ function ScreenStyles() {
       @keyframes tito-marquee-ltr { from { transform: translateX(0) } to { transform: translateX(-50%) } }
       @keyframes tito-marquee-rtl { from { transform: translateX(0) } to { transform: translateX(50%) } }
       @keyframes tito-pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
-      .tito-screen { --u: calc(min(1vh, 0.5625vw) * var(--f, 1)) }
-      @media (orientation: portrait) { .tito-screen { --u: calc(min(0.72vh, 1.75vw) * var(--f, 1)) } }
+      .tito-screen { --u0: calc(min(1vh, 0.5625vw) * var(--f, 1)); --u: var(--u0) }
+      @media (orientation: portrait) { .tito-screen { --u0: calc(min(0.72vh, 1.75vw) * var(--f, 1)) } }
       .tito-fade { animation: tito-fade .7s ease-out both }
       .tito-pulse { animation: tito-pulse 2s ease-in-out infinite }
       @media (prefers-reduced-motion: reduce) { .tito-fade, .tito-pulse { animation: none } }
@@ -312,6 +338,7 @@ function Label({ children, className }: { children: ReactNode; className?: strin
 
 function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber; layout: ScreenLayout; now: number; ar: boolean; compact: boolean; nextSlot: string | null }) {
   const k = compact ? 0.8 : 1;
+  const nk = k * (layout.names_pct / 100);
   const nextUp = b.next[0] ?? null;
   const rest = b.next.slice(1);
   const away = (b.state === 'closed' || b.state === 'off') && !b.now;
@@ -328,7 +355,7 @@ function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber
   const showSvc = layout.show_services;
 
   return (
-    <section className="flex min-h-0 flex-col overflow-hidden rounded-[calc(var(--u)*2.4)] border border-gold/25 bg-white/[0.04] p-[calc(var(--u)*2.6)] shadow-2xl">
+    <section className="flex min-h-0 flex-col overflow-hidden rounded-[calc(var(--u)*2.4)] border border-gold/25 bg-white/[0.04] p-[calc(var(--u)*2.6*var(--pm))] shadow-2xl">
       {/* الحلاق */}
       <div className="flex items-center gap-[calc(var(--u)*1.8)] border-b border-gold/15 pb-[calc(var(--u)*1.6)]">
         {b.photo ? (
@@ -352,7 +379,7 @@ function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber
             <Label className="text-gold-soft">{away ? (ar ? 'أول حجز' : 'First booking') : ar ? 'عليه الدور' : 'Up next'}</Label>
             <div className="flex items-end justify-between gap-[calc(var(--u)*2)]">
               <div className="min-w-0">
-                <p style={fs((layout.name_style === 'full' ? 5.6 : 6.8) * k)} className="truncate font-bold leading-[1.15] text-cream">{displayName(nextUp.name, ar)}</p>
+                <p style={fs((layout.name_style === 'full' ? 5.6 : 6.8) * nk)} className="break-words font-bold leading-[1.15] text-cream">{displayName(nextUp.name, ar)}</p>
                 {showSvc && nextUp.svc ? <SvcLine text={svcText(nextUp.svc, ar)} size={2.6 * k} /> : null}
               </div>
               <div className="shrink-0 text-end leading-tight">
@@ -371,9 +398,9 @@ function BarberPanel({ b, layout, now, ar, compact, nextSlot }: { b: BoardBarber
             {/* اللي مش هيلحق يظهر كامل بيتخبى بدل ما يتقص من النص */}
             <ol className="mt-[calc(var(--u)*0.4)] flex min-h-0 flex-1 flex-col flex-wrap content-start overflow-hidden">
               {rest.map((n, i) => (
-                <li key={`${n.at}-${i}`} className="flex w-full items-baseline justify-between gap-[calc(var(--u)*2)] border-b border-[#fff]/10 py-[calc(var(--u)*0.7)]">
+                <li key={`${n.at}-${i}`} className="flex w-full items-start justify-between gap-[calc(var(--u)*2)] border-b border-[#fff]/10 py-[calc(var(--u)*0.7)]">
                   <span className="min-w-0">
-                    <span style={fs(3.3 * k)} className="block truncate">
+                    <span style={fs(3.3 * nk)} className="block break-words leading-tight">
                       <span className="font-latin text-gold-soft">{i + 2}.</span> {displayName(n.name, ar)}
                     </span>
                     {showSvc && n.svc ? <span style={fs(2 * k)} className="block truncate text-cream/55">{svcText(n.svc, ar)}</span> : null}
@@ -415,7 +442,7 @@ function NowBlock({ b, layout, now, ar, k }: { b: BoardBarber; layout: ScreenLay
       <Label>{ar ? 'في الكرسي دلوقتي' : 'In the chair'}</Label>
       <div className="flex items-end justify-between gap-[calc(var(--u)*2)]">
         <div className="min-w-0">
-          <p style={fs((layout.name_style === 'full' ? 4.6 : 5.4) * k)} className="truncate font-bold leading-[1.15]">{displayName(b.now.name, ar)}</p>
+          <p style={fs((layout.name_style === 'full' ? 4.6 : 5.4) * k * (layout.names_pct / 100))} className="break-words font-bold leading-[1.15]">{displayName(b.now.name, ar)}</p>
           {layout.show_services && b.now.svc ? <SvcLine text={svcText(b.now.svc, ar)} size={2.4 * k} /> : null}
         </div>
         <p style={fs(3 * k)} className="shrink-0 font-semibold text-cream/75">{left <= 0 ? (ar ? 'بيخلّص' : 'Finishing') : `${ar ? 'فاضل' : ''} ${formatDuration(left, ar)}${ar ? '' : ' left'}`}</p>
@@ -605,7 +632,7 @@ function SideShow({ board, layout, ar }: { board: Board; layout: ScreenLayout; a
           </ul>
         </div>
       ) : s.kind === 'faith' ? (
-        <FaithSlide key={`f-${i}`} ar={ar} />
+        <FaithSlide key={`f-${i}`} ar={ar} fp={layout.faith_pct / 100} ep={layout.expl_pct / 100} />
       ) : s.kind === 'review' ? (
         <div key={`r-${i}`} className="tito-fade flex h-full flex-col items-center justify-center gap-[calc(var(--u)*2.4)] p-[calc(var(--u)*4)] text-center">
           <div className="flex gap-[calc(var(--u)*0.6)]" aria-label={`${s.rating}/5`}>
@@ -653,28 +680,28 @@ function FitBox({ children, dep }: { children: ReactNode; dep: unknown }) {
   return <div ref={box} className="h-full overflow-hidden"><div ref={inner} className="flex min-h-full flex-col justify-center">{children}</div></div>;
 }
 
-function FaithSlide({ ar }: { ar: boolean }) {
+function FaithSlide({ ar, fp, ep }: { ar: boolean; fp: number; ep: number }) {
   const { item } = useFaithRotator({ auto: false });
   if (!item) return <div className="h-full" />;
   const main = item.kind === 'ayah' ? stripAyahMarks(item.text) : item.text;
   const expl = item.kind === 'ayah' ? item.tafsir : item.explanation;
   const big = main.length > 220 ? 3 : main.length > 130 ? 3.6 : 4.4;
   return (
-    <FitBox dep={item.text}>
+    <FitBox dep={`${item.text}-${fp}-${ep}`}>
     <div dir="rtl" className="tito-fade flex flex-col justify-center gap-[calc(var(--u)*1.8)] bg-gradient-to-b from-emerald-950/40 to-transparent p-[calc(var(--u)*3.2)] pb-[calc(var(--u)*4.5)] text-center">
-      <p style={fs(2.3)} className="font-semibold tracking-wide text-emerald-300">
+      <p style={fs(2.3 * fp)} className="font-semibold tracking-wide text-emerald-300">
         {item.kind === 'ayah' ? `﴿ ${item.surah} · ${item.num} ﴾` : (ar ? 'حديث شريف' : 'Hadith')}
       </p>
-      <p style={fs(big)} className={cn('font-bold leading-[1.75] text-cream', item.kind === 'ayah' && 'font-arabic')}>
+      <p style={fs(big * fp)} className={cn('font-bold leading-[1.75] text-cream', item.kind === 'ayah' && 'font-arabic')}>
         {item.kind === 'ayah' ? `﴿${main}﴾` : main}
       </p>
       {expl ? (
         <div className="rounded-[calc(var(--u)*1.6)] bg-white/[0.06] p-[calc(var(--u)*1.8)] text-start">
-          <p style={fs(1.9)} className="mb-[calc(var(--u)*0.5)] font-semibold text-gold">{item.kind === 'ayah' ? 'التفسير الميسّر' : 'الشرح'}</p>
-          <p style={fs(2.3)} className="line-clamp-5 leading-relaxed text-cream/85">{expl}</p>
+          <p style={fs(1.9 * ep)} className="mb-[calc(var(--u)*0.5)] font-semibold text-gold">{item.kind === 'ayah' ? 'التفسير الميسّر' : 'الشرح'}</p>
+          <p style={fs(2.3 * ep)} className={cn('leading-relaxed text-cream/85', ep <= 1 && 'line-clamp-5')}>{expl}</p>
         </div>
       ) : null}
-      <p style={fs(1.8)} className="text-cream/50">{item.kind === 'hadith' ? `${item.attribution} · ${item.grade}` : item.source}</p>
+      <p style={fs(1.8 * ep)} className="text-cream/50">{item.kind === 'hadith' ? `${item.attribution} · ${item.grade}` : item.source}</p>
     </div>
     </FitBox>
   );
@@ -699,7 +726,7 @@ function WaitlistCard({ board, ar }: { board: Board; ar: boolean }) {
   );
 }
 
-function QrCard({ ar }: { ar: boolean }) {
+function QrCard({ ar, pct = 100, compact = false }: { ar: boolean; pct?: number; compact?: boolean }) {
   const [src, setSrc] = useState('');
   useEffect(() => {
     void QRCode.toDataURL(appUrl('book'), { margin: 1, width: 320, color: { dark: '#341A0E', light: '#FAF6F0' } })
@@ -709,11 +736,11 @@ function QrCard({ ar }: { ar: boolean }) {
   if (!src) return null;
   return (
     <div className="flex shrink-0 items-center gap-[calc(var(--u)*1.6)] rounded-[calc(var(--u)*2)] border border-gold/20 bg-white/[0.04] p-[calc(var(--u)*1.6)]">
-      <img src={src} alt="" className="rounded-[calc(var(--u)*0.8)]" style={{ width: 'calc(var(--u)*13)', height: 'calc(var(--u)*13)' }} />
-      <div className="leading-tight">
+      <img src={src} alt="" className="rounded-[calc(var(--u)*0.8)]" style={{ width: `calc(var(--u)*${13 * pct / 100})`, height: `calc(var(--u)*${13 * pct / 100})` }} />
+      {compact ? null : <div className="leading-tight">
         <p style={fs(3)} className="font-bold">{ar ? 'احجز من موبايلك' : 'Book from your phone'}</p>
         <p style={fs(2)} className="mt-[calc(var(--u)*0.6)] text-cream/60">{ar ? 'صوّر الكود بالكاميرا' : 'Scan with your camera'}</p>
-      </div>
+      </div>}
     </div>
   );
 }
