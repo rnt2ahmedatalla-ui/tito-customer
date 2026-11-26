@@ -1,3 +1,4 @@
+import { swapOutcome, swapWindowText } from './swapOutcome';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -99,6 +100,8 @@ function SwapPicker({ bookingId, startAt, onDone }: { bookingId: string; startAt
   const { i18n } = useTranslation();
   const ar = !!i18n.language?.startsWith('ar');
   const L = (a: string, e: string) => (ar ? a : e);
+  const swapSt = useSettings().data as (Record<string, unknown> | null | undefined);
+  const winTxt = swapWindowText(swapSt?.swap_window_min, ar);
   // التبديل بس مع حجوزات قريبة من معادك (في حدود ساعتين قبل/بعد) في نفس اليوم
   const day = cairoDay(new Date(startAt));
   const q = useQuery({
@@ -120,7 +123,7 @@ function SwapPicker({ bookingId, startAt, onDone }: { bookingId: string; startAt
   return (
     <div className="animate-rise rounded-card border border-default bg-white p-3">
       <p className="text-sm font-semibold text-espresso">{L('اختار معاد قريب من معادك عايز تبدّل معاه', 'Pick a nearby booked time to swap with')}</p>
-      <p className="text-[11px] text-ink">{L('هنبعت لصاحب المعاد طلب من غير ما نقوله اسمك، ولو وافق المعادين بيتبدّلوا لوحدهم.', 'We ask the other customer anonymously; if they accept, times swap automatically.')}</p>
+      <p className="text-[11px] text-ink">{L('هنبعت لصاحب المعاد طلب من غير ما نقوله اسمك، ولو وافق المعادين بيتبدّلوا لوحدهم.', 'We ask the other customer anonymously; if they accept, times swap automatically.')} ({winTxt})</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {q.isLoading ? <span className="text-xs text-ink">…</span> : (q.data ?? []).length === 0 ? <span className="text-xs text-ink">{L('مفيش مواعيد قريبة من معادك متاحة للتبديل دلوقتي', 'No nearby times available to swap right now')}</span>
           : q.data!.map((s) => <button key={s} type="button" disabled={req.isPending} onClick={() => req.mutate(s)} className="min-h-9 rounded-btn border border-gold/50 bg-gold/10 px-3 font-latin text-sm font-semibold text-espresso transition-transform active:scale-95">{fmtTime(s, ar)}</button>)}
@@ -139,11 +142,35 @@ export function SwapRespond({ swapId, onDone }: { swapId: string; onDone?: () =>
     mutationFn: async (accept: boolean) => {
       const r = await rpc('respond_swap', { p_swap_id: swapId, p_accept: accept });
       if (r.error) throw new Error(r.error.message);
-      return accept;
+      return swapOutcome(r.data, accept);
     },
-    onSuccess: (a) => { toast.success(a ? L('اتبدّل المعاد ✅', 'Swapped ✅') : L('تمام، معادك زي ما هو', 'OK, your time stays')); void qc.invalidateQueries({ queryKey: ['bookings'] }); onDone?.(); },
-    onError: () => toast.error(L('الطلب ده خلص أو اتلغى', 'This request is no longer available')),
+    onSuccess: (res) => {
+      if (res === 'accepted') toast.success(L('اتبدّل المعاد ✅', 'Swapped ✅'));
+      else if (res === 'declined') toast.success(L('تمام، معادك زي ما هو', 'OK, your time stays'));
+      else if (res === 'expired') toast.error(L('الطلب ده خلص أو اتلغى', 'This request is no longer available'));
+      else toast(L('مش متأكدين من النتيجة، راجع حجوزاتك', 'We could not confirm the result, please check your bookings'));
+      void qc.invalidateQueries({ queryKey: ['bookings'] });
+      onDone?.();
+    },
+    onError: () => {
+      toast.error(L('الطلب ده خلص أو اتلغى', 'This request is no longer available'));
+      // the server raises EXPIRED without saving anything; ask it to close stale requests for real, then refresh this card
+      void rpc('expire_stale_swaps').catch(() => undefined).finally(() => { void qc.invalidateQueries({ queryKey: ['swap-status', swapId] }); });
+    },
   });
+  const status = useQuery({
+    queryKey: ['swap-status', swapId],
+    queryFn: async () => {
+      try {
+        const r = await (supabase as unknown as { from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: { status?: string } | null }> } } } }).from('booking_swaps').select('status').eq('id', swapId).maybeSingle();
+        return r.data?.status ?? null;
+      } catch { return null; }
+    },
+    staleTime: 10_000,
+  });
+  if (status.data && status.data !== 'pending') {
+    return <p data-swap-closed className="mt-3 text-sm font-semibold text-ink">{status.data === 'accepted' ? L('اتبدّل المعاد ✅', 'Swapped ✅') : L('الطلب ده خلص أو اتلغى', 'This request is no longer available')}</p>;
+  }
   return (
     <div className="mt-3 flex gap-2">
       <button type="button" disabled={m.isPending} onClick={() => m.mutate(true)} className="min-h-11 flex-1 rounded-btn bg-gold font-semibold text-espresso">{L('موافق أبدّل', 'Accept')}</button>
