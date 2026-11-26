@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { DEFAULT_TURN_CONFIG, normalizeTurnConfig, type TurnBlockKey } from './turnConfig';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -78,6 +79,56 @@ export default function TurnScreenPage() {
   const hh = Math.floor(left / 3_600_000), mm = Math.floor((left % 3_600_000) / 60_000), ss = Math.floor((left % 60_000) / 1000);
   const pad = (n: number) => String(n).padStart(2, '0');
 
+  const cfgQ = useQuery({
+    queryKey: ['turn-screen-config'],
+    refetchInterval: 120_000,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const r = await rpc('get_turn_screen_config');
+      return r.error ? DEFAULT_TURN_CONFIG : normalizeTurnConfig(r.data);
+    },
+  });
+  const tcfg = cfgQ.data ?? DEFAULT_TURN_CONFIG;
+  const msgText = (ar ? tcfg.message_ar : tcfg.message_en || tcfg.message_ar).trim();
+  const parts: Record<TurnBlockKey, ReactNode> = {
+    countdown: b && !called ? (<>
+            <div>
+              <p className="flex items-center justify-center gap-2 text-sm font-semibold text-[#C9A24B]">
+                {isToday ? <><span className="relative flex size-2.5"><span className="absolute inset-0 animate-ping rounded-full bg-red-500/70" /><span className="relative size-2.5 rounded-full bg-red-500" /></span>{L('لايف', 'LIVE')}</> : dayFmt.format(Date.parse(b.start_at))}
+              </p>
+              <p className="mt-1 text-white/70">{ar ? b.service_name_ar : b.service_name_en || b.service_name_ar}</p>
+            </div>
+            <div className="w-full rounded-[2rem] border border-[#C9A24B]/30 bg-white/5 p-6 backdrop-blur">
+              <p className="text-sm text-white/70">{L('فاضل على دورك', 'Time to your turn')}</p>
+              <p className="font-latin text-6xl font-black tabular-nums tracking-tight text-[#C9A24B]" dir="ltr">{hh > 0 ? `${hh}:${pad(mm)}:${pad(ss)}` : `${pad(mm)}:${pad(ss)}`}</p>
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-white/80"><Clock className="size-4" />{L('معادك', 'Your time')} <span className="font-latin font-bold">{timeFmt.format(target)}</span></p>
+            </div>
+    </>) : null,
+    ahead: b && !called ? (<>
+            {isToday && t ? (
+              <div className="grid w-full grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-white/5 p-4"><Users className="mx-auto size-5 text-[#C9A24B]" /><p className="mt-1 font-latin text-4xl font-black">{t.ahead}</p><p className="text-xs text-white/70">{L('قدامك', 'Ahead of you')}</p></div>
+                <div className="rounded-2xl bg-white/5 p-4"><Hourglass className="mx-auto size-5 text-[#C9A24B]" /><p className="mt-1 text-lg font-bold">{t.busy_now ? L('الكرسي مشغول', 'Chair busy') : L('الكرسي فاضي', 'Chair free')}</p><p className="text-xs text-white/70">{L('دلوقتي', 'Right now')}</p></div>
+              </div>
+            ) : null}
+    </>) : null,
+    late: b && !called ? (<>
+            {t && t.late_min > 0 ? <p className="rounded-full bg-amber-500/15 px-4 py-2 text-sm text-amber-300">{L(`الشغل متأخر حوالي ${t.late_min} دقيقة — الوقت فوق محسوب`, `Running ~${t.late_min} min late — included above`)}</p> : null}
+    </>) : null,
+    hint: b && !called ? (<>
+            <p className="text-xs text-white/50">{L('الشاشة بتتحدّث لوحدها وهتنوّر وتهزّ لما ينادوا عليك. ضيفها على الشاشة الرئيسية من «مشاركة ← إضافة للشاشة الرئيسية».', 'Updates live and lights up when you are called. Add it to your home screen from Share → Add to Home Screen.')}</p>
+    </>) : null,
+    message: msgText ? <p className="w-full rounded-2xl border border-[#C9A24B]/30 bg-[#C9A24B]/10 px-4 py-3 text-base font-semibold text-[#FAF6F0]" dir="auto">{msgText}</p> : null,
+    faith: <FaithCard ar={ar} />,
+    prayer: (<>
+        {np ? (
+          <p className="flex items-center justify-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
+            <Moon className="size-4" />{L(`صلاة ${PRAYER_NAMES[np.key]![0]} بعد`, `${PRAYER_NAMES[np.key]![1]} in`)} <span className="font-latin font-bold tabular-nums" dir="ltr">{fmtLeft(np.at - now)}</span>
+          </p>
+        ) : null}
+    </>),
+  };
+
   const share = () => {
     const url = window.location.origin + (import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/turn';
     const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
@@ -118,35 +169,8 @@ export default function TurnScreenPage() {
             <p className="text-4xl font-black">{L('دورك! 💈', "It's your turn! 💈")}</p>
             <p className="text-lg text-white/80">{L('الحلاق جاهزلك دلوقتي، اتفضل', 'Your barber is ready now')}</p>
           </div>
-        ) : (
-          <>
-            <div>
-              <p className="flex items-center justify-center gap-2 text-sm font-semibold text-[#C9A24B]">
-                {isToday ? <><span className="relative flex size-2.5"><span className="absolute inset-0 animate-ping rounded-full bg-red-500/70" /><span className="relative size-2.5 rounded-full bg-red-500" /></span>{L('لايف', 'LIVE')}</> : dayFmt.format(Date.parse(b.start_at))}
-              </p>
-              <p className="mt-1 text-white/70">{ar ? b.service_name_ar : b.service_name_en || b.service_name_ar}</p>
-            </div>
-            <div className="w-full rounded-[2rem] border border-[#C9A24B]/30 bg-white/5 p-6 backdrop-blur">
-              <p className="text-sm text-white/70">{L('فاضل على دورك', 'Time to your turn')}</p>
-              <p className="font-latin text-6xl font-black tabular-nums tracking-tight text-[#C9A24B]" dir="ltr">{hh > 0 ? `${hh}:${pad(mm)}:${pad(ss)}` : `${pad(mm)}:${pad(ss)}`}</p>
-              <p className="mt-2 flex items-center justify-center gap-1.5 text-white/80"><Clock className="size-4" />{L('معادك', 'Your time')} <span className="font-latin font-bold">{timeFmt.format(target)}</span></p>
-            </div>
-            {isToday && t ? (
-              <div className="grid w-full grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-white/5 p-4"><Users className="mx-auto size-5 text-[#C9A24B]" /><p className="mt-1 font-latin text-4xl font-black">{t.ahead}</p><p className="text-xs text-white/70">{L('قدامك', 'Ahead of you')}</p></div>
-                <div className="rounded-2xl bg-white/5 p-4"><Hourglass className="mx-auto size-5 text-[#C9A24B]" /><p className="mt-1 text-lg font-bold">{t.busy_now ? L('الكرسي مشغول', 'Chair busy') : L('الكرسي فاضي', 'Chair free')}</p><p className="text-xs text-white/70">{L('دلوقتي', 'Right now')}</p></div>
-              </div>
-            ) : null}
-            {t && t.late_min > 0 ? <p className="rounded-full bg-amber-500/15 px-4 py-2 text-sm text-amber-300">{L(`الشغل متأخر حوالي ${t.late_min} دقيقة — الوقت فوق محسوب`, `Running ~${t.late_min} min late — included above`)}</p> : null}
-            <p className="text-xs text-white/50">{L('الشاشة بتتحدّث لوحدها وهتنوّر وتهزّ لما ينادوا عليك. ضيفها على الشاشة الرئيسية من «مشاركة ← إضافة للشاشة الرئيسية».', 'Updates live and lights up when you are called. Add it to your home screen from Share → Add to Home Screen.')}</p>
-          </>
-        )}
-        <FaithCard ar={ar} />
-        {np ? (
-          <p className="flex items-center justify-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
-            <Moon className="size-4" />{L(`صلاة ${PRAYER_NAMES[np.key]![0]} بعد`, `${PRAYER_NAMES[np.key]![1]} in`)} <span className="font-latin font-bold tabular-nums" dir="ltr">{fmtLeft(np.at - now)}</span>
-          </p>
         ) : null}
+        {tcfg.order.filter((k) => !tcfg.hidden.includes(k)).map((k) => (b && user && !loading ? <Fragment key={k}>{parts[k]}</Fragment> : k === 'faith' || k === 'prayer' || k === 'message' ? <Fragment key={k}>{parts[k]}</Fragment> : null))}
       </main>
     </div>
   );
