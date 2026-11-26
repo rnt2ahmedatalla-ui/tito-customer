@@ -464,7 +464,7 @@ export default function BookingPage() {
         updateParams({ step: 'payment', booking: id, pay_at_shop: null, prods: null });
       }
     } catch (err) {
-      if (extractErrorCode(err) === 'SLOT_TAKEN') {
+      if (extractErrorCode(err) === 'SLOT_TAKEN' || extractErrorCode(err) === 'SLOT_HELD') {
         slots.refetch();
       }
     }

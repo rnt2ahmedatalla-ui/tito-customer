@@ -2,6 +2,7 @@ import type { PostgrestError } from '@supabase/supabase-js';
 
 export type ErrorCode =
   | 'SLOT_TAKEN'
+  | 'SLOT_HELD'
   | 'CANCEL_WINDOW_PASSED'
   | 'FORBIDDEN'
   | 'BLOCKED_USER'
@@ -17,6 +18,7 @@ export type ErrorCode =
 
 const CODE_PATTERNS: { pattern: RegExp; code: ErrorCode }[] = [
   { pattern: /SLOT_TAKEN/i, code: 'SLOT_TAKEN' },
+  { pattern: /SLOT_HELD/i, code: 'SLOT_HELD' },
   { pattern: /CANCEL_WINDOW_PASSED/i, code: 'CANCEL_WINDOW_PASSED' },
   { pattern: /FORBIDDEN/i, code: 'FORBIDDEN' },
   { pattern: /BLOCKED_USER/i, code: 'BLOCKED_USER' },

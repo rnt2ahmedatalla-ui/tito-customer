@@ -111,7 +111,7 @@ export function NotificationDetailHost() {
     queryKey: ['notif-waitlist', eid],
     enabled: !!n && entity === 'waitlist' && !!eid,
     queryFn: async () => {
-      const { data } = await supabase.from('waitlist').select('id, day, service_id, status').eq('id', eid!).maybeSingle();
+      const { data } = await supabase.from('waitlist').select('id, day, service_id, status, offer_expires_at').eq('id', eid!).maybeSingle();
       return data;
     },
   });
@@ -162,10 +162,22 @@ export function NotificationDetailHost() {
   } else if (entity === 'waitlist' && n.kind === 'waitlist_offer') {
     // نفس عمق لينك إشعار الموبايل: يفتح اختيار المعاد بنفس اليوم والخدمة المسجّلة في الانتظار
     const w = waitlist.data;
-    action = {
-      label: L('احجز المعاد', 'Book the slot'),
-      path: w ? `/book?step=datetime&date=${w.day}${w.service_id ? `&service=${w.service_id}` : ''}` : '/book',
-    };
+    const ended = !!w && (w.status !== 'notified' || (w.offer_expires_at != null && new Date(w.offer_expires_at).getTime() < Date.now()));
+    if (ended) {
+      related = (
+        <div role="status" data-testid="offer-ended" className="rounded-btn border border-default bg-sand p-3 text-sm font-semibold text-espresso">
+          {w.status === 'done'
+            ? L('تمام، حجزت المعاد ده.', 'Done, you booked this slot.')
+            : L('العرض ده انتهى، المعاد راح للي بعدك. لو لسه عايز، شوف المواعيد المتاحة.', 'This offer has ended and the slot went to the next person. You can still check available times.')}
+        </div>
+      );
+      action = w.status === 'done' ? null : { label: L('شوف المواعيد', 'See available times'), path: `/book?step=datetime&date=${w.day}${w.service_id ? `&service=${w.service_id}` : ''}` };
+    } else {
+      action = {
+        label: L('احجز المعاد', 'Book the slot'),
+        path: w ? `/book?step=datetime&date=${w.day}${w.service_id ? `&service=${w.service_id}` : ''}` : '/book',
+      };
+    }
   } else if (n.kind === 'reward') {
     action = { label: L('احجز واستخدم الهدية', 'Book & use your gift'), path: '/book' };
   } else if (entity === 'rebook' || n.kind === 'rebook') {

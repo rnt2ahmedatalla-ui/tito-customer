@@ -176,6 +176,7 @@
   },
   "errors": {
     "SLOT_TAKEN": "This slot was just taken — pick another time",
+    "SLOT_HELD": "This slot is held for another customer for a few minutes — pick another time or try again shortly",
     "CANCEL_WINDOW_PASSED": "Cannot cancel — cancellation window has passed",
     "FORBIDDEN": "You are not allowed to do this",
     "BLOCKED_USER": "Your account is blocked — contact the shop",

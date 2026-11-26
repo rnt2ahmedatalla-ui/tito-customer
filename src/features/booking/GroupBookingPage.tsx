@@ -217,6 +217,8 @@ export default function GroupBookingPage() {
   const friendlyError = (e: unknown) => {
     const code = extractErrorCode(e);
     switch (code) {
+      case 'SLOT_HELD':
+        return isAr ? 'واحد من المعادات محجوز لعميل تاني لدقايق، اختار معاد تاني' : 'One of the times is held for another customer for a few minutes, pick another';
       case 'SLOT_TAKEN':
         return isAr ? 'واحد من المعادات اتحجز قبل كده، ارجع اختار معاد تاني' : 'One of the times was just booked, go back and pick another';
       case 'PROFILE_INCOMPLETE':
