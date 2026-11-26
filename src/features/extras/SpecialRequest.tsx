@@ -66,6 +66,7 @@ export function SpecialRequestPrompt({ day, serviceId, defaultOpen = false, onCl
     onError: (e: Error) => {
       const m = e.message;
       toast.error(m.includes('TOO_MANY') ? L('عندك طلبات معلّقة كتير. استنى القرار.', 'Too many pending requests. Please wait.')
+        : /BLOCKED_USER/i.test(m) ? L('حسابك محظور — تواصل مع المحل', 'Your account is blocked — contact the shop')
         : m.includes('SLOT_TAKEN') ? L('المعاد ده اتاخد. اختار غيره.', 'That time was taken. Pick another.')
         : L('معرفناش نبعت الطلب. جرّب تاني.', 'Could not send the request. Try again.'));
       void qc.invalidateQueries({ queryKey: ['special-slots'] });
