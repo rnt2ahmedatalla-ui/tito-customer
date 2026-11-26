@@ -17,11 +17,13 @@ import { cn } from '@/lib/cn';
 import { ConnectSection, DiscoverSection, OffersSection, ServicesProductsSection } from '@/features/home/Showcase';
 import { openHowToBook, PushFloat } from '@/features/home/HowToBook';
 import { QuickRebook } from '@/features/home/QuickActions';
+import { HomeRebook, useHomeCardVariant } from '@/features/home/HomeRebook';
 import { PhotoPromptCard, VisitProgressCard } from '@/features/home/GrowthCards';
 import { WaitEstimateCard, InactiveBanner, RatePrompt } from '@/features/extras/ExtrasCards';
 
 
 export default function HomePage() {
+  const homeCard = useHomeCardVariant();
   const { t, i18n } = useTranslation();
   const settings = useSettings();
   const nextSlot = useNextSlot();
@@ -80,7 +82,7 @@ export default function HomePage() {
         />
 
         <div className="relative mx-auto w-full max-w-5xl px-4 pb-24 pt-16 sm:px-5 sm:pb-24 sm:pt-28">
-          <div className="mb-5 space-y-2 empty:hidden"><InactiveBanner /><QuickRebook /></div>
+          <div className="mb-5 space-y-2 empty:hidden">{homeCard === 'current' ? <><InactiveBanner /><QuickRebook /></> : <HomeRebook variant={homeCard} />}</div>
           <Logo variant="dark" mark height={56} className="animate-rise sm:!h-[72px]" />
           {settings.isLoading ? (
             <div className="mt-4 space-y-3">
