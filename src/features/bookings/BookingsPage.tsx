@@ -457,7 +457,7 @@ export default function BookingsPage() {
                 {isRejected ? (
                   <div className="mt-3 rounded-btn border border-danger/30 bg-danger/5 p-3 text-sm" role="alert">
                     <p className="font-semibold text-danger">
-                      {isAr ? 'الدفع اترفض، ابعت إيصال تاني' : 'Payment was rejected, please send a new receipt'}
+                      {isAr ? 'الدفع اترفض، ابعت الإيصال على واتساب تاني' : 'Payment was rejected, please send the receipt on WhatsApp again'}
                     </p>
                     {booking.payment?.rejection_reason ? (
                       <p className="mt-1 text-ink">{t('bookings.rejectionReason', { reason: booking.payment.rejection_reason })}</p>
@@ -474,8 +474,8 @@ export default function BookingsPage() {
                   {awaitingShop ? (
                     <p className="w-full rounded-btn bg-sand/60 p-3 text-sm text-espresso">
                       {isAr
-                        ? 'وصلنا إيصالك ✅ المحل هيراجع الدفع ويأكد حجزك قريب.'
-                        : 'We received your receipt ✅ The shop will review the payment and confirm your booking soon.'}
+                        ? 'سجلنا إنك بعت الإيصال على واتساب، هنراجعه ونأكد حجزك قريب.'
+                        : 'We noted that you sent the receipt on WhatsApp. The shop will review it and confirm your booking soon.'}
                     </p>
                   ) : null}
                   {isRejected ? (
