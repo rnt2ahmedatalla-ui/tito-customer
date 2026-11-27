@@ -66,7 +66,7 @@ export function useFaithRotator(opts: { intervalSec?: number; auto?: boolean; en
     queryFn: async () => {
       const { data } = await supabase.from('settings').select('faith_screens, faith_interval_sec' as never).eq('id', 1).maybeSingle();
       const d = data as { faith_screens?: boolean; faith_interval_sec?: number } | null;
-      return { on: d?.faith_screens !== false, interval: Math.max(10, Math.min(300, Number(d?.faith_interval_sec ?? 40))) };
+      return { on: d?.faith_screens !== false, interval: Math.max(10, Math.min(3600, Number(d?.faith_interval_sec ?? 120))) };
     },
   });
   const on = enabled && toggle.data?.on !== false;
