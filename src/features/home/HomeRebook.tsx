@@ -11,40 +11,32 @@ import { useVisitStatus } from '@/features/extras/useExtras';
 
 export type HomeCardVariant = 'current' | 'A' | 'B' | 'C';
 
-/** معاينة: ?homecard=A|B|C بتتحفظ على الموبايل، و ?homecard=off بترجّع الشكل الحالي */
+/** الشكل اللي صاحب المحل اختاره من الإعدادات (current|A|B|C). ?homecard=A|B|C للمعاينة على الموبايل بس (الجلسة دي)، و ?homecard=off بتلغيها */
 export function useHomeCardVariant(): HomeCardVariant {
   const { search } = useLocation();
-  return useMemo(() => {
-    try {
-      const q = new URLSearchParams(search).get('homecard');
-      if (q === 'off') localStorage.removeItem('tito_homecard');
-      else if (q === 'A' || q === 'B' || q === 'C') localStorage.setItem('tito_homecard', q);
-      const v = localStorage.getItem('tito_homecard');
-      return v === 'A' || v === 'B' || v === 'C' ? v : 'current';
-    } catch { return 'current'; }
-  }, [search]);
-}
-
-/** آخر صورة حلاقة للعميل (من «صوري»: اللي رفعها هو أو الحلاق، بعد ما اتقبلت أو لسه مستنية) */
-function useCutPhoto() {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: ['home-cut-photo', user?.id],
-    enabled: !!user,
-    staleTime: 30 * 60_000,
+  const q = useQuery({
+    queryKey: ['home-card-style'],
+    staleTime: 60_000,
     retry: false,
-    queryFn: async (): Promise<string | null> => {
-      const { data } = await supabase.from('customer_photos').select('thumb_path').eq('user_id', user!.id).neq('status', 'rejected').order('taken_at', { ascending: false }).limit(1);
-      const p = (data as Array<{ thumb_path: string }> | null)?.[0]?.thumb_path;
-      if (!p) return null;
-      const s = await supabase.storage.from('customer-photos').createSignedUrl(p, 3600);
-      return s.data?.signedUrl ?? null;
+    queryFn: async (): Promise<HomeCardVariant> => {
+      const { data, error } = await supabase.from('feature_settings').select('home_card_style').eq('id', 1).maybeSingle();
+      const v = (data as { home_card_style?: string } | null)?.home_card_style;
+      return !error && (v === 'A' || v === 'B' || v === 'C') ? v : 'current';
     },
   });
+  return useMemo(() => {
+    try {
+      const p = new URLSearchParams(search).get('homecard');
+      if (p === 'off') sessionStorage.removeItem('tito_homecard');
+      else if (p === 'A' || p === 'B' || p === 'C') sessionStorage.setItem('tito_homecard', p);
+      const v = sessionStorage.getItem('tito_homecard');
+      if (v === 'A' || v === 'B' || v === 'C') return v;
+    } catch { /* ignore */ }
+    return q.data ?? 'current';
+  }, [search, q.data]);
 }
 
 function useLastCut() {
-  const cut = useCutPhoto();
   const { i18n } = useTranslation();
   const isAr = !!i18n.language?.startsWith('ar');
   const { user } = useAuth();
@@ -66,7 +58,7 @@ function useLastCut() {
   const missing = !!d && d.enabled && d.days_since != null && d.days_since >= (d.after_days ?? 28);
   const date = new Intl.DateTimeFormat(isAr ? 'ar-EG' : 'en-US', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(last.start_at));
   const first = String((user?.user_metadata as { full_name?: string } | undefined)?.full_name ?? '').trim().split(/\s+/)[0] ?? '';
-  return { id: last.id, to: `/book?${qs.toString()}`, name: isAr ? nameAr : nameEn || nameAr, barber: barber && multi ? barber : null, photo: cut.data ?? null, days, missing, date, first, isAr };
+  return { id: last.id, to: `/book?${qs.toString()}`, name: isAr ? nameAr : nameEn || nameAr, barber: barber && multi ? barber : null, photo: barber?.photo ?? null, days, missing, date, first, isAr };
 }
 
 function Pic({ photo, name }: { photo: string | null; name?: string }) {
