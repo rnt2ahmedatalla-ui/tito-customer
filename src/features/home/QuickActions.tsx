@@ -1,3 +1,5 @@
+import { Logo } from '@/components/brand/Logo';
+import { useHomeCardCfg } from '@/features/home/HomeRebook';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +34,7 @@ export function QuickRebook() {
   const isAr = i18n.language?.startsWith('ar');
   const rows = useRows();
   const staff = useActiveStaff();
+  const imgCfg = useHomeCardCfg();
   const [hidden, setHidden] = useState<string | null>(() => {
     try { return localStorage.getItem('tito_rebook_hidden'); } catch { return null; }
   });
@@ -55,8 +58,10 @@ export function QuickRebook() {
       >
         <span className="pointer-events-none absolute -start-6 -top-8 size-28 rounded-full bg-gold/10 blur-2xl" aria-hidden />
         <span className="relative shrink-0">
-          {barber?.photo ? (
+          {barber?.photo && imgCfg.data?.image !== 'logo' ? (
             <img src={barber.photo} alt={barber.name} className="size-14 rounded-full object-cover ring-2 ring-gold ring-offset-2 ring-offset-[#341A0E]" />
+          ) : imgCfg.data?.image === 'logo' ? (
+            <Logo mark height={56} className="size-14 rounded-full" />
           ) : (
             <span className="flex size-14 items-center justify-center rounded-full bg-gold/20 font-latin text-xl font-bold text-gold ring-2 ring-gold ring-offset-2 ring-offset-[#341A0E]">
               {barber ? barber.name.slice(0, 1).toUpperCase() : <RotateCcw className="size-6" />}

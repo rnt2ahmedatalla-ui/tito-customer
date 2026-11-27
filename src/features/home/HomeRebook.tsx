@@ -13,18 +13,23 @@ import { useVisitStatus } from '@/features/extras/useExtras';
 export type HomeCardVariant = 'current' | 'A' | 'B' | 'C';
 
 /** الشكل اللي صاحب المحل اختاره من الإعدادات (current|A|B|C). ?homecard=A|B|C للمعاينة على الموبايل بس (الجلسة دي)، و ?homecard=off بتلغيها */
-export function useHomeCardVariant(): HomeCardVariant {
-  const { search } = useLocation();
-  const q = useQuery({
-    queryKey: ['home-card-style'],
+export function useHomeCardCfg() {
+  return useQuery({
+    queryKey: ['home-card-cfg'],
     staleTime: 60_000,
     retry: false,
-    queryFn: async (): Promise<HomeCardVariant> => {
-      const { data, error } = await supabase.from('feature_settings').select('home_card_style').eq('id', 1).maybeSingle();
-      const v = (data as { home_card_style?: string } | null)?.home_card_style;
-      return !error && (v === 'A' || v === 'B' || v === 'C') ? v : 'current';
+    queryFn: async (): Promise<{ style: HomeCardVariant; image: 'barber' | 'logo' }> => {
+      const { data, error } = await supabase.from('feature_settings').select('home_card_style, home_card_image').eq('id', 1).maybeSingle();
+      const r = (data ?? {}) as { home_card_style?: string; home_card_image?: string };
+      const v = r.home_card_style;
+      return { style: !error && (v === 'A' || v === 'B' || v === 'C') ? v : 'current', image: !error && r.home_card_image === 'logo' ? 'logo' : 'barber' };
     },
   });
+}
+
+export function useHomeCardVariant(): HomeCardVariant {
+  const { search } = useLocation();
+  const q = useHomeCardCfg();
   return useMemo(() => {
     try {
       const p = new URLSearchParams(search).get('homecard');
@@ -33,8 +38,8 @@ export function useHomeCardVariant(): HomeCardVariant {
       const v = sessionStorage.getItem('tito_homecard');
       if (v === 'A' || v === 'B' || v === 'C') return v;
     } catch { /* ignore */ }
-    return q.data ?? 'current';
-  }, [search, q.data]);
+    return q.data?.style ?? 'current';
+  }, [search, q.data?.style]);
 }
 
 function useLastCut() {
@@ -44,6 +49,7 @@ function useLastCut() {
   const q = useBookings();
   const staff = useActiveStaff();
   const vs = useVisitStatus();
+  const imgCfg = useHomeCardCfg();
   const rows = (user ? q.data ?? [] : []) as Array<{ id: string; status: string; service_id?: string | null; staff_id?: string | null; start_at: string; service_name_ar?: string | null; service_name_en?: string | null; service?: { name_ar?: string; name_en?: string | null } | null }>;
   const hasUpcoming = rows.some((r) => r.status === 'confirmed' && new Date(r.start_at) > new Date());
   const last = rows.find((r) => r.status === 'completed' || (r.status === 'confirmed' && new Date(r.start_at) <= new Date()));
@@ -59,7 +65,7 @@ function useLastCut() {
   const missing = !!d && d.enabled && d.days_since != null && d.days_since >= (d.after_days ?? 28);
   const date = new Intl.DateTimeFormat(isAr ? 'ar-EG' : 'en-US', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(last.start_at));
   const first = String((user?.user_metadata as { full_name?: string } | undefined)?.full_name ?? '').trim().split(/\s+/)[0] ?? '';
-  return { id: last.id, to: `/book?${qs.toString()}`, name: isAr ? nameAr : nameEn || nameAr, barber: barber && multi ? barber : null, photo: barber?.photo ?? null, days, missing, date, first, isAr };
+  return { id: last.id, to: `/book?${qs.toString()}`, name: isAr ? nameAr : nameEn || nameAr, barber: barber && multi ? barber : null, photo: imgCfg.data?.image === 'logo' ? null : barber?.photo ?? null, days, missing, date, first, isAr };
 }
 
 function Pic({ photo, name }: { photo: string | null; name?: string }) {
