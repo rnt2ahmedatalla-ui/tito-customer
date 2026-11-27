@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, RotateCcw, Scissors, X } from 'lucide-react';
+import { ArrowLeft, RotateCcw, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { Logo } from '@/components/brand/Logo';
 import { useAuth } from '@/features/profile/useAuth';
 import { useBookings } from '@/features/bookings/useBookings';
 import { useActiveStaff } from '@/features/booking/useBooking';
@@ -64,7 +65,7 @@ function useLastCut() {
 function Pic({ photo, name }: { photo: string | null; name?: string }) {
   return photo
     ? <img src={photo} alt={name ?? ''} className="size-12 shrink-0 rounded-full object-cover ring-2 ring-gold ring-offset-2 ring-offset-[#341A0E]" />
-    : <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-gold/20 text-gold ring-2 ring-gold ring-offset-2 ring-offset-[#341A0E]"><Scissors className="size-5" /></span>;
+    : <Logo mark height={48} className="size-12 shrink-0 rounded-full" />;
 }
 
 const CARD = 'group relative flex min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-gold/40 bg-gradient-to-br from-[#4a2a17] to-[#2b1409] px-3 py-2.5 pe-11 shadow-warm-raised transition-transform active:scale-[0.985]';
